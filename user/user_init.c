@@ -157,7 +157,7 @@ int init_main( void )
 	{
 		chdir( busybox_path );
 		bb_sh[0] = sh_name;
-		bb_sh[1] = 0;
+		bb_sh[1] = busybox_testcode_str;
 		bb_sh[2] = 0;
 		bb_sh[3] = 0;
 		bb_sh[4] = 0;

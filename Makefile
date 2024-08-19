@@ -11,7 +11,7 @@ HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 
 # 带有export的变量会在递归调用子目录的Makefile时传递下去
 
-export TOOLPREFIX = /home/sun/gcc-13.2.0-loongarch64-linux-gnu/bin/loongarch64-linux-gnu-
+export TOOLPREFIX =loongarch64-linux-gnu-
 export DEFAULT_CXX_INCLUDE_FLAG = \
 	-include $(WORKPATH)/kernel/include/xn6_config.h \
 	-include $(WORKPATH)/kernel/include/klib/virtual_function.hh \
@@ -38,7 +38,7 @@ export CFLAGS += -DNUMCPU=$(CONF_CPU_NUM)
 export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
 export CFLAGS += -DOPEN_COLOR_PRINT=1
-export CFLAGS += -DOS_DEBUG										# open debug output
+# export CFLAGS += -DOS_DEBUG										# open debug output
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif

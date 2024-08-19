@@ -17,12 +17,11 @@
 #include "fs/file/device.hh"
 #include "fs/file/file.hh"
 #include "fs/file/normal.hh"
-#include "fs/ext4/ext4_fs.hh"
-//#include "fs/ramfs/ramfs.hh"
-#include "fs/ramfs/ramfsInode.hh"
+// #include "fs/ramfs/ramfs.hh"
 #include "fs/jbd2/journal_super_block.hh"
 #include "fs/path.hh"
 #include "fs/ramfs/ramfs.hh"
+#include "fs/ramfs/ramfsInode.hh"
 #include "hal/disk/mbr.hh"
 #include "klib/back_trace.hh"
 #include "klib/common.hh"
@@ -129,6 +128,8 @@ int xn6_start_kernel()
 
 		hsai::hardware_secondary_init();
 
+		for ( long i = 2'000'000'000; i >= 0; --i );
+
 		// void* bt_buf_fp[256];
 		// void* bt_buf_ra[256];
 		// int	  bt_cnt_fp = 0;
@@ -150,17 +151,15 @@ int xn6_start_kernel()
 
 
 		// uint32 apbh[ 64 ];
-		// uint64 addr = ( ( 0xFE0UL << 28 ) | ( 0x0UL << 16 ) | ( 0x2UL << 11 ) | ( 0x0UL << 8 ) );
-		// printf( "addr: \n%p\n", addr | loongarch::qemuls2k::dmwin::win_1 );
-		// printf( "head: \n" );
-		// volatile uint32 * p = ( volatile uint32 * ) ( addr | loongarch::qemuls2k::dmwin::win_1 );
-		// for ( int i = 0; i < 16; i++, p++ )
-		// 	apbh[ i ] = *p;
-		// for ( int i = 0; i < 16; i++ )
-		// 	printf( "%x\n", apbh[ i ] );
+		// uint64 addr = ( ( 0xFE0UL << 28 ) | ( 0x0UL << 16 ) | ( 0x2UL << 11 ) | ( 0x0UL << 8
+		// ) ); printf( "addr: \n%p\n", addr | loongarch::qemuls2k::dmwin::win_1 ); printf(
+		// "head: \n" ); volatile uint32 * p = ( volatile uint32 * ) ( addr |
+		// loongarch::qemuls2k::dmwin::win_1 ); for ( int i = 0; i < 16; i++, p++ ) 	apbh[ i ] =
+		// *p; for ( int i = 0; i < 16; i++ ) 	printf( "%x\n", apbh[ i ] );
 
 		// volatile uint32 *p = ( volatile uint32 * ) ( 0x400e0000 |
-		// loongarch::qemuls2k::dmwin::win_1 ); for ( int i = 0; i < 0x200; i += 4, p++ ) 	printf(
+		// loongarch::qemuls2k::dmwin::win_1 ); for ( int i = 0; i < 0x200; i += 4, p++ )
+		// printf(
 		// "%x\t\t%p\n", i, *p );
 
 		// log_info( "======== 开始 测试 RTC ========" );	<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -179,8 +178,8 @@ int xn6_start_kernel()
 		// log_trace( "rtcctrl : %p", *rtc_ctl );
 
 		// volatile uint32 * rtc_read = ( volatile uint32 * ) loongarch::qemuls2k::rtc_rtcread0;
-		// volatile uint32 * rtc_write = ( volatile uint32 * ) loongarch::qemuls2k::rtc_rtcwrite0;
-		// log_trace( " rtcread : %x", *rtc_read );
+		// volatile uint32 * rtc_write = ( volatile uint32 * )
+		// loongarch::qemuls2k::rtc_rtcwrite0; log_trace( " rtcread : %x", *rtc_read );
 		// *rtc_write = 0x100;
 		// log_trace( " rtcread : %x", *rtc_read );
 		// for ( int i = 0; i < 10000; ++i );
