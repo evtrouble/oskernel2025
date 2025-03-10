@@ -28,5 +28,3 @@
 #define LOONGARCH_ENTRY_STACK_SIZE		0x4000	/* 16 KiB */
 
 /* Direct Map window 0/1 */
-
-
