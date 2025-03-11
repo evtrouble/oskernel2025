@@ -23,8 +23,7 @@ namespace riscv
 
 		// 2. 开启浮点指令，注意此处仅有 0 号CPU 执行这段代码
 		Cpu	  *rvcpu = (Cpu *) hsai::get_cpu();
-		uint64 tmp	 = rvcpu->read_csr( csr::CsrAddr::mstatus );
-		rvcpu->write_csr( csr::CsrAddr::mstatus, tmp | csr::mstatus_fs_m );
+		rvcpu->set_csr( csr::CsrAddr::mstatus, csr::mstatus_fs_m );
 		hsai_info( "enable float instruction" );
 
 		// 3. TLB 管理初始化

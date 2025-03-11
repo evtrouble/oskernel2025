@@ -23,14 +23,12 @@ namespace riscv
 
 	void Cpu::_interrupt_on()
 	{
-		uint64 tmp = read_csr( csr::CsrAddr::sstatus );
-		write_csr( csr::CsrAddr::sstatus, tmp | csr::sstatus_mie_m );
+		set_csr( csr::CsrAddr::sstatus, csr::sstatus_sie_m );
 	}
 
 	void Cpu::_interrupt_off()
 	{
-		uint64 tmp = read_csr( csr::CsrAddr::sstatus );
-		write_csr( csr::CsrAddr::sstatus, tmp & ~csr::sstatus_mie_m );
+		clear_csr( csr::CsrAddr::sstatus, csr::sstatus_sie_m );
 	}
 
 	Cpu * Cpu::get_rv_cpu()
@@ -48,7 +46,7 @@ namespace riscv
 	int Cpu::is_interruptible()
 	{
 		uint64 x = read_csr( csr::CsrAddr::sstatus );
-		return ( x & csr::sstatus_mie_m ) != 0;
+		return ( x & csr::sstatus_sie_m ) != 0;
 	}
 
 	uint64 Cpu::read_csr( csr::CsrAddr r )
@@ -59,6 +57,16 @@ namespace riscv
 	void Cpu::write_csr( csr::CsrAddr r, uint64 d )
 	{
 		csr::_write_csr_( r, d );
+	}
+
+	void Cpu::set_csr( csr::CsrAddr r, uint64 d )
+	{
+		csr::_set_csr_( r, d );
+	}
+
+	void clear_csr( csr::CsrAddr r, uint64 d )
+	{
+		csr::_clear_csr_( r, d );
 	}
 
 } // namespace riscv

@@ -1,21 +1,27 @@
-//
-// Created by Li shuang ( pseudonym ) on 2024-04-05
-// --------------------------------------------------------------
-// | Note: This code file just for study, not for commercial use
-// | Contact Author: lishuang.mk@whu.edu.cn
-// --------------------------------------------------------------
-//
-
 #include "exception_manager.hh"
 
-#include "la_cpu.hh"
-#include "loongarch.hh"
+#include "rv_cpu.hh"
+#include "riscv.hh"
 #include "trap_wrapper.hh"
 
 // #include "kernel/tm/timer_manager.hh"
 
 // #include "kernel/pm/process.hh"
 #include "trap_frame.hh"
+#include "include/types.h"
+#include "include/param.h"
+#include "include/memlayout.h"
+#include "include/riscv.h"
+#include "include/spinlock.h"
+#include "include/proc.h"
+#include "include/sbi.h"
+#include "include/plic.h"
+#include "include/trap.h"
+#include "include/syscall.h"
+#include "include/printf.h"
+#include "include/console.h"
+#include "include/timer.h"
+#include "include/disk.h"
 // #include "kernel/pm/process_manager.hh"
 
 // #include "kernel/mm/memlayout.hh"
@@ -40,8 +46,6 @@
 #include <virtual_cpu.hh>
 
 extern "C" {
-#include "rv_estat.h"
-
 extern void kernelvec();
 extern void handle_tlbr();
 extern void handle_merr();
@@ -58,111 +62,71 @@ namespace riscv
 	{
 		_lock.init( lock_name );
 
-		for ( auto &f : _exception_handlers )
-		{
-			f = []( uint32 ) -> void { hsai_panic( "not implement" ); };
-		}
-
-		uint32 ecfg_data = ( 0x0U << csr::ecfg_vs_s ) | ( csr::itr_hwi_m << csr::ecfg_lie_s ) |
-						   ( csr::itr_ti_m << csr::ecfg_lie_s );
-		// uint32 ecfg_data =
-		// 	( 0x0U << csr::ecfg_vs_s ) |
-		// 	( csr::itr_hwi_m << csr::ecfg_lie_s );
-
-		Cpu *cpu = Cpu::get_la_cpu();
-
-		cpu->write_csr( csr::ecfg, ecfg_data );
-		cpu->write_csr( csr::eentry, (uint64) kernelvec );
-		cpu->write_csr( csr::tlbrentry, (uint64) handle_tlbr );
-		cpu->write_csr( csr::merrentry, (uint64) handle_merr );
-
-		hsai_printf( "keentry: %p\n", (u64) kernelvec );
-		hsai_printf( "ueentry: %p\n", (u64) uservec );
-		hsai_printf( "teentry: %p\n", (u64) handle_tlbr );
-		hsai_printf( "meentry: %p\n", (u64) handle_merr );
-
-		_init_exception_handler();
-
-		// syscall::k_syscall_handler.init();
-
-		// cpu->intr_on();
+		Cpu *cpu = Cpu::get_rv_cpu();
+		cpu->write_csr( csr::CsrAddr::stvec, (uint64)kernelvec );
+		cpu->set_csr( csr::CsrAddr::sstatus, csr::sstatus_sie_m );
+		// enable supervisor-mode timer interrupts.
+		cpu->set_csr(csr::CsrAddr::sie, csr::sie_seie_m | csr::sie_ssie_m | csr::sie_stie_m);
+		set_next_timeout();
+		hsai_printf( "ExceptionManager init\n" );
 	}
 
 	static int kernel_trap_cnt = 0;
 
 	void ExceptionManager::kernel_trap()
 	{
-		// tmm::k_tm.close_ti_intr();
+		Cpu *cpu = Cpu::get_rv_cpu();
 
-		// hsai_info( "enter kernel trap" );
-		// printf( "\033[33m k trap \033[0m" );
-		Cpu *cpu = Cpu::get_la_cpu();
-		// cpu->intr_off();
+		u32 sepc = cpu->read_csr( csr::CsrAddr::spec );
+		u32 sstatus = cpu->read_csr( csr::CsrAddr::sstatus );
+		u32 scause = cpu->read_csr( csr::CsrAddr::scause );
 
-		[[maybe_unused]] u32 crmd = (u32) cpu->read_csr( csr::crmd );
-		if ( crmd & ( 1 << 2 ) ) { hsai_panic( "kernel trap : intr on!" ); }
+		if((sstatus & csr::sstatus_spp_m) == 0)
+			hsai_panic("kerneltrap: not from supervisor mode");
+		if ( sstatus & csr::sstatus_sie_m ) {
+			hsai_panic( "kernel trap : intr on!" ); 
+		}
 
 		kernel_trap_cnt++;
 
 		if ( kernel_trap_cnt > 4 ) hsai_panic( "kernel trap" );
-
-		ulong era  = cpu->read_csr( csr::era );
-		ulong prmd = cpu->read_csr( csr::prmd );
-
-		uint32					estat = (uint32) cpu->read_csr( csr::estat );
-		[[maybe_unused]] uint32 ecfg  = (uint32) cpu->read_csr( csr::ecfg );
-
-		if ( ( ( prmd & csr::prmd_pplv_m ) >> csr::prmd_pplv_s ) != 0 )
-			hsai_panic( "kerneltrap: not from privilege0" );
 		if ( cpu->is_interruptible() ) hsai_panic( "kerneltrap: interrupts enabled" );
 
-		void *proc = nullptr;
-		proc	   = hsai::get_cur_proc();
-
-		if ( estat & ecfg & ( csr::itr_hwi_m | csr::itr_ti_m ) )
-		{
-			int which_dev = dev_intr();
-			if ( ( ( which_dev & ( 1 << 1 ) ) != 0 ) && proc && hsai::proc_is_running( proc ) )
-			{
-				hsai::sched_proc( proc );
+		if((which_dev = devintr()) == 0){
+			hsai_printf("scause %p\n", scause);
+			hsai_printf("sepc=%p stval=%p hart=%d\n", r_sepc(), r_stval(), r_tp());
+			void *proc = hsai::get_cur_proc();
+			if (proc != 0) {
+				hsai_printf("pid: %d, name: %s\n", hsai::get_pid(proc), hsai::get_proc_name( proc ));
 			}
+			hsai_panic("kerneltrap");
+		}
+		
+		void *proc = hsai::get_cur_proc();
+		// give up the CPU if this is a timer interrupt.
+		if(which_dev == 2 && proc && hsai::proc_is_running(proc)) {
+			hsai::sched_proc( proc );
 		}
 
-		if ( estat & csr::Estat::estat_ecode_m )
-		{
-			uint ecode = ( estat & csr::Estat::estat_ecode_m ) >> csr::Estat::estat_ecode_s;
-			hsai_assert( ecode < _LA_ECODE_MAX_NUM_, "unknown ecode : %d", ecode );
-			hsai_info( _la_ecode_spec_[ecode] );
-			_user_or_kernel = 'k';
-			// printf( "%d", ecode );
-			_exception_handlers[ecode]( estat );
-			// hsai_panic( "not implement" );}
-		}
-
-		// tmm::k_tm.open_ti_intr();
-
-		cpu->write_csr( csr::era, era );
-		cpu->write_csr( csr::prmd, prmd );
-
+		// the yield() may have caused some traps to occur,
+  		// so restore trap registers for use by kernelvec.S's sepc instruction.
+		cpu->write_csr( csr::CsrAddr::sepc, sepc );
+		cpu->write_csr( csr::CsrAddr::sstatus, sstatus );
 
 		kernel_trap_cnt--;
-
-		// cpu->intr_on();
 	}
 
 	void ExceptionManager::user_trap()
 	{
-		// printf( "\033[32m u trap \033[0m" );
-		// tmm::k_tm.close_ti_intr();
-		Cpu *cpu   = Cpu::get_la_cpu();
-		u64	 estat = cpu->read_csr( csr::estat );
+		Cpu *cpu   = Cpu::get_rv_cpu();
+		u64	 scause = cpu->read_csr( csr::CsrAddr::scause );
 
 		int	   which_dev = 0;
-		uint64 dbg_prmd	 = cpu->read_csr( csr::CsrAddr::prmd );
-		if ( ( dbg_prmd & 0x03 ) == 0 ) hsai_panic( "Usertrap: not from user mode" );
+		uint64 sstatus	 = cpu->read_csr( csr::CsrAddr::sstatus );
+		if (sstatus & csr::sstatus_spp_m) 
+			hsai_panic( "Usertrap: not from user mode" );
 
-		//
-		cpu->write_csr( csr::CsrAddr::eentry, (uint64) kernelvec );
+		cpu->write_csr( csr::CsrAddr::stvec, (uint64) kernelvec );
 
 		// proc->set_user_ticks(
 		// 	proc->get_user_ticks() +
@@ -171,72 +135,60 @@ namespace riscv
 
 		void	  *proc		 = hsai::get_cur_proc();
 		TrapFrame *trapframe = (TrapFrame *) hsai::get_trap_frame_from_proc( proc );
-		trapframe->era		 = cpu->read_csr( csr::CsrAddr::era );
+		trapframe->epc		 = cpu->read_csr( csr::CsrAddr::sepc );
 
-		// printf( "\nestat=0x%x a7=%d era=0x%x\n", estat, trapframe->a7,
-		// cpu->read_csr( csr::era ) );
-
-		if ( ( estat & csr::Estat::estat_is_m ) )
-		{
-			// device trap
-			which_dev = dev_intr();
-			// ok
-		}
-
-		if ( estat & csr::Estat::estat_ecode_m )
-		{
-
-			uint ecode = ( estat & csr::Estat::estat_ecode_m ) >> csr::Estat::estat_ecode_s;
-			if ( ecode != 0xb && ecode != 0x9 )
-			{
-				hsai_error( "unexcepted usertrapcause estat=%x pid=%d\n, era=%p",
-							cpu->read_csr( csr::CsrAddr::estat ), hsai::get_pid( proc ),
-							cpu->read_csr( csr::CsrAddr::era ) );
-				hsai_assert( ecode < _LA_ECODE_MAX_NUM_, "" );
-				hsai_info( _la_ecode_spec_[ecode] );
-			}
+		if(scause == 8){
+			// system call
+			if ( hsai::proc_is_killed( proc ) ) 
+				hsai::exit_proc( proc, -1 );
 
 			_user_or_kernel = 'u';
-
-			_exception_handlers[ecode]( estat );
-			// pm::k_pm.kill_proc( proc );
+			_syscall();
+		} 
+		else if((which_dev = dev_intr()) != 0){
+			// ok
+		} 
+		else {
+			hsai_error("usertrap(): unexpected scause %p pid=%d %s\n
+				sepc=%p stval=%p\n", scause, hsai::get_pid( proc ), hsai::get_proc_name( proc )
+				cpu->read_csr( csr::CsrAddr::sepc ), cpu->read_csr( csr::CsrAddr::stval ));
+			// trapframedump(p->trapframe);
+			hsai::proc_kill( proc );
 		}
 
-		if ( hsai::proc_is_killed( proc ) ) hsai::exit_proc( proc, -1 );
+		if ( hsai::proc_is_killed( proc ) ) 
+			hsai::exit_proc( proc, -1 );
 
-		if ( ( ( which_dev & ( 1 << 1 ) ) != 0 ) && proc && hsai::proc_is_running( proc ) )
-		{
+		// give up the CPU if this is a timer interrupt.
+		if(which_dev == 2)
 			hsai::sched_proc( proc );
-		}
-
-		// tmm::k_tm.open_ti_intr();
-
+		
 		user_trap_ret();
 	}
 
 	void ExceptionManager::user_trap_ret()
 	{
-		Cpu *cur_cpu = Cpu::get_la_cpu();
+		Cpu *cur_cpu = Cpu::get_rv_cpu();
 
 		// turn off interrupts until back to user space
 		cur_cpu->intr_off();
 
-		cur_cpu->write_csr( csr::CsrAddr::eentry, (uint64) uservec );
+		cur_cpu->write_csr( csr::CsrAddr::stvec, (uint64) uservec );
 
 		void	  *cur_proc	   = hsai::get_cur_proc();
 		TrapFrame *trapframe   = (TrapFrame *) hsai::get_trap_frame_from_proc( cur_proc );
-		trapframe->kernel_pgdl = cur_cpu->read_csr( csr::CsrAddr::pgdl );
+		trapframe->epc = cur_cpu->read_csr( csr::CsrAddr::sepc );
 		trapframe->kernel_sp =
 			hsai::get_kstack_from_proc( cur_proc ) + hsai::get_kstack_size( cur_proc );
 		trapframe->kernel_trap	 = (uint64) &_wrp_user_trap;
 		trapframe->kernel_hartid = cur_cpu->get_cpu_id();
 
-		uint32 x  = (uint32) cur_cpu->read_csr( csr::CsrAddr::prmd );
-		x		 |= ( 0x3U << csr::Prmd::prmd_pplv_s ); // set priv to 3, user mode
-		x		 |= csr::Prmd::prmd_pie_m;				// enable interrupts in user mode
-		cur_cpu->write_csr( csr::CsrAddr::prmd, x );
+		uint32 x  = (uint32) cur_cpu->read_csr( csr::CsrAddr::sstatus );
+		x &= ~csr::sstatus_spp_m; // clear SPP to 0 for user mode
+  		x |= csr::sstatus_spie_m; // enable interrupts in user mode
+		cur_cpu->write_csr( csr::CsrAddr::sstatus, x );
 
-		cur_cpu->write_csr( csr::era, trapframe->era );
+		cur_cpu->write_csr( csr::CsrAddr::sepc, trapframe->epc );
 
 		// cur_proc->set_last_user_tick( hsai::get_ticks() );
 
@@ -246,16 +198,25 @@ namespace riscv
 	}
 
 
-	int ExceptionManager::dev_intr()
+	// Check if it's an external/software interrupt, 
+	// and handle it. 
+	// returns  2 if timer interrupt, 
+	//          1 if other device, 
+	//          0 if not recognized. 
+	int ExceptionManager::dev_intr() 
 	{
-		Cpu	  *cpu	 = Cpu::get_la_cpu();
-		uint64 estat = cpu->read_csr( csr::estat );
-		uint64 ecfg	 = cpu->read_csr( csr::ecfg );
+		Cpu	  *cpu	 = Cpu::get_rv_cpu();
+		uint64 scause = cpu->read_csr( csr::CsrAddr::scause );
 
-		int rc;
-		int dev = 0;
-
-		if ( estat & ecfg & csr::itr_hwi_m )
+		#ifdef QEMU 
+		// handle external interrupt 
+		if ((0x8000000000000000L & scause) && 9 == (scause & 0xff)) 
+		#else 
+		// on k210, supervisor software interrupt is used 
+		// in alternative to supervisor external interrupt, 
+		// which is not available on k210. 
+		if (0x8000000000000001L == scause && 9 == cpu->read_csr( csr::CsrAddr::stval )) 
+		#endif 
 		{
 			rc = hsai::k_im->handle_dev_intr();
 			if ( rc < 0 )
@@ -263,11 +224,16 @@ namespace riscv
 				hsai_error( "im handle dev intr fail" );
 				return rc;
 			}
-			dev |= 1 << 0;
-		}
+			set_next_timeout();
 
-		if ( estat & ecfg & csr::itr_ti_m )
-		{
+			#ifndef QEMU
+			cpu->clear_csr( csr::CsrAddr::sip, 2 );
+			cpu->set_csr( csr::CsrAddr::mie, csr::mie_msie_m | csr::mie_mtie_m | csr::mie_meie_m);
+			#endif 
+
+			return 1;
+		}
+		else if (0x8000000000000005L == scause) {
 			rc = 0;
 			if ( cpu->get_cpu_id() == 0 )
 			{
@@ -278,32 +244,10 @@ namespace riscv
 					return rc;
 				}
 			}
-
-			cpu->write_csr( csr::ticlr, cpu->read_csr( csr::ticlr ) | 1 );
-			dev |= 1 << 1;
+			return 2;
 		}
-
-		if ( estat & ecfg & csr::itr_ipi_m ) { return -101; }
-
-		if ( estat & ecfg & csr::itr_pmi_m ) { return -201; }
-
-		// else
-		// {
-		// 	// hsai_error(
-		// 	// 	"unkown exception.\n"
-		// 	// 	"estat: %x\n"
-		// 	// 	"badv: %x\n"
-		// 	// 	"badi: %x\n",
-		// 	// 	estat,
-		// 	// 	cpu->read_csr( csr::badv ),
-		// 	// 	cpu->read_csr( csr::badi )
-		// 	// );
-		// 	return -101;
-		// }
-
-		return dev;
+		return 0;
 	}
-
 
 	void ExceptionManager::machine_trap() { hsai_panic( "not implement" ); }
 
@@ -317,432 +261,25 @@ namespace riscv
 		hsai_panic( "ahci intr" );
 	}
 
-	// ---------------- private helper functions ----------------
-
-	// void ExceptionManager::handle_pif()
-	// {
-	// 	hsai_panic(
-	// 		"handle PIF :\n"
-	// 		"    badv : %x"
-	// 		"    badi : %x",
-	// 		cpu->read_csr( csr::badv ),
-	// 		cpu->read_csr( csr::badi )
-	// 	);
-	// }
-
-	void ExceptionManager::_init_exception_handler()
+	void ExceptionManager::set_next_timeout()
 	{
-		_exception_handlers[csr::ecode_int] = std::bind( &ExceptionManager::dev_intr, this );
-
-		_exception_handlers[csr::ecode_brk] = []( uint32 ) -> void
-		{
-			Cpu *cpu = Cpu::get_la_cpu();
-			// uint64 estat = cpu->read_csr( csr::estat );
-			// uint64 ecfg = cpu->read_csr( csr::ecfg );
-
-			hsai_panic( "exception BRK:\n"
-				"era: %p\n"
-				"badv: %p\n"
-				"badi: %p\n",
-				"crmd: %p\n",
-				cpu->read_csr( csr::era ),
-				cpu->read_csr( csr::badv ),
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd )
-			);
-			return;
-		};
-
-		_exception_handlers[csr::ecode_pil] = [this]( uint32 estat ) -> void
-		{
-			// printf( ( _user_or_kernel == 'u' ) ? "u" : "k" );
-			// printf( "PIL" );
-			// printf( "0x%x", cpu->read_csr( csr::era ) );
-			Cpu					   *cpu	 = Cpu::get_la_cpu();
-			[[maybe_unused]] uint64 badv = cpu->read_csr( csr::badv );
-			[[maybe_unused]] uint64 era	 = cpu->read_csr( csr::era );
-
-			void				   *proc = hsai::get_cur_proc();
-			// [[maybe_unused]] hsai::Pte pte = hsai::get_pt_from_proc( proc
-			// )->walk( badv, false );
-			TrapFrame			   *tf	 = (TrapFrame *) hsai::get_trap_frame_from_proc( proc );
-			[[maybe_unused]] uint64 usp	 = tf->sp;
-
-			hsai_printf( YELLOW_COLOR_PRINT "load bad virtual address : %p\n" CLEAR_COLOR_PRINT,
-						 badv );
-
-			// hsai_printf( YELLOW_COLOR_PRINT "print the page at address
-			// a0(%p)\n" CLEAR_COLOR_PRINT, tf->a0 ); this->_print_va_page(
-			// proc, tf->a0 );
-
-			if ( ( era >> 60 ) == 0 )
-				this->_print_va_page( proc, era );
-			else
-				this->_print_pa_page( era );
-			this->_print_va_page( proc, usp );
-
-			this->_print_trap_frame( proc );
-
-			// ulong iofbadv = this->_get_user_data( proc, badv );
-			// hsai_printf( BLUE_COLOR_PRINT "read data(u64) from badv %p =
-			// %#lx\n" CLEAR_COLOR_PRINT, 	badv, iofbadv );
-
-			hsai_panic(
-				"handle exception PIL :\n"
-				"    badv : %p\n"
-				"    badi : %#010x\n"
-				"    crmd : %#010x\n"
-				"    era  : %p\n"
-				"    tick : %d\n"
-				"    sp   : %p\n",
-				badv,
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd ),
-				cpu->read_csr( csr::era ),
-				hsai::get_ticks(),
-				usp
-				// pte.get_data()
-			);
-		};
-
-		_exception_handlers[csr::ecode_pis] = [this]( uint32 estat ) -> void
-		{
-			// [[maybe_unused]] mm::Pte pte =
-			// Cpu::get_cpu()->get_cur_proc()->get_pagetable().walk( badv, 0 );
-			hsai_trace( "trace kernel trap count = %d", kernel_trap_cnt );
-
-			Cpu					   *cpu	 = Cpu::get_la_cpu();
-			[[maybe_unused]] uint64 badv = cpu->read_csr( csr::badv );
-			[[maybe_unused]] uint64 era	 = cpu->read_csr( csr::era );
-
-			void				   *proc = hsai::get_cur_proc();
-			// [[maybe_unused]] hsai::Pte pte = hsai::get_pt_from_proc( proc
-			// )->walk( badv, false );
-			TrapFrame			   *tf	 = (TrapFrame *) hsai::get_trap_frame_from_proc( proc );
-			[[maybe_unused]] uint64 usp	 = tf->sp;
-
-			// hsai_printf( YELLOW_COLOR_PRINT "print the page at address
-			// a0(%p)\n" CLEAR_COLOR_PRINT, tf->a0 ); this->_print_va_page(
-			// proc, tf->a0 );
-
-			if ( ( era >> 60 ) == 0 )
-				this->_print_va_page( proc, era );
-			else
-				this->_print_pa_page( era );
-			this->_print_va_page( proc, usp );
-
-			this->_print_trap_frame( proc );
-
-			ulong iofbadv = this->_get_user_data( proc, badv );
-			hsai_printf( BLUE_COLOR_PRINT "read data(u64) from badv %p = %#lx\n" CLEAR_COLOR_PRINT,
-						 badv, iofbadv );
-
-			hsai::Pte pte = hsai::get_pt_from_proc( proc )->walk( badv, false );
-			hsai_printf( YELLOW_COLOR_PRINT "pte corresponding to badv is %p\n" CLEAR_COLOR_PRINT,
-						 pte.get_data() );
-
-			hsai_panic(
-				"handle exception PIS :\n"
-				"    badv : %p\n"
-				"    badi : %#010x\n"
-				"    crmd : %#010x\n"
-				"    era  : %p\n"
-				"    tick : %d\n"
-				"    sp   : 0x%x\n",
-				badv,
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd ),
-				cpu->read_csr( csr::era ),
-				hsai::get_ticks(),
-				usp
-			);
-		};
-
-		_exception_handlers[csr::ecode_pif] = []( uint32 ) -> void
-		{
-			Cpu *cpu = Cpu::get_la_cpu();
-			hsai_panic(
-				"handle exception PIF :\n"
-				"    badv : 0x%x\n"
-				"    badi : 0x%x\n"
-				"    crmd : 0x%x\n"
-				"    era  : 0x%x\n"
-				"    tick : %d",
-				cpu->read_csr( csr::badv ),
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd ),
-				cpu->read_csr( csr::era ),
-				hsai::get_ticks()
-			);
-		};
-
-		_exception_handlers[csr::ecode_pme] = []( uint32 estat ) -> void
-		{
-			Cpu						  *cpu	= Cpu::get_la_cpu();
-			uint64					   badv = cpu->read_csr( csr::badv );
-			void					  *proc = hsai::get_cur_proc();
-			[[maybe_unused]] hsai::Pte pte	= hsai::get_pt_from_proc( proc )->walk( badv, 0 );
-			hsai_panic(
-				"handle exception PME :\n"
-				"    badv : %x\n"
-				"    badi : %x\n"
-				"    pte  : %p",
-				badv,
-				cpu->read_csr( csr::badi ),
-				pte.get_data()
-			);
-		};
-
-		_exception_handlers[csr::ecode_pnx] = []( uint32 ) -> void
-		{
-			Cpu *cpu = Cpu::get_la_cpu();
-			hsai_panic(
-				"handle exception PNX :\n"
-				"    badv : %x\n"
-				"    badi : %x",
-				cpu->read_csr( csr::badv ),
-				cpu->read_csr( csr::badi )
-			);
-		};
-
-		_exception_handlers[csr::ecode_ppi] = []( uint32 estat ) -> void
-		{
-			Cpu						  *cpu	= Cpu::get_la_cpu();
-			uint64					   badv = cpu->read_csr( csr::badv );
-			void					  *proc = hsai::get_cur_proc();
-			[[maybe_unused]] hsai::Pte pte	= hsai::get_pt_from_proc( proc )->walk( badv, 0 );
-			hsai_panic(
-				"handle exception PPI :\n"
-				"    badv : %x\n"
-				"    badi : %x\n"
-				"    pte  : %x",
-				badv,
-				cpu->read_csr( csr::badi ),
-				pte.get_data()
-			);
-		};
-
-		_exception_handlers[csr::ecode_ade] = [this]( uint32 estat ) -> void
-		{
-			Cpu					 *cpu = Cpu::get_la_cpu();
-			[[maybe_unused]] uint e_sub_code =
-				( estat & ( csr::Estat::estat_esubcode_m ) ) >> csr::Estat::estat_esubcode_s;
-
-			u64	  era  = cpu->read_csr( csr::era );
-			void *proc = hsai::get_cur_proc();
-
-			u32 bad_instr;
-			if ( ( era >> 60 ) == 0 )
-				bad_instr = (u32) this->_get_user_data( proc, era );
-			else
-				bad_instr = *(u32 *) era;
-			hsai_printf( BLUE_COLOR_PRINT "出错指令: %#010x\n" CLEAR_COLOR_PRINT, bad_instr );
-			hsai_panic(
-				"handle exception ADE :\n"
-				"    type : %s\n"
-				"    badv : %p\n"
-				"    badi : %#010x\n"
-				"    crmd : %#010x\n"
-				"    era  : %p\n"
-				"    tick : %d\n",
-				e_sub_code ? "取指地址错误(ADEF)" : "访存指令地址错误(ADEM)",
-				cpu->read_csr( csr::badv ),
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd ),
-				era,
-				hsai::get_ticks()
-			);
-		};
-
-		_exception_handlers[csr::ecode_ale] = [this]( uint32 ) -> void
-		{
-			Cpu					   *cpu	 = Cpu::get_la_cpu();
-			[[maybe_unused]] uint64 badv = cpu->read_csr( csr::badv );
-			[[maybe_unused]] uint64 era	 = cpu->read_csr( csr::era );
-
-			void				   *proc = hsai::get_cur_proc();
-			hsai::VirtualPageTable *pt	 = hsai::get_pt_from_proc( proc );
-
-			u32 bad_instr;
-
-			if ( ( era >> 60 ) == 0 ) // 用户指令
-				( u32 ) hsai::copy_from_user( pt, (void *) &bad_instr, era, sizeof( u32 ) );
-			else // 内核指令
-			{
-				bad_instr = *(u32 *) era;
-				hsai_panic( 
-					"内核发生ALE异常, 暂未实现处理函数\n"
-				"    badv : %p\n"
-				"    badi : %#010x\n"
-				"    crmd : %#010x\n"
-				"    era  : %p\n"
-				"    tick : %d\n",
-				badv,
-				bad_instr,
-				cpu->read_csr( csr::crmd ),
-				era,
-				hsai::get_ticks() 
-				);
-			}
-
-			u32 main_opcode = ( bad_instr >> 26 ) & 0x3F;
-			u32 sub_opcode	= 0;
-
-			[[maybe_unused]] u64 rk, rj, rd, rkd, rjd, rdd;
-			[[maybe_unused]] u64 addr;
-
-			rk = rj = rd = 100;
-			rkd = rjd = rdd = 0;
-
-			bool is_store	 = 0; // 0 indicates load
-			bool is_unsigned = 0;
-			int	 byte_cnt	 = 0; // 访存长度（字节）
-
-			TrapFrame *tf = nullptr;
-
-			if ( proc != nullptr ) { tf = (TrapFrame *) hsai::get_trap_frame_from_proc( proc ); }
-			else { hsai_panic( "no proc run while ALE exception" ); }
-
-			rd = ( bad_instr >> 0 ) & 0x1F;	 // 只是寄存器号
-			rj = ( bad_instr >> 5 ) & 0x1F;	 // 只是寄存器号
-			rk = ( bad_instr >> 10 ) & 0x1F; // 只是寄存器号
-
-			if ( rd >= 0 && rd < 32 ) { rdd = get_reg_from_trap_frame( tf, (int) rd ); }
-			if ( rj >= 0 && rj < 32 ) { rjd = get_reg_from_trap_frame( tf, (int) rj ); }
-			if ( rk >= 0 && rk < 32 ) { rkd = get_reg_from_trap_frame( tf, (int) rk ); }
-
-			switch ( main_opcode )
-			{
-				case 0b00'1000:
-				{
-					hsai_panic( "ALE : [LLSC]编码空间\nbadi=%#010x", bad_instr );
-				}
-				break;
-				case 0b00'1001:
-				{
-					sub_opcode = ( bad_instr >> 24 ) & 0x3;
-
-					if ( sub_opcode & 0b01 )
-						is_store = true;
-					else
-						is_store = false;
-
-					if ( sub_opcode & 0b10 )
-						byte_cnt = 8;
-					else
-						byte_cnt = 4;
-
-					if ( is_store ) { hsai::copy_to_user( pt, badv, &rdd, byte_cnt ); }
-					else
-					{
-						hsai::copy_from_user( pt, (void *) &rdd, badv, byte_cnt );
-						set_reg_from_trap_frame( tf, rd, rdd );
-					}
-				}
-				break;
-				case 0b00'1010:
-				{
-					// hsai_panic( "ALE : [基本]编码空间\nbadi=%#010x", bad_instr );
-					sub_opcode = ( bad_instr >> 22 ) & 0xF;
-
-					switch ( ( sub_opcode >> 0 ) & 0x3 )
-					{
-						case 0b00: byte_cnt = 1; break;
-						case 0b01: byte_cnt = 2; break;
-						case 0b10: byte_cnt = 4; break;
-						case 0b11: byte_cnt = 8; break;
-						default	 : byte_cnt = 0; break;
-					}
-
-					if ( sub_opcode & ( 1 << 2 ) )
-						is_store = true;
-					else
-						is_store = false;
-
-					if ( sub_opcode & ( 1 << 3 ) )
-						is_unsigned = true;
-					else
-						is_unsigned = false;
-
-
-					if ( is_store ) { hsai::copy_to_user( pt, badv, &rdd, byte_cnt ); }
-					else
-					{
-						rdd = 0;
-						hsai::copy_from_user( pt, &rdd, badv, byte_cnt );
-						if ( !is_unsigned )
-						{
-							switch ( byte_cnt )
-							{
-								case 1:
-								{
-									if ( rdd & ( 1 << 7 ) ) rdd |= 0xFFFF'FFFF'FFFF'FF00UL;
-								}
-								break;
-								case 2:
-								{
-									if ( rdd & ( 1 << 15 ) ) rdd |= 0xFFFF'FFFF'FFFF'0000UL;
-								}
-								break;
-								case 4:
-								{
-									if ( rdd & ( 1 << 31 ) ) rdd |= 0xFFFF'FFFF'0000'0000UL;
-								}
-								break;
-								case 8:
-								{
-								}
-								break;
-								default: break;
-							}
-						}
-						set_reg_from_trap_frame( tf, rd, rdd );
-					}
-				}
-				break;
-				case 0b00'1011:
-				{
-					hsai_panic( "ALE : [扩展甲]编码空间\nbadi=%#010x", bad_instr );
-				}
-				break;
-				case 0b00'1100:
-				{
-					hsai_panic( "ALE : [扩展乙]编码空间\nbadi=%#010x", bad_instr );
-				}
-				break;
-				case 0b00'1110:
-				{
-					hsai_panic( "ALE : [复杂]编码空间\nbadi=%#010x", bad_instr );
-				}
-				break;
-
-				default: hsai_panic( "ALE : 未知编码空间\nbadi=%#010x", bad_instr ); break;
-			}
-
-			tf->era += 4;
-		};
-
-
-		_exception_handlers[csr::ecode_sys] = std::bind( &ExceptionManager::_syscall, this );
-
-		_exception_handlers[csr::ecode_ine] = []( uint32 ) -> void
-		{
-			Cpu *cpu = Cpu::get_la_cpu();
-			hsai_panic(
-				"handle exception INE :\n"
-				"    badv : 0x%x\n"
-				"    badi : 0x%x\n"
-				"    crmd : 0x%x\n"
-				"    era  : 0x%x\n"
-				"    tick : %d",
-				cpu->read_csr( csr::badv ),
-				cpu->read_csr( csr::badi ),
-				cpu->read_csr( csr::crmd ),
-				cpu->read_csr( csr::era ),
-				hsai::get_ticks()
-			);
-		};
+		Cpu *cpu = Cpu::get_rv_cpu();
+		cpu->write_csr( csr::CsrAddr::timecmp, cpu->read_csr(csr::CsrAddr::time) + INTERVAL );
 	}
+
+	static inline uint64 read_mtime()
+	{
+		uint64 mtime;
+		asm volatile ("csrr %0, time" : "=r"(mtime));
+		return mtime;
+	}
+
+	static inline void write_mtimecmp(uint64 time)
+	{
+		asm volatile ("csrw timecmp, %0" : : "r"(time));
+	}
+
+	// ---------------- private helper functions ----------------
 
 	void ExceptionManager::_syscall()
 	{
@@ -752,11 +289,14 @@ namespace riscv
 		if ( hsai::proc_is_killed( p ) ) hsai::exit_proc( p, -1 );
 
 		// update pc
-		tf->era += 4;
+		// sepc points to the ecall instruction,
+		// but we want to return to the next instruction.
+		tf->epc += 4;
 
 		// tmm::k_tm.close_ti_intr();
-
-		Cpu *cpu = Cpu::get_la_cpu();
+		// an interrupt will change sstatus &c registers,
+		// so don't enable until done with those registers.
+		Cpu *cpu = Cpu::get_rv_cpu();
 		cpu->intr_on();
 
 		uint64 num;
@@ -863,5 +403,5 @@ namespace riscv
 		hsai_printf( CLEAR_COLOR_PRINT );
 	}
 
-} // namespace riscv
+} // namespace loongarch
 

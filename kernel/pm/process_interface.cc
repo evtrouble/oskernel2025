@@ -28,6 +28,16 @@ namespace hsai
 		return mm::vml::vm_trap_frame;
 	}
 
+	void proc_kill( void * proc)
+	{
+		return ( ( pm::Pcb * ) proc )->kill();
+	}
+
+	char * get_proc_name( void * proc)
+	{
+		return ( ( pm::Pcb * ) proc )->get_name();
+	}
+
 	uint get_pid( void * proc )
 	{
 		return ( ( pm::Pcb * ) proc )->get_pid();

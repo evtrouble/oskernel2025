@@ -18,16 +18,4 @@
 // RISC-V: CSR_SATP (Supervisor Address Translation and Protection)
 #define RISCV_CSR_SATP              0x180
 
-// LoongArch: LOONGARCH_CSR_TLBRENTRY
-// RISC-V: CSR_STVEC (Supervisor Trap Vector Base Address)
-#define RISCV_CSR_STVEC             0x105
-
-// LoongArch: LOONGARCH_CSR_TLBRBADV
-// RISC-V: CSR_MTVAL (Machine Trap Value)
-#define RISCV_CSR_MTVAL             0x343
-
-// LoongArch: LOONGARCH_CSR_TLBRSAVE
-// RISC-V: CSR_MSCRATCH (Scratch Register)
-#define RISCV_CSR_MSCRATCH          0x340
-
 #define RISCV_ENTRY_STACK_SIZE		0x4000	/* 16 KiB */

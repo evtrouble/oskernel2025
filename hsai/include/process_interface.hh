@@ -27,6 +27,10 @@ namespace hsai
 
 	extern __hsai_kernel void exit_proc( void * proc, int state );
 
+	extern __hsai_kernel void proc_kill( void * proc);
+
+	extern __hsai_kernel char * get_proc_name( void * proc);
+
 	extern __hsai_kernel bool proc_is_killed( void * proc );
 
 	extern __hsai_kernel bool proc_is_running( void * proc );

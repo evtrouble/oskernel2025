@@ -67,49 +67,51 @@ namespace riscv
 	namespace csr
 	{
 		enum CsrAddr : uint64
-			{
-				// Machine Information Registers
-				mvendorid = 0xF11,  // Vendor ID
-				marchid = 0xF12,    // Architecture ID
-				mimpid = 0xF13,     // Implementation ID
-				mhartid = 0xF14,    // Hardware Thread ID
+		{
+			// Machine Information Registers
+			mvendorid = 0xF11,  // Vendor ID
+			marchid = 0xF12,    // Architecture ID
+			mimpid = 0xF13,     // Implementation ID
+			mhartid = 0xF14,    // Hardware Thread ID (cpuid in LoongArch)
 
-				// Machine Trap Setup
-				mstatus = 0x300,    // Machine Status Register
-				misa = 0x301,       // ISA and Extensions
-				medeleg = 0x302,    // Machine Exception Delegation
-				mideleg = 0x303,    // Machine Interrupt Delegation
-				mie = 0x304,        // Machine Interrupt Enable
-				mtvec = 0x305,      // Machine Trap-Vector Base Address
-				mscratch = 0x340,   // Machine Scratch Register
-				mepc = 0x341,       // Machine Exception Program Counter
-				mcause = 0x342,     // Machine Cause Register
-				mtval = 0x343,      // Machine Trap Value Register
-				mip = 0x344,        // Machine Interrupt Pending
+			// Machine Trap Setup
+			mstatus = 0x300,    // Machine Status Register (crmd in LoongArch)
+			misa = 0x301,       // ISA and Extensions
+			medeleg = 0x302,    // Machine Exception Delegation (ecfg in LoongArch)
+			mideleg = 0x303,    // Machine Interrupt Delegation (ecfg in LoongArch)
+			mie = 0x304,        // Machine Interrupt Enable
+			mtvec = 0x305,      // Machine Trap-Vector Base Address (eentry in LoongArch)
+			time = 0xC01,       // Timer Register
+			timecmp = 0xC02,    // Timer Compare Register
+			mscratch = 0x340,   // Machine Scratch Register
+			mepc = 0x341,       // Machine Exception Program Counter (era in LoongArch)
+			mcause = 0x342,     // Machine Cause Register (estat in LoongArch)
+			mtval = 0x343,      // Machine Trap Value Register (badv in LoongArch)
+			mip = 0x344,        // Machine Interrupt Pending
 
-				// Supervisor Trap Setup
-				sstatus = 0x100,    // Supervisor Status Register
-				sedeleg = 0x102,    // Supervisor Exception Delegation
-				sideleg = 0x103,    // Supervisor Interrupt Delegation
-				sie = 0x104,        // Supervisor Interrupt Enable
-				stvec = 0x105,      // Supervisor Trap-Vector Base Address
-				sscratch = 0x140,   // Supervisor Scratch Register
-				sepc = 0x141,       // Supervisor Exception Program Counter
-				scause = 0x142,     // Supervisor Cause Register
-				stval = 0x143,      // Supervisor Trap Value Register
-				sip = 0x144,        // Supervisor Interrupt Pending
-				satp = 0x180,       // Supervisor Address Translation and Protection
+			// Supervisor Trap Setup
+			sstatus = 0x100,    // Supervisor Status Register (prmd in LoongArch)
+			sedeleg = 0x102,    // Supervisor Exception Delegation
+			sideleg = 0x103,    // Supervisor Interrupt Delegation
+			sie = 0x104,        // Supervisor Interrupt Enable
+			stvec = 0x105,      // Supervisor Trap-Vector Base Address (eentry in LoongArch)
+			sscratch = 0x140,   // Supervisor Scratch Register
+			sepc = 0x141,       // Supervisor Exception Program Counter (era in LoongArch)
+			scause = 0x142,     // Supervisor Cause Register (estat in LoongArch)
+			stval = 0x143,      // Supervisor Trap Value Register (badv in LoongArch)
+			sip = 0x144,        // Supervisor Interrupt Pending
+			satp = 0x180,       // Supervisor Address Translation and Protection
 
-				// User Trap Setup
-				ustatus = 0x000,    // User Status Register
-				uie = 0x004,        // User Interrupt Enable
-				utvec = 0x005,      // User Trap-Vector Base Address
-				uscratch = 0x040,   // User Scratch Register
-				uepc = 0x041,       // User Exception Program Counter
-				ucause = 0x042,     // User Cause Register
-				utval = 0x043,      // User Trap Value Register
-				uip = 0x044,        // User Interrupt Pending
-			};
+			// User Trap Setup
+			ustatus = 0x000,    // User Status Register
+			uie = 0x004,        // User Interrupt Enable
+			utvec = 0x005,      // User Trap-Vector Base Address
+			uscratch = 0x040,   // User Scratch Register
+			uepc = 0x041,       // User Exception Program Counter
+			ucause = 0x042,     // User Cause Register
+			utval = 0x043,      // User Trap Value Register
+			uip = 0x044,        // User Interrupt Pending
+		};
 
 #define _build_mstatus_bit_( name, mask, shift ) \
 	mstatus_##name##_s = shift, \
@@ -245,6 +247,16 @@ namespace riscv
 		static inline void _write_csr_( CsrAddr _csr, uint64 _data )
 		{
 			asm volatile ("csrw %0, %1" : : "i"(_csr), "r"(_data));
+		}
+
+		static inline void _set_csr_( CsrAddr _csr, uint64 _data )
+		{
+			asm volatile ("csrs %0, %1" : : "i"(_csr), "r"(_data));
+		}
+
+		static inline void _clear_csr_( CsrAddr _csr, uint64 _data )
+		{
+			asm volatile ("csrc %0, %1" : : "i"(_csr), "r"(_data));
 		}
 
 	} // namespace csr
