@@ -10,8 +10,12 @@ HOST_OS = $(shell uname)
 HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 
 # 带有export的变量会在递归调用子目录的Makefile时传递下去
-
+ifeq ($(CONF_ARCH), loongarch)
 export TOOLPREFIX = loongarch64-linux-gnu-
+else ifeq ($(CONF_ARCH), riscv)
+export TOOLPREFIX = riscv64-unknown-elf-
+endif
+
 export DEFAULT_CXX_INCLUDE_FLAG = \
 	-include $(WORKPATH)/kernel/include/xn6_config.h \
 	-include $(WORKPATH)/kernel/include/klib/virtual_function.hh \

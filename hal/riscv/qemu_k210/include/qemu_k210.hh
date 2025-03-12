@@ -119,6 +119,9 @@ namespace riscv
 
 #define PHYSTOP                 0x80600000
 
+// Sv48
+#define MAXVA (1L << (9 + 9 + 9 + 9 + 12 - 1))
+
 // map the trampoline page to the highest address,
 // in both user and kernel space.
 #define TRAMPOLINE              (MAXVA - PGSIZE)

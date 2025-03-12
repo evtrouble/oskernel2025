@@ -31,7 +31,7 @@ namespace hsai
 	void Pte::set_super_plv() { *_data_addr &= ~user_plv_flag(); }
 	void Pte::set_user_plv() { *_data_addr |= user_plv_flag(); }
 
-	ulong Pte::to_pa() { return *_data_addr & pte_base_pa_m; }
+	ulong Pte::to_pa() { return (*_data_addr >> 10) << 12; }
 	pte_t Pte::get_flags() { return *_data_addr & pte_flags_m; }
 
 	pte_t Pte::map_code_page_flags() { return pte_present_m | ( mat_cc << pte_mat_s ); }

@@ -22,12 +22,5 @@ namespace riscv
 	{
 		_lock.init( lock_name );
 		invalid_all_tlb();
-		Cpu * cpu = ( Cpu * ) hsai::get_cpu();
-		// 设置页表基地址和模式
-		cpu->write_csr( csr::CsrAddr::satp, (page_table_base_address | mode) );
-		// 设置地址空间标识符
-		cpu->write_csr( csr::asid, 0x0UL );
-		// 根据具体实现，可能需要设置其他寄存器
-		// cpu->write_csr( csr::other, value );
 	}
 } // namespace riscv

@@ -1,62 +1,46 @@
 #pragma once 
-
-extern "C" {
-#include "asm.h"
-}
-
 #include <kernel/types.hh>
 
 namespace riscv
 {
+	#define RISCV_ENTRY_STACK_SIZE		0x4000	/* 16 KiB */
 	constexpr uint entry_stack_size = RISCV_ENTRY_STACK_SIZE;
 
 	void riscv_init();
 
-	enum PgEnum : uint64
-	{
-		pg_flags_mask = 0xE000'0000'0000'01FFUL,
-	};
-
-	constexpr uint64 dmwin_mask = 0xFUL << 60;
-	enum dmwin : uint64
-	{
-		win_0 = 0x9UL << 60,
-		win_1 = 0x8UL << 60,
-	};
-	constexpr uint64 virt_to_phy_address( uint64 virt ) { return virt & ~dmwin_mask; }
-
 #define _build_pte_bit_(name,mask,shift) \
 	pte_##name##_s = shift, \
 	pte_##name##_m = mask << pte_##name##_s,
+	// 页表项各个位的作用说明:
+	// [0]     V (Valid): 页表项是否有效
+	// [1]     R (Read): 页表项是否可读
+	// [2]     W (Write): 页表项是否可写
+	// [3]     X (Execute): 页表项是否可执行
+	// [4]     U (User): 页表项是否用户模式可访问
+	// [5]     G (Global): 页表项是否全局映射
+	// [6]     A (Accessed): 页表项是否被访问过
+	// [7]     D (Dirty): 页表项是否被写过
+	// [8-9]   RSW (Reserved for Software): 保留给软件使用
+	// [10-53] PPN (Physical Page Number): 物理页号
+	// [54-63] Reserved: 保留位
 	enum PteEnum : uint64
 	{
 		_build_pte_bit_( valid, 0x1, 0 )
-		_build_pte_bit_( dirty, 0x1, 1 )
-		_build_pte_bit_( plv, 0x3, 2 )
-		_build_pte_bit_( mat, 0x3, 4 )
-		_build_pte_bit_( base_global, 0x1, 6 )
-		_build_pte_bit_( dir_huge, 0x1, 6 )
-		_build_pte_bit_( present, 0x1, 7 )
-		_build_pte_bit_( writable, 0x1, 8 )
-		_build_pte_bit_( base_pa, 0x1FFFFFFFFFFFFUL, 12 )
-		_build_pte_bit_( huge_global, 0x1, 12 )
-		_build_pte_bit_( no_read, 0x1UL, 61 )
-		_build_pte_bit_( no_execute, 0x1UL, 62 )
-		_build_pte_bit_( rplv, 0x1UL, 63 )
+		_build_pte_bit_( read, 0x1, 1 )
+		_build_pte_bit_( write, 0x1, 2 )
+		_build_pte_bit_( execute, 0x1, 3 )
+		_build_pte_bit_( user, 0x1, 4 )
+		_build_pte_bit_( global, 0x1, 5 )
+		_build_pte_bit_( accessed, 0x1, 6 )
+		_build_pte_bit_( dirty, 0x1, 7 )
+		_build_pte_bit_( rsw, 0x3, 8 )
+		_build_pte_bit_( ppn, 0xFFFFFFFFFFFUL, 10 )
+		_build_pte_bit_( reserved, 0x3FF, 54 )
 
-		pte_flags_m = pte_valid_m | pte_dirty_m | pte_plv_m | pte_mat_m | pte_base_global_m | pte_present_m
-		| pte_writable_m | pte_no_read_m | pte_no_execute_m | pte_rplv_m,
+		pte_flags_m = pte_valid_m | pte_read_m | pte_write_m | pte_execute_m | pte_user_m | pte_global_m
+		| pte_accessed_m | pte_dirty_m | pte_rsw_m
 	};
 #undef _build_pte_bit_
-	static_assert( PteEnum::pte_flags_m == 0xE0000000000001FFUL );
-
-	enum MatEnum : uint
-	{
-		mat_suc = 0x0,			// 强序非缓存
-		mat_cc = 0x1,			// 一致可缓存
-		mat_wuc = 0x2,			// 弱序非缓存
-		mat_undefined = 0x3
-	};
 
 	enum PlvEnum : uint
 	{
