@@ -1,11 +1,9 @@
 // GPIOHS Protocol Implementation
-
-#include "include/types.h"
-#include "include/gpiohs.h"
-#include "include/fpioa.h"
-#include "include/utils.h"
-#include "include/memlayout.h"
-
+#include "include/gpiohs.hh"
+#include "include/fpioa.hh"
+#include "include/utils.hh"
+#include "include/qemu_k210.hh"
+using namespace riscv::qemuk210;
 #define GPIOHS_MAX_PINNO 32
 
 volatile gpiohs_t *const gpiohs = (volatile gpiohs_t *)GPIOHS_V;
@@ -24,7 +22,7 @@ volatile gpiohs_t *const gpiohs = (volatile gpiohs_t *)GPIOHS_V;
 void gpiohs_set_drive_mode(uint8 pin, gpio_drive_mode_t mode)
 {
     // configASSERT(pin < GPIOHS_MAX_PINNO);
-    int io_number = fpioa_get_io_by_function(FUNC_GPIOHS0 + pin);
+    int io_number = fpioa_get_io_by_function((fpioa_function_t)(FUNC_GPIOHS0 + pin));
     // configASSERT(io_number >= 0);
 
     fpioa_pull_t pull = FPIOA_PULL_NONE;

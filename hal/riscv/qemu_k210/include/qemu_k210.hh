@@ -1,16 +1,8 @@
-//
-// Created by Li shuang ( pseudonym ) on 2024-04-05
-// --------------------------------------------------------------
-// | Note: This code file just for study, not for commercial use
-// | Contact Author: lishuang.mk@whu.edu.cn
-// --------------------------------------------------------------
-//
-
 #pragma once
 
 #include <kernel/types.hh>
 
-#include "riscv.hh"
+#include "include/riscv.hh"
 
 namespace riscv
 {
@@ -140,7 +132,7 @@ namespace riscv
 //   ...
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
-#define TRAPFRAME               (TRAMPOLINE - PGSIZE)
+#define TRAPFRAME               (TRAMPOLINE - PG_SIZE)
 
 #define MAXUVA                  RUSTSBI_BASE
 	} // namespace qemuk210

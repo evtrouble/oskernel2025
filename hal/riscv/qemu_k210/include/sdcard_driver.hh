@@ -8,12 +8,33 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
+#include "include/qemu_k210.hh"
+#include "include/sdcard_driver.hh"
+#include "include/gpiohs.hh"
+#include "include/spi/spi.hh"
+
 namespace riscv
 {
 	namespace qemuk210
 	{
-        class Sdcard
+        class SdcardDriver : public hsai::BlockDevice
 		{
+            
+			/*
+			 * Be noticed: all commands & responses below
+			 * 		are in SPI mode format. May differ from
+			 * 		what they are in SD mode.
+			 */
+                            
+             #define SD_CMD0 	0 
+             #define SD_CMD8 	8
+             #define SD_CMD58 	58 		// READ_OCR
+             #define SD_CMD55 	55 		// APP_CMD
+             #define SD_ACMD41 	41 		// SD_SEND_OP_COND
+             #define SD_CMD16 	16 		// SET_BLOCK_SIZE 
+             #define SD_CMD17 	17 		// READ_SINGLE_BLOCK
+             #define SD_CMD24 	24 		// WRITE_SINGLE_BLOCK 
+             #define SD_CMD13 	13 		// SEND_STATUS
         private:
 			hsai::SpinLock _lock;
             char _dev_name[8];
@@ -21,6 +42,7 @@ namespace riscv
 			int _port_id = 0;
             // Used to differ whether sdcard is SDSC type.
 			bool is_standard_sd = false;
+            static constexpr int _block_size = 512;
 
 		public:
 
@@ -77,9 +99,14 @@ namespace riscv
 
 		public:
 
-			AhciPortDriverLs() = default;
-			AhciPortDriverLs( const char *lock_name, int port_id, void *base_addr);
-            void SD_CS_HIGH(void) {
+            SdcardDriver() = default;
+            SdcardDriver( int port_id);
+
+        private:
+
+			int check_block_size( void );
+
+			void SD_CS_HIGH(void) {
                 gpiohs_set_pin(7, GPIO_PV_HIGH);
             }
                             
@@ -124,22 +151,6 @@ namespace riscv
              * @retval None
              */
 			void sd_send_cmd( uint8 cmd, uint32 arg, uint8 crc );
-
-			/*
-			 * Be noticed: all commands & responses below
-			 * 		are in SPI mode format. May differ from
-			 * 		what they are in SD mode.
-			 */
-                            
-            #define SD_CMD0 	0 
-            #define SD_CMD8 	8
-            #define SD_CMD58 	58 		// READ_OCR
-            #define SD_CMD55 	55 		// APP_CMD
-            #define SD_ACMD41 	41 		// SD_SEND_OP_COND
-            #define SD_CMD16 	16 		// SET_BLOCK_SIZE 
-            #define SD_CMD17 	17 		// READ_SINGLE_BLOCK
-            #define SD_CMD24 	24 		// WRITE_SINGLE_BLOCK 
-            #define SD_CMD13 	13 		// SEND_STATUS
                             
             /*
              * Read sdcard response in R1 type. 
@@ -173,7 +184,8 @@ namespace riscv
 
 			// send ACMD41 to tell sdcard to finish initializing
 			int set_SDXC_capacity( void );
+
+			void sd_end_cmd( void );
 		};
-		
-    }
+	}
 }

@@ -9,7 +9,6 @@ namespace hsai
 	class AhciDriver;
 } // namespace hsai
 
-
 namespace riscv
 {
 	namespace qemu2k100

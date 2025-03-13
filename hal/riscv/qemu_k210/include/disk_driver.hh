@@ -1,10 +1,8 @@
 #pragma once
-
-
 #include <smp/spin_lock.hh>
+#include "sdcard_driver.hh"
+#include "virtio.hh"
 #include <virtual_device.hh>
-
-#include "ahci_port_driver_ls.hh"
 
 namespace riscv
 {
@@ -15,7 +13,11 @@ namespace riscv
         private:
 
 			hsai::SpinLock	  _lock;
-
+#ifdef QEMU
+			VirtioDriver disk_;
+#else
+			SdcardDriver disk_;
+#endif
 
 		public:
 
@@ -26,14 +28,8 @@ namespace riscv
 			virtual int	 handle_intr() override;
 
 		public:
-
             DiskDriver() = default;
-            DiskDriver( const char *lock_name, void *base_addr );
-        // private:
-        //     void disk_init(void);
-        //     void disk_read(struct buf *b);
-        //     void disk_write(struct buf *b);
-        //     void disk_intr(void);
+            DiskDriver( const char *lock_name );
         };
 	} // namespace qemu2k100
 }

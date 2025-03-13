@@ -13,16 +13,11 @@
  * limitations under the License.
  */
 
-#include "include/types.h"
-#include "include/dmac.h"
-#include "include/fpioa.h"
-#include "include/plic.h"
-#include "include/sysctl.h"
-#include "include/utils.h"
-#include "include/printf.h"
-#include "include/memlayout.h"
-#include "include/sleeplock.h"
-#include "include/proc.h"
+#include "include/dmac.hh"
+#include "include/fpioa.hh"
+#include "include/utils.hh"
+#include "include/sysctl.hh"
+#include "include/interrupt_manager.hh"
 
 namespace riscv
 {

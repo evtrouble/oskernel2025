@@ -1,8 +1,11 @@
 # configure 
 CONF_CPU_NUM = 2
-export CONF_ARCH ?= loongarch
-export CONF_PLATFORM ?= qemu_2k1000
+# export CONF_ARCH ?= loongarch
+# export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
+
+export CONF_ARCH ?= riscv
+export CONF_PLATFORM ?= qemu_k210
 
 # make variable define 
 
@@ -12,8 +15,12 @@ HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 # 带有export的变量会在递归调用子目录的Makefile时传递下去
 ifeq ($(CONF_ARCH), loongarch)
 export TOOLPREFIX = loongarch64-linux-gnu-
+export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
+export CFLAGS += -march=loongarch64 -mabi=lp64d
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-unknown-elf-
+export ASFLAGS = -ggdb -march=rv64 -mabi=lp64d -O0
+export CFLAGS += -march=rv64 -mabi=lp64d
 endif
 
 export DEFAULT_CXX_INCLUDE_FLAG = \
@@ -32,7 +39,6 @@ export OBJCOPY = ${TOOLPREFIX}objcopy
 export OBJDUMP = ${TOOLPREFIX}objdump
 export AR  = ${TOOLPREFIX}ar
 
-export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export ASFLAGS += -I include
 export ASFLAGS += -MD
 export CFLAGS = -ggdb -Wall -Werror -O0 -fno-omit-frame-pointer
@@ -46,12 +52,11 @@ export CFLAGS += -DOS_DEBUG										# open debug output
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif
-export CFLAGS += -march=loongarch64 -mabi=lp64d
 export CFLAGS += -ffreestanding -fno-common -nostdlib -fno-stack-protector 
 export CFLAGS += -fno-pie -no-pie 
 # export CFLAGS += -static-libstdc++ -lstdc++
 export CXXFLAGS = $(CFLAGS)
-export CXXFLAGS += -std=c++23
+export CXXFLAGS += -std=c++20
 export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
 export LDFLAGS = -z max-page-size=4096
 

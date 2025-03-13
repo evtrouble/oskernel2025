@@ -1,8 +1,7 @@
 #pragma once
-
-// #include "platform.h"
-#include "plic.hh"
-
+#include "qemu_k210.hh"
+#include <kernel/types.hh>
+using namespace riscv::qemuk210;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1520,5 +1519,3 @@ void dmac_intr(dmac_channel_number_t channel_num);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* _DRIVER_DMAC_H */

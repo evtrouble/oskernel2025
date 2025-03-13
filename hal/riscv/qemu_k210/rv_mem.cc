@@ -67,7 +67,7 @@ namespace riscv
 
 			// PLIC
 			map_pages(*(PageTable*)pt_addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
-			map_pages(*(PageTable*)pt_addr, PLIC_V + 0x4000, PGSIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			map_pages(*(PageTable*)pt_addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			#ifndef QEMU
 			// GPIOHS
@@ -106,7 +106,7 @@ namespace riscv
 			map_pages(*(PageTable*)pt_addr, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			// map the trampoline for trap entry/exit to
 			// the highest virtual address in the kernel.
-			map_pages(*(PageTable*)pt_addr, TRAMPOLINE, PGSIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			map_pages(*(PageTable*)pt_addr, TRAMPOLINE, PG_SIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
 
 			Cpu* cpu = (Cpu*) hsai::get_cpu();
 			// 定义适用于四级页表的 SATP 模式

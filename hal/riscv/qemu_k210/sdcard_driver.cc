@@ -1,16 +1,11 @@
-#include <ata/ata.hh>
-#include <device_manager.hh>
-#include <hsai_global.hh>
-#include <hsai_log.hh>
-#include <mem/virtual_memory.hh>
-
+#include "include/sdcard_driver.hh"
 #include "include/dmac.hh"
-#include "include/spi.hh"
-#include "include/sdcard.hh"
+#include "kernel/include/klib/common.hh"
+#include <device_manager.hh>
 
 using namespace riscv::qemuk210;
 
-void Sdcard::sd_send_cmd(uint8 cmd, uint32 arg, uint8 crc) {
+void SdcardDriver::sd_send_cmd(uint8 cmd, uint32 arg, uint8 crc) {
 	uint8 frame[6];
 	frame[0] = (cmd | 0x40);
 	frame[1] = (uint8)(arg >> 24);
@@ -22,7 +17,7 @@ void Sdcard::sd_send_cmd(uint8 cmd, uint32 arg, uint8 crc) {
 	sd_write_data(frame, 6);
 }
 
-void Sdcard::sd_end_cmd(void) {
+void SdcardDriver::sd_end_cmd(void) {
 	uint8 frame[1] = {0xFF};
 	/*!< SD chip select high */
 	SD_CS_HIGH();
@@ -30,7 +25,7 @@ void Sdcard::sd_end_cmd(void) {
 	sd_write_data(frame, 1);
 }
 
-uint8 Sdcard::sd_get_response_R1(void) {
+uint8 SdcardDriver::sd_get_response_R1(void) {
 	uint8 result;
 	uint16 timeout = 0xff;
 
@@ -44,7 +39,7 @@ uint8 Sdcard::sd_get_response_R1(void) {
 	return 0xff;
 }
 
-int Sdcard::switch_to_SPI_mode(void) {
+int SdcardDriver::switch_to_SPI_mode(void) {
 	int timeout = 0xff;
 
 	while (--timeout) {
@@ -62,7 +57,7 @@ int Sdcard::switch_to_SPI_mode(void) {
 	return 0;
 }
 
-int Sdcard::verify_operation_condition(void) {
+int SdcardDriver::verify_operation_condition(void) {
 	uint64 result;
 
 	// Stores the response reversely. 
@@ -88,7 +83,7 @@ int Sdcard::verify_operation_condition(void) {
 	return 0xff;
 }
 
-int Sdcard::read_OCR(void) {
+int SdcardDriver::read_OCR(void) {
 	uint64 result;
 	uint8 ocr[4];
 
@@ -116,7 +111,7 @@ int Sdcard::read_OCR(void) {
 }
 
 // send ACMD41 to tell sdcard to finish initializing 
-int Sdcard::set_SDXC_capacity(void) {
+int SdcardDriver::set_SDXC_capacity(void) {
 	uint8 result = 0xff;
 
 	int timeout = 0xfff;
@@ -145,7 +140,7 @@ int Sdcard::set_SDXC_capacity(void) {
 
 // check OCR register to see the type of sdcard, 
 // thus determine whether block size is suitable to buffer size
-static int check_block_size(void) {
+int SdcardDriver::check_block_size(void) {
 	uint8 result = 0xff;
 	uint8 ocr[4];
 
@@ -159,8 +154,8 @@ static int check_block_size(void) {
 		if (0 == result) {
 			if (ocr[0] & 0x40) {
 				printf("SDHC/SDXC detected\n");
-				if (512 != BSIZE) {
-					printf("BSIZE != 512\n");
+				if (512 != _block_size) {
+					printf("_block_size != 512\n");
 					return 0xff;
 				}
 
@@ -173,7 +168,7 @@ static int check_block_size(void) {
 				int timeout = 0xff;
 				int result = 0xff;
 				while (--timeout) {
-					sd_send_cmd(SD_CMD16, BSIZE, 0);
+					sd_send_cmd(SD_CMD16, _block_size, 0);
 					result = sd_get_response_R1();
 					sd_end_cmd();
 
@@ -204,7 +199,7 @@ static int check_block_size(void) {
  *         - 0xFF: Sequence failed
  *         - 0: Sequence succeed
  */
-int Sdcard::read_blocks_sync( long start_block, long block_count,
+int SdcardDriver::read_blocks_sync( long start_block, long block_count,
 										hsai::BufferDescriptor *buf_list, int buf_count )
 {
 	if ( buf_count <= 0 )
@@ -237,7 +232,7 @@ int Sdcard::read_blocks_sync( long start_block, long block_count,
 	if (0 == timeout) {
 		hsai_panic("sdcard: timeout waiting for reading");
 	}
-	sd_read_data_dma(buf_list->buf_addr, buf_list->buf_size);
+	sd_read_data_dma((uint8 *)buf_list->buf_addr, _block_size * block_count);
 	sd_read_data(dummy_crc, 2);
 
 	sd_end_cmd();
@@ -247,14 +242,14 @@ int Sdcard::read_blocks_sync( long start_block, long block_count,
 	return 0;
 }
 
-int Sdcard::read_blocks( long start_block, long block_count,
+int SdcardDriver::read_blocks( long start_block, long block_count,
 								   hsai::BufferDescriptor *buf_list, int buf_count )
 {
 	hsai_panic( "not implement" );
 	while ( 1 );
 }
 
-int Sdcard::write_blocks_sync( long start_block, long block_count,
+int SdcardDriver::write_blocks_sync( long start_block, long block_count,
 										 hsai::BufferDescriptor *buf_list, int buf_count )
 {
 	if ( buf_count <= 0 )
@@ -279,12 +274,12 @@ int Sdcard::write_blocks_sync( long start_block, long block_count,
 	sd_send_cmd(SD_CMD24, address, 0);
 	if (0 != sd_get_response_R1()) {
 		_lock.release();
-		panic("sdcard: fail to write");
+		hsai_panic("sdcard: fail to write");
 	}
 
 	// sending data to be written 
 	sd_write_data(&START_BLOCK_TOKEN, 1);
-	sd_write_data_dma(buf_list->buf_addr, buf_list->buf_size);
+	sd_write_data_dma((uint8 *)buf_list->buf_addr, _block_size * block_count);
 	sd_write_data(dummy_crc, 2);
 
 	// waiting for sdcard to finish programming 
@@ -330,14 +325,14 @@ int Sdcard::write_blocks_sync( long start_block, long block_count,
 	return 0;
 }
 
-int Sdcard::write_blocks( long start_block, long block_count,
-									hsai::BufferDescriptor *buf_list, int buf_count )
+int SdcardDriver::write_blocks( long start_block, long block_count,
+	hsai::BufferDescriptor *buf_list, int buf_count )
 {
 	hsai_panic( "not implement" );
 	while ( 1 );
 }
 
-Sdcard::Sdcard( int port_id)
+SdcardDriver::SdcardDriver( int port_id)
 {
 	uint8 frame[10];
 	_lock.init( "sdcard" );
@@ -370,165 +365,7 @@ Sdcard::Sdcard( int port_id)
 	hsai::k_devm.register_block_device( this, _dev_name );
 }
 
-void AhciPortDriverLs::isu_cmd_identify( void *buffer, uint len,
-										 std::function<int( void )> callback_handler )
-{
-	if ( len < 512 )
-	{
-		hsai_warn( "buffer size is not enough.\n" "identify command would not be issue" );
-		return;
-	}
-
-	uint slot = _default_cmd_slot;
-
-	// 配置 command head
-
-	hsai::AhciCmdHeader &head = _cmd_lst->headers[slot];
-	_fill_command_head( head, 1 );
-
-	// 配置 command FIS
-
-	hsai::SataFisRegH2D *fis = (hsai::SataFisRegH2D *) _cmd_tbl->cmd_fis;
-	_fill_command_fis( *fis, hsai::ata_cmd_identify_device, 0, 0, 0, 0 );
-
-	// 配置 PRDT （数据区域表）
-
-	hsai::AhciPrd &prd0 = _cmd_tbl->prdt[0];
-
-	u64 pra		   = hsai::k_mem->to_dma( (ulong) buffer );
-	prd0.dba	   = pra;
-	prd0.interrupt = 0;
-	prd0.dbc	   = len - 1;
-
-	// 设置中断回调函数
-
-	if ( callback_handler )
-		_call_back = callback_handler;
-	else
-		_call_back = std::bind( &AhciPortDriverLs::ahci_port_default_call_back, this );
-
-	// 发布命令
-
-	while ( _cmd_slot_busy( slot ) || _task_busy() );
-	_issue_command_slot( slot );
-}
-
-void AhciPortDriverLs::isu_cmd_read_dma(
-	u64 lba, u16 blk_cnt, uint prd_cnt,
-	std::function<void( uint prd_i, uint64 &pr_base, uint32 &pr_size )> set_prd_handler,
-	std::function<int( void )>											callback_handler )
-{
-	uint slot = _default_cmd_slot;
-
-	// 配置 command head
-
-	hsai::AhciCmdHeader &head = _cmd_lst->headers[slot];
-	_fill_command_head( head, prd_cnt );
-
-	// 配置 command FIS
-
-	hsai::SataFisRegH2D *fis = (hsai::SataFisRegH2D *) _cmd_tbl->cmd_fis;
-	_fill_command_fis( *fis, hsai::ata_cmd_read_dma, lba, blk_cnt, 0, 1 << 6 );
-
-	// 配置 PRDT （数据区域表）
-
-	hsai::AhciPrd *prd;
-	uint64		   dba;
-	uint32		   dbc;
-	for ( uint i = 0; i < prd_cnt; i++ )
-	{
-		prd = &_cmd_tbl->prdt[i];
-		dba = dbc = 0;
-		set_prd_handler( i, dba, dbc );
-		if ( dba == 0 || dbc == 0 )
-		{
-			hsai_error( "AHCI : 无效的DBA或DBC" );
-			return;
-		}
-		if ( dbc > _1M * 4 )
-		{
-			hsai_warn( "AHCI : PR长度超过4MiB, read DMA命令将不会被发送" );
-			return;
-		}
-		prd->dba	   = hsai::k_mem->to_dma( dba );
-		prd->dbc	   = dbc - 1;
-		prd->interrupt = 0;
-		prd->resv1	   = 0;
-		prd->resv2	   = 0;
-	}
-
-	// 设置中断回调函数
-
-	if ( callback_handler )
-		_call_back = callback_handler;
-	else
-		_call_back = std::bind( &AhciPortDriverLs::ahci_port_default_call_back, this );
-
-	// 发布命令
-
-	while ( _cmd_slot_busy( slot ) || _task_busy() );
-	_issue_command_slot( slot );
-}
-
-void AhciPortDriverLs::isu_cmd_write_dma(
-	uint64 lba, uint64 blk_cnt, uint prd_cnt,
-	std::function<void( uint prd_i, uint64 &pr_base, uint32 &pr_size )> set_prd_handler,
-	std::function<int( void )>											callback_handler )
-{
-	uint slot = _default_cmd_slot;
-
-	// 配置 command head
-
-	hsai::AhciCmdHeader &head = _cmd_lst->headers[slot];
-	_fill_command_head( head, prd_cnt );
-
-	// 配置 command FIS
-
-	hsai::SataFisRegH2D *fis = (hsai::SataFisRegH2D *) _cmd_tbl->cmd_fis;
-	_fill_command_fis( *fis, hsai::ata_cmd_write_dma, lba, blk_cnt, 0, 1 << 6 );
-
-	// 配置 PRDT （数据区域表）
-
-	hsai::AhciPrd *prd;
-	uint64		   dba;
-	uint32		   dbc;
-	for ( uint i = 0; i < prd_cnt; i++ )
-	{
-		prd = &_cmd_tbl->prdt[i];
-		dba = dbc = 0;
-		set_prd_handler( i, dba, dbc );
-		if ( dba == 0 || dbc == 0 )
-		{
-			hsai_error( "AHCI : 无效的DBA或DBC" );
-			return;
-		}
-		if ( dbc > _1M * 4 )
-		{
-			hsai_warn( "AHCI : PR长度超过4MiB, read DMA命令将不会被发送" );
-			return;
-		}
-		prd->dba	   = hsai::k_mem->to_dma( dba );
-		prd->dbc	   = dbc - 1;
-		prd->interrupt = 0;
-		prd->resv1	   = 0;
-		prd->resv2	   = 0;
-	}
-
-	// 设置中断回调函数
-
-	if ( callback_handler )
-		_call_back = callback_handler;
-	else
-		_call_back = std::bind( &AhciPortDriverLs::ahci_port_default_call_back, this );
-
-	// 发布命令
-
-	while ( _cmd_slot_busy( slot ) || _task_busy() );
-	_issue_command_slot( slot );
-}
-
-
-int Sdcard::handle_intr()
+int SdcardDriver::handle_intr()
 {
 	dmac_intr(DMAC_CHANNEL0);
 	return 0;

@@ -1,5 +1,6 @@
-#ifndef _DRIVER_SPI_H
-#define _DRIVER_SPI_H
+#pragma once
+#include <kernel/types.hh>
+using namespace riscv::qemuk210;
 
 #ifdef __cplusplus
 extern "C" {
@@ -475,4 +476,3 @@ uint32 spi_set_clk_rate(spi_device_num_t spi_num, uint32 spi_clk);
 }
 #endif
 
-#endif /* _DRIVER_SPI_H */
