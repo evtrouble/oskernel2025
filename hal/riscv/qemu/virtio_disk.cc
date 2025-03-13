@@ -8,12 +8,11 @@
 
 
 #include "include/virtio.hh"
-#include "include/dmac.hh"
 #include "kernel/include/klib/common.hh"
 #include <device_manager.hh>
 #include "kernel/include/pm/process_manager.hh"
 
-using namespace riscv::qemuk210;
+using namespace riscv::qemuk;
 
 VirtioDriver::VirtioDriver( int port_id)
 {

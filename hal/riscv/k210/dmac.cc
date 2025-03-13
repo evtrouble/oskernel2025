@@ -17,7 +17,7 @@
 #include "include/fpioa.hh"
 #include "include/utils.hh"
 #include "include/sysctl.hh"
-#include "include/interrupt_manager.hh"
+#include "include/interrupt_manager.hh""
 
 namespace riscv
 {

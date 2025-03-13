@@ -8,9 +8,7 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
-#include "include/qemu_k210.hh"
-#include "include/gpiohs.hh"
-#include "include/spi/spi.hh"
+#include "include/qemu.hh"
 #include "hsai/include/mem/page.hh"
 #include <kernel/types.hh>
 
@@ -27,7 +25,7 @@
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace qemu
 	{
     class VirtioDriver : public hsai::BlockDevice
     {            
@@ -155,5 +153,5 @@ namespace riscv
       VirtioDriver() = default;
       VirtioDriver( int port_id );
 		};
-	} // namespace qemuk210
+	} // namespace qemu
 } // namespace riscv

@@ -8,10 +8,10 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
-#include "include/qemu_k210.hh"
+#include "include/k210.hh"
 #include "include/sdcard_driver.hh"
 #include "include/gpiohs.hh"
-#include "include/spi/spi.hh"
+#include "include/spi.hh"
 
 namespace riscv
 {

@@ -1,12 +1,11 @@
 # configure 
 CONF_CPU_NUM = 2
-export CONF_ARCH ?= loongarch
-export CONF_PLATFORM ?= qemu_2k1000
+# export CONF_ARCH ?= loongarch
+# export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
 
-# export CONF_ARCH ?= riscv
-# export CONF_PLATFORM ?= qemu
-# export CONF_PLATFORM ?= k210
+export CONF_ARCH ?= riscv
+export CONF_PLATFORM ?= qemu
 
 # make variable define 
 
@@ -18,13 +17,18 @@ ifeq ($(CONF_ARCH), loongarch)
 export TOOLPREFIX = loongarch64-linux-gnu-
 export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export CFLAGS += -march=loongarch64 -mabi=lp64d
+LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-unknown-elf-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS += -march=rv64gc -mabi=lp64d
+export CFLAGS += -march=rv64gc -mabi=lp64d -nostdinc -nostdinc++
+ifeq ($(CONF_PLATFORM), qemu)
+LD_SCRIPT = hal/$(CONF_ARCH)/qemu_k210/ld.script
+CFLAGS += -D QEMU
+else
+LD_SCRIPT = hal/$(CONF_ARCH)/ld.script
 endif
-
-LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
+endif
 
 export DEFAULT_CXX_INCLUDE_FLAG = \
 	-include $(WORKPATH)/kernel/include/xn6_config.h \

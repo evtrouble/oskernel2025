@@ -1,4 +1,4 @@
-support_platform = qemu_2k100 ls2k100dp
+support_platform = qemu k210
 
 # >>>> 
 # *******************************************************

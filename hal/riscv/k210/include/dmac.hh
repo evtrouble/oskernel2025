@@ -1,7 +1,7 @@
 #pragma once
-#include "qemu_k210.hh"
+#include "k210.hh"
 #include <kernel/types.hh>
-using namespace riscv::qemuk210;
+using namespace riscv::k210;
 #ifdef __cplusplus
 extern "C" {
 #endif

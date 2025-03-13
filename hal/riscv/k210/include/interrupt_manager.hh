@@ -11,7 +11,7 @@ namespace hsai
 
 namespace riscv
 {
-	namespace qemu2k100
+	namespace k210
 	{
 		class InterruptManager : public hsai::VirtualInterruptManager
 		{
@@ -54,6 +54,6 @@ namespace riscv
 
 		extern InterruptManager k_im;
 
-	} // namespace qemu2k100
+	} // namespace k210
 
 } // namespace riscv
