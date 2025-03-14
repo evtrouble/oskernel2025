@@ -8,7 +8,7 @@
 
 #pragma once 
 
-#include "types.hh"
+#include "kernel/types.hh"
 
 #include <mem/virtual_page_table.hh>
 

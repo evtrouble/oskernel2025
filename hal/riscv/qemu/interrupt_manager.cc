@@ -40,7 +40,7 @@ namespace riscv
 		void InterruptManager::intr_init()
 		{
 			_uart0 =
-				(hsai::UartNs16550 *) hsai::k_devm.get_char_device( DEFAULT_DEBUG_CONSOLE_NAME );
+				(UartConsole *) hsai::k_devm.get_char_device( DEFAULT_DEBUG_CONSOLE_NAME );
 			if ( _uart0 == nullptr ) { hsai_panic( "couldn't find console device" ); }
 
 			_disk = (DiskDriver *) hsai::k_devm.get_device( "Disk driver" );
@@ -81,6 +81,6 @@ namespace riscv
 			int hart = Cpu::get_rv_cpu()->get_cpu_id();
 			*(uint32*)PLIC_SCLAIM(hart) = irq;
 		}
-	} // namespace qemuk210
+	} // namespace qemu
 
 } // namespace riscv

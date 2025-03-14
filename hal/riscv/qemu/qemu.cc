@@ -7,7 +7,6 @@
 #include <memory_interface.hh>
 #include <process_interface.hh>
 #include <timer_interface.hh>
-#include <uart/uart_ns16550.hh>
 
 #include "context.hh"
 #include "exception_manager.hh"
@@ -15,12 +14,13 @@
 #include "rv_cpu.hh"
 #include "rv_mem.hh"
 #include "trap_frame.hh"
+#include "uart.hh"
 
 namespace riscv
 {
 	namespace qemu
 	{
-		hsai::UartNs16550 debug_uart;
+		UartConsole debug_uart;
 
 		DiskDriver disk_driver;
 	} // namespace qemu2k1000
@@ -44,14 +44,16 @@ extern int	  init_main( void );
 extern "C" {
 extern ulong _bss_start_addr;
 extern ulong _bss_end_addr;
+extern ulong kernel_end;
+extern ulong etext;
 }
 
 using namespace riscv::qemu;
 
 namespace hsai
 {
-	const u64 memory_start = qemu::mem_start;
-	const u64 memory_size  = qemu::mem_size;
+	const u64 memory_start = kernel_end;
+	const u64 memory_size  = PHYSTOP - kernel_end;
 
 	const uint context_size = sizeof( riscv::Context );
 
@@ -79,7 +81,7 @@ namespace hsai
 	void hardware_abstract_init( void )
 	{
 		// 1. 使用 UART0 作为 debug 输出
-		new ( &qemu::debug_uart ) UartNs16550(
+		new ( &qemu::debug_uart ) UartConsole(
 			(void*) ( UART_V) );
 		qemu::debug_uart.init();
 		register_debug_uart( &qemu::debug_uart );

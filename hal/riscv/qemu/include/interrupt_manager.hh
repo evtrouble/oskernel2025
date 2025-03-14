@@ -3,11 +3,7 @@
 #include <smp/spin_lock.hh>
 #include <intr/virtual_interrupt_manager.hh>
 #include "disk_driver.hh"
-
-namespace hsai
-{
-	class UartNs16550;
-} // namespace hsai
+#include "uart.hh"
 
 namespace riscv
 {
@@ -17,7 +13,7 @@ namespace riscv
 		{
 		private:
 			hsai::SpinLock _lock;
-			hsai::UartNs16550 * _uart0 = nullptr;
+			UartConsole * _uart0 = nullptr;
 			DiskDriver * _disk = nullptr;
 
 			int plic_claim( void );

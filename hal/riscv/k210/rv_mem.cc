@@ -6,16 +6,17 @@
 // --------------------------------------------------------------
 //
 
-#include "rv_mem.hh"
+#include "include/rv_mem.hh"
 
 #include <hsai_global.hh>
 #include <hsai_log.hh>
 #include <mem/page.hh>
 #include <memory_interface.hh>
+#include <kernel/mm/virtual_memory_manager.hh>
 
 #include "rv_cpu.hh"
 #include "riscv.hh"
-#include "k210.hh"
+#include "include/k210.hh"
 #include "tlb_manager.hh"
 
 extern "C" {
@@ -56,52 +57,53 @@ namespace riscv
 
 		void Memory::config_pt( ulong pt_addr )
 		{
+			hsai::PageTable* addr = (hsai::PageTable*) pt_addr;
 			// uart registers
-			map_pages(*(PageTable*)pt_addr, UART_V, PG_SIZE, UART, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, UART_V, PG_SIZE, UART, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			
 			// CLINT
-			map_pages(*(PageTable*)pt_addr, CLINT_V, 0x10000, CLINT, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, CLINT_V, 0x10000, CLINT, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// PLIC
-			map_pages(*(PageTable*)pt_addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
-			map_pages(*(PageTable*)pt_addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// GPIOHS
-			map_pages(*(PageTable*)pt_addr, GPIOHS_V, 0x1000, GPIOHS, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, GPIOHS_V, 0x1000, GPIOHS, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// DMAC
-			map_pages(*(PageTable*)pt_addr, DMAC_V, 0x1000, DMAC, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, DMAC_V, 0x1000, DMAC, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// GPIO
 			// map_pages(*(PageTable*)pt_addr, GPIO_V, 0x1000, GPIO, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// SPI_SLAVE
-			map_pages(*(PageTable*)pt_addr, SPI_SLAVE_V, 0x1000, SPI_SLAVE, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, SPI_SLAVE_V, 0x1000, SPI_SLAVE, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// FPIOA
-			map_pages(*(PageTable*)pt_addr, FPIOA_V, 0x1000, FPIOA, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, FPIOA_V, 0x1000, FPIOA, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// SPI0
-			map_pages(*(PageTable*)pt_addr, SPI0_V, 0x1000, SPI0, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, SPI0_V, 0x1000, SPI0, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// SPI1
-			map_pages(*(PageTable*)pt_addr, SPI1_V, 0x1000, SPI1, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, SPI1_V, 0x1000, SPI1, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// SPI2
-			map_pages(*(PageTable*)pt_addr, SPI2_V, 0x1000, SPI2, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, SPI2_V, 0x1000, SPI2, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// SYSCTL
-			map_pages(*(PageTable*)pt_addr, SYSCTL_V, 0x1000, SYSCTL, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, SYSCTL_V, 0x1000, SYSCTL, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			
 			// map rustsbi
 			// kvmmap(RUSTSBI_BASE, RUSTSBI_BASE, KERNBASE - RUSTSBI_BASE, PTE_R | PTE_X);
 			// map kernel text executable and read-only.
-			map_pages(*(PageTable*)pt_addr, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			k_vmm.map_pages(*addr, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, PteEnum::pte_read_m | PteEnum::pte_execute_m);
 			// map kernel data and the physical RAM we'll make use of.
-			map_pages(*(PageTable*)pt_addr, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			k_vmm.map_pages(*addr, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			// map the trampoline for trap entry/exit to
 			// the highest virtual address in the kernel.
-			map_pages(*(PageTable*)pt_addr, TRAMPOLINE, PG_SIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			k_vmm.map_pages(*addr, TRAMPOLINE, PG_SIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
 
 			Cpu* cpu = (Cpu*) hsai::get_cpu();
 			// 定义适用于四级页表的 SATP 模式

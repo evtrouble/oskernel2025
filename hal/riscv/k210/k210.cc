@@ -7,9 +7,8 @@
 #include <memory_interface.hh>
 #include <process_interface.hh>
 #include <timer_interface.hh>
-#include <uart/uart_ns16550.hh>
 
-#include "ahci_driver_ls.hh"
+#include "uart.hh"
 #include "context.hh"
 #include "exception_manager.hh"
 #include "interrupt_manager.hh"
@@ -22,7 +21,7 @@ namespace riscv
 {
 	namespace k210
 	{
-		hsai::UartNs16550 debug_uart;
+		UartConsole debug_uart;
 
 		DiskDriver disk_driver;
 	} // namespace k210
@@ -46,14 +45,16 @@ extern int	  init_main( void );
 extern "C" {
 extern ulong _bss_start_addr;
 extern ulong _bss_end_addr;
+extern ulong kernel_end;
+extern ulong etext;
 }
 
 using namespace riscv::k210;
 
 namespace hsai
 {
-	const u64 memory_start = k210::mem_start;
-	const u64 memory_size  = k210::mem_size;
+	const u64 memory_start = kernel_end;
+	const u64 memory_size  = PHYSTOP - kernel_end;
 
 	const uint context_size = sizeof( riscv::Context );
 
@@ -81,8 +82,8 @@ namespace hsai
 	void hardware_abstract_init( void )
 	{
 		// 1. 使用 UART0 作为 debug 输出
-		new ( &k210::debug_uart ) UartNs16550(
-			(void*) ( (uint64) k210::UartAddr::uart0 | (uint64) dmwin::win_1 ) );
+		new ( &k210::debug_uart ) UartConsole(
+			(void*) ( UART_V) );
 			k210::debug_uart.init();
 		register_debug_uart( &k210::debug_uart );
 

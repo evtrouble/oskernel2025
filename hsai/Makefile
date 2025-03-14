@@ -28,8 +28,12 @@ card_dir = $(foreach d, $(filter-out include/, $(wildcard $1*/)), $(call card_di
 # >>>> compile flags
 # >>>>
 
-CFLAGS += -I $(WORKPATH)/kernel/include
-CXXFLAGS += -I $(WORKPATH)/kernel/include
+INCLUDE_FLAGS = -I$(WORKPATH)/third_party/EASTL/include \
+               -I$(WORKPATH)/third_party/EABase/include/Common \
+               -I$(WORKPATH)/kernel/include
+
+CFLAGS += $(INCLUDE_FLAGS)
+CXXFLAGS += $(INCLUDE_FLAGS)
 
 # >>>>
 # **************************************************************

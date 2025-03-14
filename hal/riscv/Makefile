@@ -31,12 +31,14 @@ card_dir = $(foreach d, $(filter-out include/, $(wildcard $1*/)), $(call card_di
 # >>>> compile flags
 # >>>>
 
-export CFLAGS += -I $(WORKPATH)/hsai/include/
-export CFLAGS += -DRUSTSBI_ENABLED
-export CFLAGS += -mcmodel=medany
-export CXXFLAGS += -I $(WORKPATH)/hsai/include/
-export CXXFLAGS += -DRUSTSBI_ENABLED
-export CXXFLAGS += -mcmodel=medany
+INCLUDE_FLAGS = -I$(WORKPATH)/third_party/EASTL/include \
+               -I$(WORKPATH)/third_party/EABase/include/Common \
+               -I$(WORKPATH)/kernel/include \
+			   -DRUSTSBI_ENABLED \
+				-mcmodel=medany
+
+export CFLAGS += $(INCLUDE_FLAGS)
+export CXXFLAGS += $(INCLUDE_FLAGS)
 
 # >>>>
 # ********************************************************

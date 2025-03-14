@@ -40,7 +40,7 @@ void consputc(int c) {
   }
 }
 struct {
-  struct SpinLock lock;
+  hsai::SpinLock lock;
   
   // input
 #define INPUT_BUF 128
@@ -53,22 +53,22 @@ struct {
 //
 // user write()s to the console go here.
 //
-int
-consolewrite(int user_src, uint64 src, int n)
-{
-  int i;
+// int
+// consolewrite(int user_src, uint64 src, int n)
+// {
+//   int i;
 
-  cons.lock.acquire();
-  for ( i = 0; i < n; i++ )
-  {
-	  char c;
-	  if ( mm::either_copy_in( &c, user_src, src + i, 1 ) == -1 ) break;
-	  sbi_console_putchar( c );
-  }
-  cons.lock.release();
+//   cons.lock.acquire();
+//   for ( i = 0; i < n; i++ )
+//   {
+// 	  char c;
+// 	  if ( mm::either_copy_in( &c, user_src, src + i, 1 ) == -1 ) break;
+// 	  sbi_console_putchar( c );
+//   }
+//   cons.lock.release();
 
-  return i;
-}
+//   return i;
+// }
 
 //
 // user read()s from the console go here.
@@ -76,55 +76,55 @@ consolewrite(int user_src, uint64 src, int n)
 // user_dist indicates whether dst is a user
 // or kernel address.
 //
-int
-consoleread(int user_dst, uint64 dst, int n)
-{
-  uint target;
-  int c;
-  char cbuf;
+// int
+// consoleread(int user_dst, uint64 dst, int n)
+// {
+//   uint target;
+//   int c;
+//   char cbuf;
 
-  target = n;
-  cons.lock.acquire();
-  while(n > 0){
-    // wait until interrupt handler has put some
-    // input into cons.buffer.
-    while(cons.r == cons.w){
-      if(myproc()->killed){
-        release(&cons.lock);
-        return -1;
-      }
-      sleep(&cons.r, &cons.lock);
-    }
+//   target = n;
+//   cons.lock.acquire();
+//   while(n > 0){
+//     // wait until interrupt handler has put some
+//     // input into cons.buffer.
+//     while(cons.r == cons.w){
+//       if(hsai::proc_is_killed( hsai::get_cur_proc() ) ){
+// 		    cons.lock.release();
+// 		    return -1;
+// 	    }
+//       hsai::sleep_at(&cons.r, &cons.lock);
+//     }
 
-    c = cons.buf[cons.r++ % INPUT_BUF];
+//     c = cons.buf[cons.r++ % INPUT_BUF];
 
-    if(c == C('D')){  // end-of-file
-      if(n < target){
-        // Save ^D for next time, to make sure
-        // caller gets a 0-byte result.
-        cons.r--;
-      }
-      break;
-    }
+//     if(c == C('D')){  // end-of-file
+//       if(n < target){
+//         // Save ^D for next time, to make sure
+//         // caller gets a 0-byte result.
+//         cons.r--;
+//       }
+//       break;
+//     }
 
-    // copy the input byte to the user-space buffer.
-    cbuf = c;
-    if(either_copyout(user_dst, dst, &cbuf, 1) == -1)
-      break;
+//     // copy the input byte to the user-space buffer.
+//     cbuf = c;
+//     if(mm::either_copyout(user_dst, dst, &cbuf, 1) == -1)
+//       break;
 
-    dst++;
-    --n;
+//     dst++;
+//     --n;
 
-    if(c == '\n'){
-      // a whole line has arrived, return to
-      // the user-level read().
-      break;
-    }
-  }
-  release(&cons.lock);
+//     if(c == '\n'){
+//       // a whole line has arrived, return to
+//       // the user-level read().
+//       break;
+//     }
+//   }
+//   cons.lock.release();
 
-  return target - n;
-}
+//   return target - n;
+// }
 
 //
 // the console input interrupt handler.
@@ -175,7 +175,7 @@ consoleintr(int c)
         // wake up consoleread() if a whole line (or end-of-file)
         // has arrived.
         cons.w = cons.e;
-        wakeup(&cons.r);
+        hsai::wakeup_at(&cons.r);
       }
     }
     break;
@@ -186,7 +186,7 @@ consoleintr(int c)
 void
 consoleinit(void)
 {
-	&cons.lock.init( "cons" );
+	cons.lock.init( "cons" );
 
 	cons.e = cons.w = cons.r = 0;
 }

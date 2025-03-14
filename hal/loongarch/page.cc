@@ -41,4 +41,6 @@ namespace hsai
 	pte_t Pte::user_plv_flag() { return plv_user << pte_plv_s; }
 	pte_t Pte::valid_flag() { return pte_valid_m; }
 
+	void Pte::set_data( uint64 data ) { *_data_addr = data; }
+
 } // namespace hsai

@@ -40,4 +40,9 @@ namespace hsai
 	pte_t Pte::super_plv_flag() { return 0; }
 	pte_t Pte::user_plv_flag() { return PteEnum::pte_user_m; }
 	pte_t Pte::valid_flag() { return PteEnum::pte_valid_m; }
+
+	void Pte::set_data( uint64 data ) {
+		uint64 low	= data & PteEnum::pte_flags_m;
+		*_data_addr = ( ( ( data >> 12 ) << 10 ) & low );
+	}
 } // namespace hsai

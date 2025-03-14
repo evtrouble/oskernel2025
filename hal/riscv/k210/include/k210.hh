@@ -1,7 +1,5 @@
 #pragma once
 
-#include <kernel/types.hh>
-
 #include "include/riscv.hh"
 
 namespace riscv

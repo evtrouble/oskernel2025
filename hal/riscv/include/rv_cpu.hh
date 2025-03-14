@@ -26,6 +26,8 @@ namespace riscv
 
 		uint64 read_csr( csr::CsrAddr r );
 		void write_csr( csr::CsrAddr r, uint64 d );
+		void set_csr( csr::CsrAddr r, uint64 d );
+		void clear_csr( csr::CsrAddr r, uint64 d );
 
 		void intr_on() { _interrupt_on(); }
 		void intr_off() { _interrupt_off(); }

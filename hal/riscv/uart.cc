@@ -1,57 +1,10 @@
-//
-// low-level driver routines for 16550a UART.
-//
+#include "include/uart.hh"
+#include <process_interface.hh>
+#include "include/console.hh"
+using namespace riscv;
+UartConsole::UartConsole( void *reg_base ) { uart_addr = (uint64) reg_base; }
 
-
-#include "include/types.h"
-#include "include/param.h"
-#include "include/memlayout.h"
-#include "include/riscv.h"
-#include "include/spinlock.h"
-#include "include/proc.h"
-#include "include/intr.h"
-
-// the UART control registers are memory-mapped
-// at address UART0. this macro returns the
-// address of one of the registers.
-#define Reg(reg) ((volatile unsigned char *)(UART + reg))
-
-// the UART control registers.
-// some have different meanings for
-// read vs write.
-// see http://byterunner.com/16550.html
-#define RHR 0                 // receive holding register (for input bytes)
-#define THR 0                 // transmit holding register (for output bytes)
-#define IER 1                 // interrupt enable register
-#define IER_TX_ENABLE (1<<0)
-#define IER_RX_ENABLE (1<<1)
-#define FCR 2                 // FIFO control register
-#define FCR_FIFO_ENABLE (1<<0)
-#define FCR_FIFO_CLEAR (3<<1) // clear the content of the two FIFOs
-#define ISR 2                 // interrupt status register
-#define LCR 3                 // line control register
-#define LCR_EIGHT_BITS (3<<0)
-#define LCR_BAUD_LATCH (1<<7) // special mode to set baud rate
-#define LSR 5                 // line status register
-#define LSR_RX_READY (1<<0)   // input is waiting to be read from RHR
-#define LSR_TX_IDLE (1<<5)    // THR can accept another character to send
-
-#define ReadReg(reg) (*(Reg(reg)))
-#define WriteReg(reg, v) (*(Reg(reg)) = (v))
-
-// the transmit output buffer.
-struct spinlock uart_tx_lock;
-#define UART_TX_BUF_SIZE 32
-char uart_tx_buf[UART_TX_BUF_SIZE];
-int uart_tx_w; // write next to uart_tx_buf[uart_tx_w++]
-int uart_tx_r; // read next from uart_tx_buf[uar_tx_r++]
-
-extern volatile int panicked; // from printf.c
-
-void uartstart();
-
-void
-uartinit(void)
+void UartConsole::init()
 {
   // disable interrupts.
   WriteReg(IER, 0x00);
@@ -75,9 +28,23 @@ uartinit(void)
   // enable transmit and receive interrupts.
   WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
 
-    uart_tx_w = uart_tx_r = 0;
+  uart_tx_w = uart_tx_r = 0;
+  uart_tx_lock.init( "uart" );
+  consoleinit();
+}
 
-  initlock(&uart_tx_lock, "uart");
+
+// alternate version of uartputc() that doesn't 
+// use interrupts, for use by kernel printf() and
+// to echo characters. it spins waiting for the uart's
+// output register to be empty.
+int UartConsole::put_char_sync( u8 c )
+{
+  // wait for Transmit Holding Empty to be set in LSR.
+  while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
+    ;
+  WriteReg(THR, c);
+  return 0;
 }
 
 // add a character to the output buffer and tell the
@@ -86,59 +53,70 @@ uartinit(void)
 // because it may block, it can't be called
 // from interrupts; it's only suitable for use
 // by write().
-void
-uartputc(int c)
+int	UartConsole::put_char( u8 c ) 
 {
-  acquire(&uart_tx_lock);
+	uart_tx_lock.acquire();
 
-  if(panicked){
-    for(;;)
-      ;
-  }
-
-  while(1){
-    if(((uart_tx_w + 1) % UART_TX_BUF_SIZE) == uart_tx_r){
-      // buffer is full.
-      // wait for uartstart() to open up space in the buffer.
-      sleep(&uart_tx_r, &uart_tx_lock);
-    } else {
-      uart_tx_buf[uart_tx_w] = c;
-      uart_tx_w = (uart_tx_w + 1) % UART_TX_BUF_SIZE;
-      uartstart();
-      release(&uart_tx_lock);
-      return;
-    }
+	while ( 1 )
+	{
+		if ( ( ( uart_tx_w + 1 ) % UART_TX_BUF_SIZE ) == uart_tx_r )
+		{
+			// buffer is full.
+			// wait for uartstart() to open up space in the buffer.
+			hsai::sleep_at( &uart_tx_r, &uart_tx_lock );
+		}
+		else
+		{
+			uart_tx_buf[uart_tx_w] = c;
+			uart_tx_w			   = ( uart_tx_w + 1 ) % UART_TX_BUF_SIZE;
+			uartstart();
+			uart_tx_lock.release();
+			return 0;
+		}
   }
 }
 
-// alternate version of uartputc() that doesn't 
-// use interrupts, for use by kernel printf() and
-// to echo characters. it spins waiting for the uart's
-// output register to be empty.
-void
-uartputc_sync(int c)
+int	UartConsole::get_char_sync( u8 *c )
 {
-  push_off();
+	while ( !( ReadReg( LSR ) & 0x01 ) );
+	*c = ReadReg( RHR );
+	return 0;
+}
 
-  if(panicked){
-    for(;;)
-      ;
+// read one input character from the UART.
+// return -1 if none is waiting.
+int	UartConsole::get_char( u8 *c )
+{
+  if(ReadReg(LSR) & 0x01){
+    // input data is ready.
+    *c = ReadReg(RHR);
+	  return 0;
+  }
+  return -1;
+}
+
+// handle a uart interrupt, raised because input has
+// arrived, or the uart is ready for more output, or
+// both. called from trap.c.
+int UartConsole::handle_intr()
+{
+  // read and process incoming characters.
+  u8  c;
+  while(uartgetc(&c) != -1){
+	  consoleintr( c );
   }
 
-  // wait for Transmit Holding Empty to be set in LSR.
-  while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
-    ;
-  WriteReg(THR, c);
-
-  pop_off();
+  // send buffered characters.
+  uart_tx_lock.acquire();
+  uartstart();
+  uart_tx_lock.release();
 }
 
 // if the UART is idle, and a character is waiting
 // in the transmit buffer, send it.
 // caller must hold uart_tx_lock.
 // called from both the top- and bottom-half.
-void
-uartstart()
+void UartConsole::uartstart()
 {
   while(1){
     if(uart_tx_w == uart_tx_r){
@@ -157,41 +135,8 @@ uartstart()
     uart_tx_r = (uart_tx_r + 1) % UART_TX_BUF_SIZE;
     
     // maybe uartputc() is waiting for space in the buffer.
-    wakeup(&uart_tx_r);
+    hsai::wakeup_at(&uart_tx_r);
     
     WriteReg(THR, c);
   }
-}
-
-// read one input character from the UART.
-// return -1 if none is waiting.
-int
-uartgetc(void)
-{
-  if(ReadReg(LSR) & 0x01){
-    // input data is ready.
-    return ReadReg(RHR);
-  } else {
-    return -1;
-  }
-}
-
-// handle a uart interrupt, raised because input has
-// arrived, or the uart is ready for more output, or
-// both. called from trap.c.
-void
-uartintr(void)
-{
-  // read and process incoming characters.
-  while(1){
-    int c = uartgetc();
-    if(c == -1)
-      break;
-    consoleintr(c);
-  }
-
-  // send buffered characters.
-  acquire(&uart_tx_lock);
-  uartstart();
-  release(&uart_tx_lock);
 }

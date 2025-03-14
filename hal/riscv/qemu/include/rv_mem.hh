@@ -1,8 +1,8 @@
 #pragma once 
 
-#include <hsai_global.hh>
 #include <hsai_log.hh>
 #include <mem/page.hh>
+#include <mem/virtual_memory.hh>
 
 namespace riscv
 {

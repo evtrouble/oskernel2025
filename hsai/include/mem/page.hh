@@ -70,7 +70,7 @@ namespace hsai
 		void clear_data() { *_data_addr = 0; }
 
 		pte_t get_data() { return *_data_addr; }
-		void set_data( uint64 data ) { *_data_addr = data; }
+		void  set_data( uint64 data );
 	};
 
 	constexpr ulong page_size = PG_SIZE;

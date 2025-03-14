@@ -42,11 +42,11 @@ namespace riscv
 		void InterruptManager::intr_init()
 		{
 			_uart0 =
-				(hsai::UartNs16550 *) hsai::k_devm.get_char_device( DEFAULT_DEBUG_CONSOLE_NAME );
+				(UartConsole *) hsai::k_devm.get_char_device( DEFAULT_DEBUG_CONSOLE_NAME );
 			if ( _uart0 == nullptr ) { hsai_panic( "couldn't find console device" ); }
 
-			_sata = (hsai::AhciDriver *) hsai::k_devm.get_device( "AHCI driver" );
-			if ( _sata == nullptr ) { hsai_panic( "couldn't find AHCI device" ); }
+			_disk = (DiskDriver *) hsai::k_devm.get_device( "Disk driver" );
+			if ( _disk == nullptr ) { hsai_panic( "couldn't find disk device" ); }
 		}
 
 		int InterruptManager::handle_dev_intr()

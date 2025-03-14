@@ -64,7 +64,7 @@ namespace riscv
 		csr::_set_csr_( r, d );
 	}
 
-	void clear_csr( csr::CsrAddr r, uint64 d )
+	void Cpu::clear_csr( csr::CsrAddr r, uint64 d )
 	{
 		csr::_clear_csr_( r, d );
 	}
@@ -78,6 +78,5 @@ extern "C" {
 		asm volatile( "mv %0, tp" : "=r" ( i ) );
 		new ( &riscv::k_rv_cpus[i] ) riscv::Cpu;
 		riscv::Cpu::register_cpu( riscv::k_rv_cpus + i, i );
-		
 	}
 }
