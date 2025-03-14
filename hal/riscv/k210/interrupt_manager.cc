@@ -1,4 +1,4 @@
-#include "interrupt_manager.hh"
+#include "include/interrupt_manager.hh"
 
 #include <hsai_defs.h>
 
@@ -6,10 +6,9 @@
 #include <device_manager.hh>
 #include <hsai_global.hh>
 #include <hsai_log.hh>
-#include <uart/uart_ns16550.hh>
 
 #include "rv_cpu.hh"
-#include "k210.hh"
+#include "include/k210.hh"
 
 namespace riscv
 {

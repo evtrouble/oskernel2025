@@ -1,5 +1,5 @@
+#pragma once
 using namespace riscv;
-
 
 #define SBI_SET_TIMER 0
 #define SBI_CONSOLE_PUTCHAR 1

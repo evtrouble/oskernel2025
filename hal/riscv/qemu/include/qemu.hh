@@ -2,7 +2,7 @@
 
 #include <kernel/types.hh>
 
-#include "include/riscv.hh"
+#include "riscv.hh"
 
 namespace riscv
 {

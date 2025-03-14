@@ -426,6 +426,10 @@
 		#define EA_SYSTEM_LITTLE_ENDIAN 1
 		#define EA_PLATFORM_DESCRIPTION "Linux on LoongArch64"
 		//#pragma message("eaplatform in Loongarch64")
+	#elif defined(__riscv)
+		#define EA_PROCESSOR_RISCV64 1
+		#define EA_SYSTEM_LITTLE_ENDIAN 1
+		#define EA_PLATFORM_DESCRIPTION "Linux on Riscv64"
 	#else
 		#error Unknown processor
 		#error Unknown endianness

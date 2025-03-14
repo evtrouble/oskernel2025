@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////////
 
 
-#include <EASTL/atomic.h>
+//#include <EASTL/atomic.h>
 
 
 namespace eastl
@@ -13,11 +13,11 @@ namespace internal
 {
 
 
-static void EastlCompilerBarrierDataDependencyFunc(void*)
-{
-}
+// static void EastlCompilerBarrierDataDependencyFunc(void*)
+// {
+// }
 
-volatile CompilerBarrierDataDependencyFuncPtr gCompilerBarrierDataDependencyFunc = &EastlCompilerBarrierDataDependencyFunc;
+// volatile CompilerBarrierDataDependencyFuncPtr gCompilerBarrierDataDependencyFunc = &EastlCompilerBarrierDataDependencyFunc;
 
 
 } // namespace internal

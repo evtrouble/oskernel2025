@@ -1,4 +1,4 @@
-#include "interrupt_manager.hh"
+#include "include/interrupt_manager.hh"
 
 #include <hsai_defs.h>
 
@@ -6,12 +6,12 @@
 #include <hsai_global.hh>
 #include <hsai_log.hh>
 
-#include "include/rv_cpu.hh"
+#include "rv_cpu.hh"
 #include "include/qemu.hh"
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace qemu
 	{
 		InterruptManager k_im;
 
@@ -59,7 +59,7 @@ namespace riscv
 			}
 			else if (DISK_IRQ == irq ) { _disk->handle_intr(); }
 			else if (irq) {
-				printf("unexpected interrupt irq = %d\n", irq);
+				hsai_printf("unexpected interrupt irq = %d\n", irq);
 			}
 	
 			if (irq) { plic_complete(irq);}

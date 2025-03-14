@@ -4,6 +4,9 @@ sbi_support = rustsbi-qemu rustsbi-k210
 # 定义SBI路径
 SBI_PATH = $(WORKPATH)/hal/riscv/SBI
 
+# SBI 路径定义（使用统一路径）
+SBI_PATH = $(WORKPATH)/hal/riscv/SBI
+
 # >>>> 
 # *******************************************************
 
@@ -83,15 +86,27 @@ all: initdir build_sbi compile_platform add_libcpu
 # 添加SBI构建目标
 build_sbi:
 ifeq ($(CONF_PLATFORM),k210)
-    @echo "Building RustSBI for K210..."
-    @cd $(SBI_PATH)/rustsbi-k210 && \
-    cargo build --release && \
-    cp target/riscv64gc-unknown-none-elf/release/rustsbi-k210 $(BUILDPATH)/
+	@if which cargo >/dev/null; then \
+        echo "Building RustSBI for K210 from source..."; \
+        cd $(SBI_PATH)/rustsbi-k210 && \
+        cargo build --release && \
+        cp target/riscv64gc-unknown-none-elf/release/rustsbi-k210 $(BUILDPATH)/; \
+    else \
+        echo "Using pre-built RustSBI for K210..."; \
+        cp $(SBI_PATH)/sbi-k210 $(BUILDPATH)/rustsbi-k210; \
+    fi
+	@$(OBJDUMP) -S $(BUILDPATH)/rustsbi-k210 > $(BUILDPATH)/rustsbi-k210.asm
 else
-    @echo "Building RustSBI for QEMU..."
-    @cd $(SBI_PATH)/rustsbi-qemu && \
-    cargo build --release && \
-    cp target/riscv64gc-unknown-none-elf/release/rustsbi-qemu $(BUILDPATH)/
+	@if which cargo >/dev/null; then \
+        echo "Building RustSBI for QEMU from source..."; \
+        cd $(SBI_PATH)/rustsbi-qemu && \
+        cargo build --release && \
+        cp target/riscv64gc-unknown-none-elf/release/rustsbi-qemu $(BUILDPATH)/; \
+    else \
+        echo "Using pre-built RustSBI for QEMU..."; \
+        cp $(SBI_PATH)/sbi-qemu $(BUILDPATH)/rustsbi-qemu; \
+    fi
+	@$(OBJDUMP) -S $(BUILDPATH)/rustsbi-qemu > $(BUILDPATH)/rustsbi-qemu.asm
 endif
 
 initdir:
@@ -134,9 +149,9 @@ clean:
 	cd "$(BUILDPATH)/hal/$(arch_name)"; rm -f *.o *.d
 	$(MAKE) clean -C $(plat_name)
 ifeq ($(CONF_PLATFORM),k210)
-    @cd $(SBI_PATH)/rustsbi-k210 && cargo clean
-    @rm -f $(BUILDPATH)/rustsbi-k210
+	@cd $(SBI_PATH)/rustsbi-k210 && cargo clean
+	@rm -f $(BUILDPATH)/rustsbi-k210
 else
-    @cd $(SBI_PATH)/rustsbi-qemu && cargo clean
-    @rm -f $(BUILDPATH)/rustsbi-qemu
+	@cd $(SBI_PATH)/rustsbi-qemu && cargo clean
+	@rm -f $(BUILDPATH)/rustsbi-qemu
 endif

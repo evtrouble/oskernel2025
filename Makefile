@@ -19,9 +19,10 @@ export TOOLPREFIX = loongarch64-linux-gnu-
 export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export CFLAGS += -march=loongarch64 -mabi=lp64d
 else ifeq ($(CONF_ARCH), riscv)
-export TOOLPREFIX = riscv64-unknown-elf-
+export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS += -march=rv64gc -mabi=lp64d
+export CFLAGS += -march=rv6gc -mabi=lp64d -matomic -mcmodel=medany 
+CFLAGS += -O2 -mstrict-align
 endif
 
 LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
@@ -44,7 +45,7 @@ export AR  = ${TOOLPREFIX}ar
 
 export ASFLAGS += -I include
 export ASFLAGS += -MD
-export CFLAGS = -ggdb -Wall -Werror -O0 -fno-omit-frame-pointer
+export CFLAGS = -ggdb -Wall -O0 -fno-omit-frame-pointer
 export CFLAGS += -I include
 export CFLAGS += -MD 
 export CFLAGS += -DNUMCPU=$(CONF_CPU_NUM)

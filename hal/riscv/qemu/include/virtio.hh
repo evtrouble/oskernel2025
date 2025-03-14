@@ -8,7 +8,7 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
-#include "hsai/include/mem/page.hh"
+#include <mem/page.hh>
 #include <kernel/types.hh>
 
 //

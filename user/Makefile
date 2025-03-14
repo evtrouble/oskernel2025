@@ -1,43 +1,46 @@
-CXXFLAGS += -Iinclude
-CFLAGS += -Iinclude
-ASFLAGS += -Iinclude
+# 添加架构特定的宏定义和路径
+ifeq ($(CONF_ARCH), riscv)
+CFLAGS += -DARCH_RISCV=1
+ARCH_DIR = riscv
+else ifeq ($(CONF_ARCH), loongarch)
+CFLAGS += -DARCH_LOONGARCH=1
+ARCH_DIR = loongarch
+endif
 
-.PHONY: all initdir
+# 添加包含路径
+INCLUDE_FLAGS = -I$(WORKPATH)/user/include -I$(WORKPATH)/user/$(ARCH_DIR)
+CXXFLAGS += $(INCLUDE_FLAGS)
+CFLAGS += $(INCLUDE_FLAGS)
+ASFLAGS += $(INCLUDE_FLAGS) -x assembler-with-cpp
 
-c_src = $(wildcard *.c)
-cc_src =
-s_src = $(wildcard *.S)
+# 源文件
+SRCS = $(wildcard *.c)
+SRCS += $(wildcard $(ARCH_DIR)/*.c)
+ASM_SRCS = $(wildcard $(ARCH_DIR)/*.S)
 
-srcs = $(c_src) $(cc_src) $(s_src)
-
-c_obj = $(patsubst %.c,$(BUILDPATH)/user/%.o,$(c_src))
-cc_obj = $(patsubst %.cc,$(BUILDPATH)/user/%.o,$(cc_src))
-s_obj = $(patsubst %.S,$(BUILDPATH)/user/%.o,$(s_src))
-objs = $(c_obj) $(cc_obj) $(s_obj)
-
-depends = \
-	$(patsubst %.cc, $(BUILDPATH)/user/%.d, $(cc_src)) \
-	$(patsubst %.c, $(BUILDPATH)/user/%.d, $(c_src)) \
-	$(patsubst %.S, $(BUILDPATH)/user/%.d, $(s_src))
+# 目标文件
+OBJS = $(SRCS:%.c=$(BUILDPATH)/user/%.o)
+ASM_OBJS = $(ASM_SRCS:%.S=$(BUILDPATH)/user/%.o)
 
 all: initdir $(BUILDPATH)/user/user.a
 
-$(BUILDPATH)/user/user.a: $(objs)
+$(BUILDPATH)/user/user.a: $(OBJS) $(ASM_OBJS)
 	$(AR) rcs $@ $^
 
-$(cc_obj): $(BUILDPATH)/user/%.o: %.cc 
-	$(CXX) -c $(CXXFLAGS) -MF $(BUILDPATH)/user/$*.d -o $@ $<
+# 编译规则
+$(BUILDPATH)/user/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(c_obj): $(BUILDPATH)/user/%.o: %.c 
-	$(CC) -c $(CFLAGS) -MF $(BUILDPATH)/user/$*.d -o $@ $<
-
-$(s_obj): $(BUILDPATH)/user/%.o: %.S 
-	$(CC) -c $(ASFLAGS) -MF $(BUILDPATH)/user/$*.d -o $@ $<
-
--include $(depends)
+$(BUILDPATH)/user/%.o: %.S
+	@mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) -c $< -o $@
 
 initdir:
-	mkdir -p $(BUILDPATH)/user
+	@mkdir -p $(BUILDPATH)/user
+	@mkdir -p $(BUILDPATH)/user/$(ARCH_DIR)
 
 clean:
-	cd $(BUILDPATH)/user; rm -f user.a *.o *.d
+	rm -rf $(BUILDPATH)/user
+
+.PHONY: all clean initdir

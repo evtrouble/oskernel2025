@@ -15,7 +15,7 @@ DiskDriver::DiskDriver( const char *lock_name )
 	_lock.init( lock_name );
 
     new ( &disk_ )
-			VirtioDriver( VIRTIO0_V, 0 );
+			VirtioDriver( (void *)VIRTIO0_V, 0 );
 
 	// 注册到 HSAI
 	hsai::k_devm.register_device( this, "Disk driver" );
@@ -23,6 +23,6 @@ DiskDriver::DiskDriver( const char *lock_name )
 
 int DiskDriver::handle_intr()
 {
-    disk_->handle_intr();
+    disk_.handle_intr();
 	return 0;
 }

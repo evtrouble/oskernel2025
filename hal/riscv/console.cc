@@ -8,18 +8,23 @@
 //   control-d -- end of file
 //   control-p -- print process list
 //
-#include <stdarg.h>
 
+#include "include/console.hh"
+#include "include/sbi.hh"
+#include <process_interface.hh>
+#include <virtual_memory_manager.hh>
+using namespace riscv;
 
-#include "include/types.h"
-#include "include/param.h"
-#include "include/spinlock.h"
-#include "include/sleeplock.h"
-#include "include/file.h"
-#include "include/memlayout.h"
-#include "include/riscv.h"
-#include "include/proc.h"
-#include "include/sbi.h"
+//
+// Console input and output, to the uart.
+// Reads are line at a time.
+// Implements special input characters:
+//   newline -- end of line
+//   control-h -- backspace
+//   control-u -- kill line
+//   control-d -- end of file
+//   control-p -- print process list
+//
 
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x
@@ -35,7 +40,7 @@ void consputc(int c) {
   }
 }
 struct {
-  struct spinlock lock;
+  struct SpinLock lock;
   
   // input
 #define INPUT_BUF 128
@@ -53,14 +58,14 @@ consolewrite(int user_src, uint64 src, int n)
 {
   int i;
 
-  acquire(&cons.lock);
-  for(i = 0; i < n; i++){
-    char c;
-    if(either_copyin(&c, user_src, src+i, 1) == -1)
-      break;
-    sbi_console_putchar(c);
+  cons.lock.acquire();
+  for ( i = 0; i < n; i++ )
+  {
+	  char c;
+	  if ( mm::either_copy_in( &c, user_src, src + i, 1 ) == -1 ) break;
+	  sbi_console_putchar( c );
   }
-  release(&cons.lock);
+  cons.lock.release();
 
   return i;
 }
@@ -79,7 +84,7 @@ consoleread(int user_dst, uint64 dst, int n)
   char cbuf;
 
   target = n;
-  acquire(&cons.lock);
+  cons.lock.acquire();
   while(n > 0){
     // wait until interrupt handler has put some
     // input into cons.buffer.
@@ -130,28 +135,31 @@ consoleread(int user_dst, uint64 dst, int n)
 void
 consoleintr(int c)
 {
-  acquire(&cons.lock);
+	cons.lock.acquire();
 
-  switch(c){
-  case C('P'):  // Print process list.
-    procdump();
-    break;
-  case C('U'):  // Kill line.
-    while(cons.e != cons.w &&
-          cons.buf[(cons.e-1) % INPUT_BUF] != '\n'){
-      cons.e--;
-      consputc(BACKSPACE);
-    }
-    break;
-  case C('H'): // Backspace
-  case '\x7f':
-    if(cons.e != cons.w){
-      cons.e--;
-      consputc(BACKSPACE);
-    }
-    break;
-  default:
-    if(c != 0 && cons.e-cons.r < INPUT_BUF){
+	switch ( c )
+	{
+		// case C( 'P' ): // Print process list.
+		// 	procdump();
+		// 	break;
+		case C( 'U' ): // Kill line.
+			while ( cons.e != cons.w && cons.buf[( cons.e - 1 ) % INPUT_BUF] != '\n' )
+			{
+				cons.e--;
+				consputc( BACKSPACE );
+			}
+			break;
+		case C( 'H' ): // Backspace
+		case '\x7f':
+			if ( cons.e != cons.w )
+			{
+				cons.e--;
+				consputc( BACKSPACE );
+			}
+			break;
+		default:
+			if ( c != 0 && cons.e - cons.r < INPUT_BUF )
+			{
       #ifndef QEMU
       if (c == '\r') break;     // on k210, "enter" will input \n and \r
       #else
@@ -172,19 +180,13 @@ consoleintr(int c)
     }
     break;
   }
-  
-  release(&cons.lock);
+  cons.lock.release();
 }
 
 void
 consoleinit(void)
 {
-  initlock(&cons.lock, "cons");
+	&cons.lock.init( "cons" );
 
-  cons.e = cons.w = cons.r = 0;
-  
-  // connect read and write system calls
-  // to consoleread and consolewrite.
-  devsw[CONSOLE].read = consoleread;
-  devsw[CONSOLE].write = consolewrite;
+	cons.e = cons.w = cons.r = 0;
 }

@@ -35,7 +35,7 @@ namespace riscv
 		_build_pte_bit_( dirty, 0x1, 7 )
 		_build_pte_bit_( rsw, 0x3, 8 )
 		_build_pte_bit_( ppn, 0xFFFFFFFFFFFUL, 10 )
-		_build_pte_bit_( reserved, 0x3FF, 54 )
+		_build_pte_bit_( reserved, 0x3FFUL, 54 )
 
 		pte_flags_m = pte_valid_m | pte_read_m | pte_write_m | pte_execute_m | pte_user_m | pte_global_m
 		| pte_accessed_m | pte_dirty_m | pte_rsw_m
@@ -116,9 +116,6 @@ namespace riscv
 			_build_mstatus_bit_( tvm, 0x1, 20 )
 			_build_mstatus_bit_( tw, 0x1, 21 )
 			_build_mstatus_bit_( tsr, 0x1, 22 )
-			_build_mstatus_bit_( uxl, 0x3, 32 )
-			_build_mstatus_bit_( sxl, 0x3, 34 )
-			_build_mstatus_bit_( sd, 0x1, 63 )
 		};
 #undef _build_mstatus_bit_
 
@@ -162,8 +159,6 @@ namespace riscv
 			_build_sstatus_bit_( xs, 0x3, 15 )
 			_build_sstatus_bit_( sum, 0x1, 18 )
 			_build_sstatus_bit_( mxr, 0x1, 19 )
-			_build_sstatus_bit_( uxl, 0x3, 32 )
-			_build_sstatus_bit_( sd, 0x1, 63 )
 		};
 #undef _build_sstatus_bit_
 

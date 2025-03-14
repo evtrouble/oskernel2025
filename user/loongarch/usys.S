@@ -6,7 +6,7 @@
 // --------------------------------------------------------------
 //
 
-#include "usys_macro.inc"
+#include "usys_macro.S"
 
 .section .user.init
 

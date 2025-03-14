@@ -1,8 +1,12 @@
-#ifndef __CONSOLE_H
-#define __CONSOLE_H
+#pragma once
+#include "kernel/types.hh"
+#include "uart/virtual_uart.hh"
+#include "smp/spin_lock.hh"
 
-void consoleinit(void);
-void consputc(int c);
-void consoleintr(int c);
+namespace riscv
+{
+	void consoleinit(void);
+    void consputc(int c);
+    void consoleintr(int c);
 
-#endif
+} // namespace riscv
