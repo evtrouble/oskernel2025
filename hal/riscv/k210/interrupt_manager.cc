@@ -62,7 +62,7 @@ namespace riscv
 			}
 			else if (DISK_IRQ == irq ) { _sata->handle_intr(); }
 			else if (irq) {
-				printf("unexpected interrupt irq = %d\n", irq);
+				hsai_printf("unexpected interrupt irq = %d\n", irq);
 			}
 	
 			if (irq) { plic_complete(irq);}
@@ -74,11 +74,7 @@ namespace riscv
 		{
 			int hart = Cpu::get_rv_cpu()->get_cpu_id();
 			int irq;
-			#ifndef QEMU
 			irq = *(uint32*)PLIC_MCLAIM(hart);
-			#else
-			irq = *(uint32*)PLIC_SCLAIM(hart);
-			#endif
 			return irq;
 		}
 
@@ -86,11 +82,7 @@ namespace riscv
 		void InterruptManager::plic_complete(int irq)
 		{
 			int hart = Cpu::get_rv_cpu()->get_cpu_id();
-			#ifndef QEMU
 			*(uint32*)PLIC_MCLAIM(hart) = irq;
-			#else
-			*(uint32*)PLIC_SCLAIM(hart) = irq;
-			#endif
 		}
 	} // namespace k210
 

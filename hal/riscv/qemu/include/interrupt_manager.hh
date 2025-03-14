@@ -7,7 +7,6 @@
 namespace hsai
 {
 	class UartNs16550;
-	class AhciDriver;
 } // namespace hsai
 
 namespace riscv
@@ -58,6 +57,6 @@ namespace riscv
 
 		extern InterruptManager k_im;
 
-	} // namespace qemu2k100
+	} // namespace qemu
 
 } // namespace riscv

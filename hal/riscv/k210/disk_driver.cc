@@ -17,7 +17,6 @@ DiskDriver::DiskDriver( const char *lock_name )
 
     new ( &disk_ )
 			SdcardDriver( 0 );
-    #endif
 	// 注册到 HSAI
 	hsai::k_devm.register_device( this, "Disk driver" );
 }

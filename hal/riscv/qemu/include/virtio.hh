@@ -8,7 +8,6 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
-#include "include/qemu.hh"
 #include "hsai/include/mem/page.hh"
 #include <kernel/types.hh>
 
@@ -93,7 +92,8 @@ namespace riscv
       };
 
       // the address of virtio mmio register r.
-      #define R(r) ((volatile uint32 *)(VIRTIO0_V + (r)))
+      volatile uint32 *virtio_addr;
+      #define R( r ) ( (volatile uint32 *) ( virtio_addr + ( r ) ) )
       static constexpr int _block_size = 512;
 
       private:
@@ -145,13 +145,33 @@ namespace riscv
                   hsai::BufferDescriptor *buf_list, int buf_count ) override;
       virtual int handle_intr() override;
 
-      virtual bool read_ready() override {}
-      virtual bool write_ready() override {}
+      virtual bool read_ready() override {
+        // 检查设备状态
+        uint32 status = *R(VIRTIO_MMIO_STATUS);
+        if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
+          return false;  // 设备未就绪
+        }
+        return true;
+      }
+	    virtual bool write_ready() override {
+        // 检查设备状态
+        uint32 status = *R(VIRTIO_MMIO_STATUS);
+        if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
+          return false;  // 设备未就绪
+        }
 
-    public:
+        // 检查设备是否只读
+        uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);
+        if (features & (1 << VIRTIO_BLK_F_RO)) {
+          return false;  // 设备只读
+        }
+        return true;
+      }
+
+	public:
 
       VirtioDriver() = default;
-      VirtioDriver( int port_id );
+      VirtioDriver( void *base_addr, int port_id );
 		};
 	} // namespace qemu
 } // namespace riscv

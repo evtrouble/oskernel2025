@@ -24,7 +24,7 @@ namespace riscv
 	{
 		hsai::UartNs16550 debug_uart;
 
-		AhciDriverLs ahci_driver;
+		DiskDriver disk_driver;
 	} // namespace k210
 
 } // namespace riscv
@@ -90,132 +90,32 @@ namespace hsai
 		riscv_init();
 
 		// 3. 初始化 Memory
-		qemuk210::Memory::memory_init();
+		k210::Memory::memory_init();
 	}
 
 	void hardware_secondary_init()
 	{
+		// 关闭非对齐访存检查
 		Cpu*  rvcpu = (Cpu*) hsai::get_cpu();
-		ulong tmp	= lacpu->read_csr( csr::misc );
-		hsai_printf( "misc = %p\n", tmp );
-		// tmp &= ~0xF000;
-		tmp |= 0xF000;
-		lacpu->write_csr( csr::misc, tmp );
-		tmp = lacpu->read_csr( csr::misc );
-		hsai_printf( "misc-no_align_check = %p\n", tmp );
-
-		int cpucfg_idx;
-
-		cpucfg_idx = 1;
-		asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
-		hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
-		cpucfg_idx = 2;
-		asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
-		hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
-		cpucfg_idx = 3;
-		asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
-		hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
-		cpucfg_idx = 4;
-		asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
-		hsai_printf( "cc-freq = %d\n", tmp );
-		cpucfg_idx = 5;
-		asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
-		hsai_printf( "cc-mul = %d, cc-div = %d\n", (u16) tmp, (u32) tmp >> 16 );
-
-		{
-			// print secondary X-windows
-			long		  winid	 = 0;
-			volatile u64* winptr = nullptr;
-
-			hsai_printf( BLUE_COLOR_PRINT
-						 "打印CPU访问二级交叉开关配置: base mask mmap\n" CLEAR_COLOR_PRINT );
-			for ( winptr = (volatile u64*) loongarch::qemu2k1000::SecondWin::cpu_win0_base,
-				  winid	 = 0;
-				  winid < 8; winid++, winptr++ )
-			{
-				hsai_printf( "win%d %p %p %p\n", winid, *winptr, *( winptr + 8 ),
-							 *( winptr + 16 ) );
-			}
-
-			hsai_printf( BLUE_COLOR_PRINT
-						 "打印IO DMA访问二级交叉开关配置: base mask mmap\n" CLEAR_COLOR_PRINT );
-			for ( winptr = (volatile u64*) loongarch::qemu2k1000::SecondWin::pci_win0_base,
-				  winid	 = 0;
-				  winid < 8; winid++, winptr++ )
-			{
-				hsai_printf( "win%d %p %p %p\n", winid, *winptr, *( winptr + 8 ),
-							 *( winptr + 16 ) );
-			}
-
-			hsai_printf( BLUE_COLOR_PRINT
-						 "打印IO互连网络地址窗口配置: base mask mmap\n" CLEAR_COLOR_PRINT );
-			for ( winptr = (volatile u64*) loongarch::qemu2k1000::XbarWin::xwin4_base0, winid = 0;
-				  winid < 8; winid++, winptr++ )
-			{
-				hsai_printf( "win4-%d %p %p %p\n", winid, *winptr, *( winptr + 8 ),
-							 *( winptr + 16 ) );
-			}
-		}
+		rvcpu->set_csr( csr::CsrAddr::mstatus, csr::mstatus_mprv_m );
 
 		// 1. 异常管理初始化
 		riscv::k_em.init( "exception manager" );
 
-		// 2. AHCI 初始化 (debug)
-		ulong pci_sata_base = riscv::qemuk210::pci_type0_config_address(
-			riscv::qemuk210::sata_bus, riscv::qemuk210::sata_dev,
-			riscv::qemuk210::sata_fun );
-		pci_sata_base	|= riscv::win_1;
-		ulong sata_base	 = riscv::qemuk210::pci_type0_bar( pci_sata_base, 0 ) & ~0xFUL;
-
-		u8* buf;
-		buf = (u8*) pci_sata_base;
-		hsai_trace( "print SATA PCI header (%p)", pci_sata_base );
-		hsai_printf( BLUE_COLOR_PRINT
-					 "buf0\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" CLEAR_COLOR_PRINT );
-		for ( uint i = 0; i < 0x40; ++i )
-		{
-			if ( i % 0x10 == 0 ) hsai_printf( "%B%B\t", i >> 8, i );
-			hsai_printf( "%B ", buf[i] );
-			if ( i % 0x10 == 0xF ) hsai_printf( "\n" );
-		}
-
-		hsai_trace( "SATA PCI enable main device" );
-		riscv::qemuk210::pci_type0_enable_main( pci_sata_base );
-		hsai_trace( "SATA PCI enable memory access" );
-		riscv::qemuk210::pci_type0_enable_mem_access( pci_sata_base );
-		hsai_trace( "SATA PCI enable I/O access" );
-		riscv::qemuk210::pci_type0_enable_io_access( pci_sata_base );
-
-		hsai_trace( "print SATA PCI header (%p)", pci_sata_base );
-		hsai_printf( BLUE_COLOR_PRINT
-					 "buf0\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" CLEAR_COLOR_PRINT );
-		buf = (u8*) pci_sata_base;
-		for ( uint i = 0; i < 0x40; ++i )
-		{
-			if ( i % 0x10 == 0 ) hsai_printf( "%B%B\t", i >> 8, i );
-			hsai_printf( "%B ", buf[i] );
-			if ( i % 0x10 == 0xF ) hsai_printf( "\n" );
-		}
-
-		sata_base |= riscv::win_1;
-		hsai_trace( "SATA mem base = %p", sata_base );
-		new ( &ahci_driver ) AhciDriverLs( "AHCI", (void*) sata_base );
+		// 2. Disk 初始化 (debug)
+		new ( &disk_driver ) DiskDriver( "Disk");
 
 		// 3. 中断管理初始化
-		new ( &riscv::qemuk210::k_im )
-			riscv::qemuk210::InterruptManager( "intr manager" );
+		new ( &riscv::k210::k_im )
+			riscv::k210::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
-
-		// 4. AHCI 识别设备（需要在中断初始化后进行）
-		AhciDriverLs* ahd = (AhciDriverLs*) k_devm.get_device( "AHCI driver" );
-		ahd->identify_device();
 	}
 
 	void user_proc_init( void* proc )
 	{
 		TrapFrame* tf = (TrapFrame*) get_trap_frame_from_proc( proc );
-		tf->era		  = (uint64) &init_main - (uint64) &_start_u_init;
-		hsai_info( "user init: era = %p", tf->era );
+		tf->epc		  = (uint64) &init_main - (uint64) &_start_u_init;
+		hsai_info( "user init: epc = %p", tf->epc );
 		// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
 		// hsai_info( "user init: sp  = %p", tf->sp );
 	}
@@ -229,7 +129,7 @@ namespace hsai
 	void set_trap_frame_entry( void* trapframe, void* entry )
 	{
 		TrapFrame* tf = (TrapFrame*) trapframe;
-		tf->era		  = (u64) entry;
+		tf->epc		  = (u64) entry;
 	}
 
 	void set_trap_frame_user_sp( void* trapframe, ulong sp )
@@ -304,7 +204,7 @@ namespace hsai
 
 	ulong get_main_frequence() { return qemu_fre; }
 
-	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->read_csr( csr::tval ); }
+	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->read_csr( csr::CsrAddr::time ); }
 
 	ulong time_stamp_to_usec( ulong ts ) { return qemu_fre_cal_usec( ts ); }
 

@@ -1,6 +1,6 @@
-#include "include/types.h"
-#include "include/sysctl.h"
-#include "include/memlayout.h"
+#include "include/sysctl.hh"
+#include "include/k210.hh"
+using namespace riscv::k210;
 
 #define SYSCTRL_CLOCK_FREQ_IN0 (26000000UL)
 

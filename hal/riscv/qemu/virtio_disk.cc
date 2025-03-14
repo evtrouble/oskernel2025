@@ -8,16 +8,16 @@
 
 
 #include "include/virtio.hh"
-#include "kernel/include/klib/common.hh"
 #include <device_manager.hh>
-#include "kernel/include/pm/process_manager.hh"
+#include <process_interface.hh>
 
-using namespace riscv::qemuk;
+using namespace riscv::qemu;
 
-VirtioDriver::VirtioDriver( int port_id)
+VirtioDriver::VirtioDriver( void *base_addr, int port_id)
 {
   uint32 status = 0;
   _port_id = port_id;
+  virtio_addr = (uint32) base_addr;
 
   disk.vdisk_lock.init("virtio_disk");
 
@@ -64,7 +64,7 @@ VirtioDriver::VirtioDriver( int port_id)
     hsai_panic("virtio disk max queue too short");
   *R(VIRTIO_MMIO_QUEUE_NUM) = NUM;
   memset(disk.pages, 0, sizeof(disk.pages));
-  *R(VIRTIO_MMIO_QUEUE_PFN) = ((uint64)disk.pages) >> PGSHIFT;
+  *R(VIRTIO_MMIO_QUEUE_PFN) = ((uint64)disk.pages) >> 12;
 
   // desc = pages -- num * VRingDesc
   // avail = pages + 0x40 -- 2 * uint16, then num * uint16
@@ -109,7 +109,7 @@ void VirtioDriver::free_desc(int i)
     hsai_panic("virtio_disk_intr 2");
   disk.desc[i].addr = 0;
   disk.free[i] = 1;
-  wakeup(&disk.free[0]);
+  hsai::wakeup_at(&disk.free[0]);
 }
 
 // free a chain of descriptors.
@@ -164,7 +164,7 @@ void VirtioDriver::virtio_disk_rw( long start_block, long block_count,
       }
     }
     if(success) break;
-      pm::k_pm.sleep(&disk.free[0], &disk.vdisk_lock);
+      hsai::sleep_at(&disk.free[0], &disk.vdisk_lock);
   }
   
   struct virtio_blk_outhdr {
@@ -212,7 +212,7 @@ void VirtioDriver::virtio_disk_rw( long start_block, long block_count,
   
   // 等待操作完成
   while(disk.info[idx[0]].b) {
-    pm::k_pm.sleep(buf_list, &disk.vdisk_lock);
+    hsai::sleep_at(buf_list, &disk.vdisk_lock);
   }
   
   if(disk.info[idx[0]].status != 0) {
@@ -260,7 +260,7 @@ int VirtioDriver::handle_intr()
       hsai_panic("virtio_disk_intr status");
     
     disk.info[id].b = 0;   // disk is done with buf
-    pm::k_pm.wakeup(disk.info[id].b);
+    hsai::wakeup_at(disk.info[id].b);
 
     disk.used_idx = (disk.used_idx + 1) % NUM;
   }

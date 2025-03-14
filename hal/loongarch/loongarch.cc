@@ -38,8 +38,6 @@ namespace loongarch
 		// 3. TLB 管理初始化
 		k_tlbm.init( "TLB manager" );
 		hsai_info( "tlbm init" );
-
-		// 4. 关闭非对齐访存检查
 	}
 
 

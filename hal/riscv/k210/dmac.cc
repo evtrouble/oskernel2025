@@ -17,7 +17,7 @@
 #include "include/fpioa.hh"
 #include "include/utils.hh"
 #include "include/sysctl.hh"
-#include "include/interrupt_manager.hh""
+#include "include/interrupt_manager.hh"
 
 namespace riscv
 {
@@ -340,6 +340,7 @@ namespace riscv
         void dmac_wait_idle(dmac_channel_number_t channel_num)
         {
             while(!dmac_is_idle(channel_num)) {
+                hsai::get_cur_proc()->_lock
                 acquire(&myproc()->lock);
                 sleep(dmac_chan, &myproc()->lock);
                 release(&myproc()->lock);
@@ -349,7 +350,7 @@ namespace riscv
         void dmac_intr(dmac_channel_number_t channel_num)
         {
             dmac_chanel_interrupt_clear(channel_num);
-            wakeup(dmac_chan);
+            hsai::wakeup_at(dmac_chan);
         }
     }
 }

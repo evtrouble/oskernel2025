@@ -2,11 +2,11 @@
 
 #include <smp/spin_lock.hh>
 #include <intr/virtual_interrupt_manager.hh>
+#include "disk_driver.hh"
 
 namespace hsai
 {
 	class UartNs16550;
-	class AhciDriver;
 } // namespace hsai
 
 namespace riscv
@@ -18,31 +18,31 @@ namespace riscv
 		private:
 			hsai::SpinLock _lock;
 			hsai::UartNs16550 * _uart0 = nullptr;
-			hsai::AhciDriver * _sata = nullptr;
+			DiskDriver * _sata = nullptr;
 
 			int plic_claim( void );
 			void plic_complete( int irq );
-#define readb(addr) (*(volatile uint8 *)(addr))
-#define readw(addr) (*(volatile uint16 *)(addr))
-#define readd(addr) (*(volatile uint32 *)(addr))
-#define readq(addr) (*(volatile uint64 *)(addr))
+			#define readb(addr) (*(volatile uint8 *)(addr))
+			#define readw(addr) (*(volatile uint16 *)(addr))
+			#define readd(addr) (*(volatile uint32 *)(addr))
+			#define readq(addr) (*(volatile uint64 *)(addr))
 
-#define writeb(v, addr)                      \
-    {                                        \
-        (*(volatile uint8 *)(addr)) = (v); \
-    }
-#define writew(v, addr)                       \
-    {                                         \
-        (*(volatile uint16 *)(addr)) = (v); \
-    }
-#define writed(v, addr)                       \
-    {                                         \
-        (*(volatile uint32 *)(addr)) = (v); \
-    }
-#define writeq(v, addr)                       \
-    {                                         \
-        (*(volatile uint64 *)(addr)) = (v); \
-    }
+			#define writeb(v, addr)                      \
+				{                                        \
+					(*(volatile uint8 *)(addr)) = (v); \
+				}
+			#define writew(v, addr)                       \
+				{                                         \
+					(*(volatile uint16 *)(addr)) = (v); \
+				}
+			#define writed(v, addr)                       \
+				{                                         \
+					(*(volatile uint32 *)(addr)) = (v); \
+				}
+			#define writeq(v, addr)                       \
+				{                                         \
+					(*(volatile uint64 *)(addr)) = (v); \
+				}
 
 		public:
 			InterruptManager() = default;

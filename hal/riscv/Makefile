@@ -1,4 +1,8 @@
 support_platform = qemu k210
+sbi_support = rustsbi-qemu rustsbi-k210
+
+# 定义SBI路径
+SBI_PATH = $(WORKPATH)/hal/riscv/SBI
 
 # >>>> 
 # *******************************************************
@@ -25,7 +29,11 @@ card_dir = $(foreach d, $(filter-out include/, $(wildcard $1*/)), $(call card_di
 # >>>>
 
 export CFLAGS += -I $(WORKPATH)/hsai/include/
+export CFLAGS += -DRUSTSBI_ENABLED
+export CFLAGS += -mcmodel=medany
 export CXXFLAGS += -I $(WORKPATH)/hsai/include/
+export CXXFLAGS += -DRUSTSBI_ENABLED
+export CXXFLAGS += -mcmodel=medany
 
 # >>>>
 # ********************************************************
@@ -37,6 +45,9 @@ plat_name = \
 	$(error platform '${CONF_PLATFORM}' is not supported)\
 	)
 plat_name := $(strip $(plat_name))
+ifeq ($(plat_name), qemu)
+CFLAGS += -D QEMU
+endif
 
 # architecture name
 arch_name = $(CONF_ARCH)
@@ -65,9 +76,23 @@ depends = \
 	$(patsubst %.S, $(BUILDPATH)/hal/$(arch_name)/%.d, $(s_src))
 
 
-.PHONY: all clean test initdir add_libcpu compile_platform
+.PHONY: all clean test initdir add_libcpu compile_platform build_sbi
 
-all: initdir compile_platform add_libcpu
+all: initdir build_sbi compile_platform add_libcpu
+
+# 添加SBI构建目标
+build_sbi:
+ifeq ($(CONF_PLATFORM),k210)
+    @echo "Building RustSBI for K210..."
+    @cd $(SBI_PATH)/rustsbi-k210 && \
+    cargo build --release && \
+    cp target/riscv64gc-unknown-none-elf/release/rustsbi-k210 $(BUILDPATH)/
+else
+    @echo "Building RustSBI for QEMU..."
+    @cd $(SBI_PATH)/rustsbi-qemu && \
+    cargo build --release && \
+    cp target/riscv64gc-unknown-none-elf/release/rustsbi-qemu $(BUILDPATH)/
+endif
 
 initdir:
 	mkdir -p $(BUILDPATH)/hal/$(arch_name)
@@ -108,3 +133,10 @@ test:
 clean: 
 	cd "$(BUILDPATH)/hal/$(arch_name)"; rm -f *.o *.d
 	$(MAKE) clean -C $(plat_name)
+ifeq ($(CONF_PLATFORM),k210)
+    @cd $(SBI_PATH)/rustsbi-k210 && cargo clean
+    @rm -f $(BUILDPATH)/rustsbi-k210
+else
+    @cd $(SBI_PATH)/rustsbi-qemu && cargo clean
+    @rm -f $(BUILDPATH)/rustsbi-qemu
+endif

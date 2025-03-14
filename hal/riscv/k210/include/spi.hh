@@ -1,6 +1,6 @@
 #pragma once
 #include <kernel/types.hh>
-using namespace riscv::qemuk210;
+using namespace riscv::k210;
 
 #ifdef __cplusplus
 extern "C" {

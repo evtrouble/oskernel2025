@@ -11,7 +11,7 @@
 #include <hsai_global.hh>
 #include <hsai_log.hh>
 #include <mem/page.hh>
-#include "mm/virtual_memory_manager.hh"
+#include <memory_interface.hh>
 
 #include "rv_cpu.hh"
 #include "riscv.hh"

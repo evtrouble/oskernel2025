@@ -1,6 +1,6 @@
 #include "include/utils.hh"
 
-using namespace riscv::qemuk210;
+using namespace riscv::k210;
 
 void set_bit(volatile uint32 *bits, uint32 mask, uint32 value)
 {

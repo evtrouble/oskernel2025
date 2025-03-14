@@ -1,11 +1,11 @@
 # configure 
 CONF_CPU_NUM = 2
-export CONF_ARCH ?= loongarch
-export CONF_PLATFORM ?= qemu_2k1000
+# export CONF_ARCH ?= loongarch
+# export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
 
-# export CONF_ARCH ?= riscv
-# export CONF_PLATFORM ?= qemu
+export CONF_ARCH ?= riscv
+export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
 # make variable define 

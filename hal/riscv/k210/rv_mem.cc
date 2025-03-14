@@ -11,20 +11,21 @@
 #include <hsai_global.hh>
 #include <hsai_log.hh>
 #include <mem/page.hh>
-#inlcude "mm/virtual_memory_manager.hh"
+#include <memory_interface.hh>
 
 #include "rv_cpu.hh"
 #include "riscv.hh"
-#include "qemu_k210.hh"
+#include "k210.hh"
 #include "tlb_manager.hh"
 
 extern "C" {
-extern ulong xn6_end;
+	extern ulong kernel_end;
+	extern ulong etext;
 }
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace k210
 	{
 		static Memory k_k210_mem;
 
@@ -35,14 +36,14 @@ namespace riscv
 
 		ulong Memory::mem_start()
 		{
-			ulong end_addr	= (ulong) &xn6_end;
+			ulong end_addr	= (ulong) &kernel_end;
 			end_addr	   += _1M - 1;
 			end_addr	   &= ~( _1M - 1 );
 			return end_addr;
 		}
 		ulong Memory::mem_size()
 		{
-			return memory::mem_size;
+			return PHYSTOP - mem_start();
 		}
 
 		ulong Memory::to_vir( ulong addr ) { return addr; }
@@ -58,10 +59,6 @@ namespace riscv
 			// uart registers
 			map_pages(*(PageTable*)pt_addr, UART_V, PG_SIZE, UART, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			
-			#ifdef QEMU
-			// virtio mmio disk interface
-			map_pages(*(PageTable*)pt_addr, VIRTIO0_V, PG_SIZE, VIRTIO0, pte_read_m | pte_write_m);
-			#endif
 			// CLINT
 			map_pages(*(PageTable*)pt_addr, CLINT_V, 0x10000, CLINT, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
@@ -69,12 +66,11 @@ namespace riscv
 			map_pages(*(PageTable*)pt_addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
 			map_pages(*(PageTable*)pt_addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
-			#ifndef QEMU
 			// GPIOHS
 			map_pages(*(PageTable*)pt_addr, GPIOHS_V, 0x1000, GPIOHS, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// DMAC
-			// map_pages(*(PageTable*)pt_addr, DMAC_V, 0x1000, DMAC, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			map_pages(*(PageTable*)pt_addr, DMAC_V, 0x1000, DMAC, PteEnum::pte_read_m | PteEnum::pte_write_m);
 
 			// GPIO
 			// map_pages(*(PageTable*)pt_addr, GPIO_V, 0x1000, GPIO, PteEnum::pte_read_m | PteEnum::pte_write_m);
@@ -96,7 +92,6 @@ namespace riscv
 
 			// SYSCTL
 			map_pages(*(PageTable*)pt_addr, SYSCTL_V, 0x1000, SYSCTL, PteEnum::pte_read_m | PteEnum::pte_write_m);
-			#endif
 			
 			// map rustsbi
 			// kvmmap(RUSTSBI_BASE, RUSTSBI_BASE, KERNBASE - RUSTSBI_BASE, PTE_R | PTE_X);
@@ -119,6 +114,6 @@ namespace riscv
 			k_tlbm.invalid_all_tlb();
 		}
 
-	} // namespace qemuk210
+	} // namespace k210
 
 } // namespace riscv

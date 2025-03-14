@@ -15,7 +15,7 @@
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace k210
 	{
         class SdcardDriver : public hsai::BlockDevice
 		{

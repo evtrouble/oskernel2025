@@ -118,6 +118,7 @@ namespace hsai
 
 	void hardware_secondary_init()
 	{
+		// 关闭非对齐访存检查
 		Cpu*  lacpu = (Cpu*) hsai::get_cpu();
 		ulong tmp	= lacpu->read_csr( csr::misc );
 		hsai_printf( "misc = %p\n", tmp );

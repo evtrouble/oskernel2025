@@ -43,7 +43,7 @@ namespace riscv
 				(hsai::UartNs16550 *) hsai::k_devm.get_char_device( DEFAULT_DEBUG_CONSOLE_NAME );
 			if ( _uart0 == nullptr ) { hsai_panic( "couldn't find console device" ); }
 
-			_disk = (hsai::AhciDriver *) hsai::k_devm.get_device( "Disk driver" );
+			_disk = (DiskDriver *) hsai::k_devm.get_device( "Disk driver" );
 			if ( _disk == nullptr ) { hsai_panic( "couldn't find disk device" ); }
 		}
 

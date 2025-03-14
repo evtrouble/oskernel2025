@@ -17,3 +17,4 @@ oscomp/*
 glibc
 testsuits
 .gdb_cmd.txt
+target/*

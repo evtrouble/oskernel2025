@@ -50,7 +50,7 @@ int SdcardDriver::switch_to_SPI_mode(void) {
 		if (0x01 == result) break;
 	}
 	if (0 == timeout) {
-		printf("SD_CMD0 failed\n");
+		hsai_printf("SD_CMD0 failed\n");
 		return 0xff;
 	}
 
@@ -72,14 +72,14 @@ int SdcardDriver::verify_operation_condition(void) {
 	sd_end_cmd();
 
 	if (0x09 == result) {
-		printf("invalid CRC for CMD8\n");
+		hsai_printf("invalid CRC for CMD8\n");
 		return 0xff;
 	}
 	else if (0x01 == result && 0x01 == (frame[2] & 0x0f) && 0xaa == frame[3]) {
 		return 0x00;
 	}
 
-	printf("verify_operation_condition() fail!\n");
+	hsai_printf("verify_operation_condition() fail!\n");
 	return 0xff;
 }
 
@@ -105,8 +105,8 @@ int SdcardDriver::read_OCR(void) {
 	}
 
 	// timeout!
-	printf("read_OCR() timeout!\n");
-	printf("result = %d\n", result);
+	hsai_printf("read_OCR() timeout!\n");
+	hsai_printf("result = %d\n", result);
 	return 0xff;
 }
 
@@ -120,7 +120,7 @@ int SdcardDriver::set_SDXC_capacity(void) {
 		result = sd_get_response_R1();
 		sd_end_cmd();
 		if (0x01 != result) {
-			printf("SD_CMD55 fail! result = %d\n", result);
+			hsai_printf("SD_CMD55 fail! result = %d\n", result);
 			return 0xff;
 		}
 
@@ -133,8 +133,8 @@ int SdcardDriver::set_SDXC_capacity(void) {
 	}
 
 	// timeout! 
-	printf("set_SDXC_capacity() timeout!\n");
-	printf("result = %d\n", result);
+	hsai_printf("set_SDXC_capacity() timeout!\n");
+	hsai_printf("result = %d\n", result);
 	return 0xff;
 }
 
@@ -153,16 +153,16 @@ int SdcardDriver::check_block_size(void) {
 
 		if (0 == result) {
 			if (ocr[0] & 0x40) {
-				printf("SDHC/SDXC detected\n");
+				hsai_printf("SDHC/SDXC detected\n");
 				if (512 != _block_size) {
-					printf("_block_size != 512\n");
+					hsai_printf("_block_size != 512\n");
 					return 0xff;
 				}
 
 				is_standard_sd = false;
 			}
 			else {
-				printf("SDSC detected, setting block size\n");
+				hsai_printf("SDSC detected, setting block size\n");
 
 				// setting SD card block size to BSIZE 
 				int timeout = 0xff;
@@ -175,7 +175,7 @@ int SdcardDriver::check_block_size(void) {
 					if (0 == result) break;
 				}
 				if (0 == timeout) {
-					printf("check_OCR(): fail to set block size");
+					hsai_printf("check_OCR(): fail to set block size");
 					return 0xff;
 				}
 
@@ -187,8 +187,8 @@ int SdcardDriver::check_block_size(void) {
 	}
 
 	// timeout! 
-	printf("check_OCR() timeout!\n");
-	printf("result = %d\n", result);
+	hsai_printf("check_OCR() timeout!\n");
+	hsai_printf("result = %d\n", result);
 	return 0xff;
 }
 
@@ -315,8 +315,8 @@ int SdcardDriver::write_blocks_sync( long start_block, long block_count,
 	sd_end_cmd();
 	if (0 != result || 0 != error_code) {
 		_lock.release();
-		printf("result: %x\n", result);
-		printf("error_code: %x\n", error_code);
+		hsai_printf("result: %x\n", result);
+		hsai_printf("error_code: %x\n", error_code);
 		hsai_panic("sdcard: an error occurs when writing");
 	}
 
