@@ -1,27 +1,10 @@
 #include "exception_manager.hh"
 
-#include "rv_cpu.hh"
-#include "riscv.hh"
-#include "trap_wrapper.hh"
-
-// #include "kernel/tm/timer_manager.hh"
-
-// #include "kernel/pm/process.hh"
-#include "trap_frame.hh"
-#include "include/types.h"
-#include "include/param.h"
-#include "include/memlayout.h"
-#include "include/riscv.h"
-#include "include/spinlock.h"
-#include "include/proc.h"
-#include "include/sbi.h"
-#include "include/plic.h"
-#include "include/trap.h"
-#include "include/syscall.h"
-#include "include/printf.h"
-#include "include/console.h"
-#include "include/timer.h"
-#include "include/disk.h"
+#include "include/rv_cpu.hh"
+#include "include/riscv.hh"
+#include "include/trap_wrapper.hh"
+#include "include/trap_frame.hh"
+#include "include/sbi.hh"
 // #include "kernel/pm/process_manager.hh"
 
 // #include "kernel/mm/memlayout.hh"
@@ -77,7 +60,7 @@ namespace riscv
 	{
 		Cpu *cpu = Cpu::get_rv_cpu();
 
-		u32 sepc = cpu->read_csr( csr::CsrAddr::spec );
+		u32 sepc = cpu->read_csr( csr::CsrAddr::sepc );
 		u32 sstatus = cpu->read_csr( csr::CsrAddr::sstatus );
 		u32 scause = cpu->read_csr( csr::CsrAddr::scause );
 
@@ -92,16 +75,19 @@ namespace riscv
 		if ( kernel_trap_cnt > 4 ) hsai_panic( "kernel trap" );
 		if ( cpu->is_interruptible() ) hsai_panic( "kerneltrap: interrupts enabled" );
 
-		if((which_dev = devintr()) == 0){
+		int which_dev;
+		if ( ( which_dev = dev_intr() ) == 0 )
+		{
 			hsai_printf("scause %p\n", scause);
-			hsai_printf("sepc=%p stval=%p hart=%d\n", r_sepc(), r_stval(), r_tp());
+			hsai_printf("sepc=%p stval=%p hart=%d\n", cpu->read_csr( csr::CsrAddr::sepc ), 
+				cpu->read_csr( csr::CsrAddr::stval ), cpu->get_cpu_id());
 			void *proc = hsai::get_cur_proc();
 			if (proc != 0) {
 				hsai_printf("pid: %d, name: %s\n", hsai::get_pid(proc), hsai::get_proc_name( proc ));
 			}
 			hsai_panic("kerneltrap");
 		}
-		
+
 		void *proc = hsai::get_cur_proc();
 		// give up the CPU if this is a timer interrupt.
 		if(which_dev == 2 && proc && hsai::proc_is_running(proc)) {
@@ -149,8 +135,8 @@ namespace riscv
 			// ok
 		} 
 		else {
-			hsai_error("usertrap(): unexpected scause %p pid=%d %s\n
-				sepc=%p stval=%p\n", scause, hsai::get_pid( proc ), hsai::get_proc_name( proc )
+			hsai_error("usertrap(): unexpected scause %p pid=%d %s\n"
+				"sepc=%p stval=%p\n", scause, hsai::get_pid( proc ), hsai::get_proc_name( proc ), 
 				cpu->read_csr( csr::CsrAddr::sepc ), cpu->read_csr( csr::CsrAddr::stval ));
 			// trapframedump(p->trapframe);
 			hsai::proc_kill( proc );
@@ -207,11 +193,11 @@ namespace riscv
 	{
 		Cpu	  *cpu	 = Cpu::get_rv_cpu();
 		uint64 scause = cpu->read_csr( csr::CsrAddr::scause );
-
-		#ifdef QEMU 
+		int	   rc;
+#ifdef QEMU
 		// handle external interrupt 
-		if ((0x8000000000000000L & scause) && 9 == (scause & 0xff)) 
-		#else 
+		if ((0x8000000000000000L & scause) && 9 == (scause & 0xff))
+#else 
 		// on k210, supervisor software interrupt is used 
 		// in alternative to supervisor external interrupt, 
 		// which is not available on k210. 
@@ -264,19 +250,7 @@ namespace riscv
 	void ExceptionManager::set_next_timeout()
 	{
 		Cpu *cpu = Cpu::get_rv_cpu();
-		cpu->write_csr( csr::CsrAddr::timecmp, cpu->read_csr(csr::CsrAddr::time) + INTERVAL );
-	}
-
-	static inline uint64 read_mtime()
-	{
-		uint64 mtime;
-		asm volatile ("csrr %0, time" : "=r"(mtime));
-		return mtime;
-	}
-
-	static inline void write_mtimecmp(uint64 time)
-	{
-		asm volatile ("csrw timecmp, %0" : : "r"(time));
+		sbi_set_timer( cpu->read_csr( csr::CsrAddr::time ) + INTERVAL );
 	}
 
 	// ---------------- private helper functions ----------------
@@ -368,40 +342,48 @@ namespace riscv
 	void ExceptionManager::_print_trap_frame( void *proc )
 	{
 		TrapFrame *tf = (TrapFrame *) hsai::get_trap_frame_from_proc( proc );
-		hsai_printf( BLUE_COLOR_PRINT "print trap frame:\n" );
-		hsai_printf( "\tra(r1)  = %p\n", tf->ra );
-		hsai_printf( "\ttp(r2)  = %p\n", tf->tp );
-		hsai_printf( "\tsp(r3)  = %p\n", tf->sp );
-		hsai_printf( "\ta0(r4)  = %p\n", tf->a0 );
-		hsai_printf( "\ta1(r5)  = %p\n", tf->a1 );
-		hsai_printf( "\ta2(r6)  = %p\n", tf->a2 );
-		hsai_printf( "\ta3(r7)  = %p\n", tf->a3 );
-		hsai_printf( "\ta4(r8)  = %p\n", tf->a4 );
-		hsai_printf( "\ta5(r9)  = %p\n", tf->a5 );
-		hsai_printf( "\ta6(r10) = %p\n", tf->a6 );
-		hsai_printf( "\ta7(r11) = %p\n", tf->a7 );
-		hsai_printf( "\tt0(r12) = %p\n", tf->t0 );
-		hsai_printf( "\tt1(r13) = %p\n", tf->t1 );
-		hsai_printf( "\tt2(r14) = %p\n", tf->t2 );
-		hsai_printf( "\tt3(r15) = %p\n", tf->t3 );
-		hsai_printf( "\tt4(r16) = %p\n", tf->t4 );
-		hsai_printf( "\tt5(r17) = %p\n", tf->t5 );
-		hsai_printf( "\tt6(r18) = %p\n", tf->t6 );
-		hsai_printf( "\tt7(r19) = %p\n", tf->t7 );
-		hsai_printf( "\tt8(r20) = %p\n", tf->t8 );
-		hsai_printf( "\tr21     = %p\n", tf->r21 );
-		hsai_printf( "\tfp(r22) = %p\n", tf->fp );
-		hsai_printf( "\ts0(r23) = %p\n", tf->s0 );
-		hsai_printf( "\ts1(r24) = %p\n", tf->s1 );
-		hsai_printf( "\ts2(r25) = %p\n", tf->s2 );
-		hsai_printf( "\ts3(r26) = %p\n", tf->s3 );
-		hsai_printf( "\ts4(r27) = %p\n", tf->s4 );
-		hsai_printf( "\ts5(r28) = %p\n", tf->s5 );
-		hsai_printf( "\ts6(r29) = %p\n", tf->s6 );
-		hsai_printf( "\ts7(r30) = %p\n", tf->s7 );
-		hsai_printf( "\ts8(r31) = %p\n", tf->s8 );
+		hsai_printf( BLUE_COLOR_PRINT "RISC-V Trap Frame:\n" );
+		// 通用寄存器 x0-x31
+		hsai_printf( "\tx0/zero = 0\n" );                // 零寄存器
+		hsai_printf( "\tx1/ra   = %p\n", tf->ra );       // 返回地址
+		hsai_printf( "\tx2/sp   = %p\n", tf->sp );       // 栈指针
+		hsai_printf( "\tx3/gp   = %p\n", tf->gp );       // 全局指针
+		hsai_printf( "\tx4/tp   = %p\n", tf->tp );       // 线程指针
+		hsai_printf( "\tx5/t0   = %p\n", tf->t0 );       // 临时寄存器
+		hsai_printf( "\tx6/t1   = %p\n", tf->t1 );
+		hsai_printf( "\tx7/t2   = %p\n", tf->t2 );
+		hsai_printf( "\tx8/s0/fp= %p\n", tf->s0 );       // 保存寄存器/帧指针
+		hsai_printf( "\tx9/s1   = %p\n", tf->s1 );
+		hsai_printf( "\tx10/a0  = %p\n", tf->a0 );       // 参数/返回值
+		hsai_printf( "\tx11/a1  = %p\n", tf->a1 );
+		hsai_printf( "\tx12/a2  = %p\n", tf->a2 );
+		hsai_printf( "\tx13/a3  = %p\n", tf->a3 );
+		hsai_printf( "\tx14/a4  = %p\n", tf->a4 );
+		hsai_printf( "\tx15/a5  = %p\n", tf->a5 );
+		hsai_printf( "\tx16/a6  = %p\n", tf->a6 );
+		hsai_printf( "\tx17/a7  = %p\n", tf->a7 );
+		hsai_printf( "\tx18/s2  = %p\n", tf->s2 );       // 保存寄存器
+		hsai_printf( "\tx19/s3  = %p\n", tf->s3 );
+		hsai_printf( "\tx20/s4  = %p\n", tf->s4 );
+		hsai_printf( "\tx21/s5  = %p\n", tf->s5 );
+		hsai_printf( "\tx22/s6  = %p\n", tf->s6 );
+		hsai_printf( "\tx23/s7  = %p\n", tf->s7 );
+		hsai_printf( "\tx24/s8  = %p\n", tf->s8 );
+		hsai_printf( "\tx25/s9  = %p\n", tf->s9 );
+		hsai_printf( "\tx26/s10 = %p\n", tf->s10 );
+		hsai_printf( "\tx27/s11 = %p\n", tf->s11 );
+		hsai_printf( "\tx28/t3  = %p\n", tf->t3 );       // 临时寄存器
+		hsai_printf( "\tx29/t4  = %p\n", tf->t4 );
+		hsai_printf( "\tx30/t5  = %p\n", tf->t5 );
+		hsai_printf( "\tx31/t6  = %p\n", tf->t6 );
+
+		// 特权寄存器
+		hsai_printf( "\n\t== Special Registers ==\n" );
+		hsai_printf( "\tepc        = %p\n", tf->epc );           // 异常程序计数器
+		hsai_printf( "\tkernel_satp= %p\n", tf->kernel_satp );   // 页表基地址
+		hsai_printf( "\tkernel_sp  = %p\n", tf->kernel_sp );     // 内核栈指针
+		hsai_printf( "\tkernel_trap= %p\n", tf->kernel_trap );   // 陷入处理函数
 		hsai_printf( CLEAR_COLOR_PRINT );
 	}
 
-} // namespace loongarch
-
+} // namespace riscv

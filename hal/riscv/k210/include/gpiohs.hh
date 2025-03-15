@@ -3,7 +3,7 @@
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace k210
 	{
         typedef enum _gpio_drive_mode
         {
@@ -264,6 +264,6 @@ namespace riscv
          */
         void gpiohs_irq_unregister(uint8 pin);
 
+    } // namespace k210
 
-    } // namespace qemu2k100
 } // namespace riscv

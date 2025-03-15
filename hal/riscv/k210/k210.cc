@@ -28,8 +28,6 @@ namespace riscv
 
 } // namespace riscv
 
-using namespace riscv;
-
 extern "C" {
 extern uint64 _start_u_init;
 extern uint64 _end_u_init;
@@ -48,7 +46,7 @@ extern ulong _bss_end_addr;
 extern ulong kernel_end;
 extern ulong etext;
 }
-
+using namespace riscv;
 using namespace riscv::k210;
 
 namespace hsai

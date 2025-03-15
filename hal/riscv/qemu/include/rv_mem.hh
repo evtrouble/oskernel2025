@@ -1,6 +1,5 @@
 #pragma once 
 
-#include <hsai_log.hh>
 #include <mem/page.hh>
 #include <mem/virtual_memory.hh>
 
@@ -31,7 +30,8 @@ namespace riscv
 
 			// configure global page table
 			virtual void config_pt( ulong pt_addr ) override;
-
 		};
+
 	} // namespace qemu
+
 } // namespace riscv

@@ -1,5 +1,4 @@
 #pragma once 
-#include <kernel/types.hh>
 
 namespace riscv
 {
@@ -60,14 +59,13 @@ namespace riscv
 
 			// Machine Trap Setup
 			mstatus = 0x300,    // Machine Status Register (crmd in LoongArch)
-			misa = 0x301,       // ISA and Extensions
-			medeleg = 0x302,    // Machine Exception Delegation (ecfg in LoongArch)
-			mideleg = 0x303,    // Machine Interrupt Delegation (ecfg in LoongArch)
+			// misa = 0x301,       // ISA and Extensions
+			// medeleg = 0x302,    // Machine Exception Delegation (ecfg in LoongArch)
+			// mideleg = 0x303,    // Machine Interrupt Delegation (ecfg in LoongArch)
 			mie = 0x304,        // Machine Interrupt Enable
 			mtvec = 0x305,      // Machine Trap-Vector Base Address (eentry in LoongArch)
 			time = 0xC01,       // Timer Register
-			timecmp = 0xC02,    // Timer Compare Register
-			mscratch = 0x340,   // Machine Scratch Register
+			// mscratch = 0x340,   // Machine Scratch Register
 			mepc = 0x341,       // Machine Exception Program Counter (era in LoongArch)
 			mcause = 0x342,     // Machine Cause Register (estat in LoongArch)
 			mtval = 0x343,      // Machine Trap Value Register (badv in LoongArch)
@@ -75,11 +73,11 @@ namespace riscv
 
 			// Supervisor Trap Setup
 			sstatus = 0x100,    // Supervisor Status Register (prmd in LoongArch)
-			sedeleg = 0x102,    // Supervisor Exception Delegation
-			sideleg = 0x103,    // Supervisor Interrupt Delegation
+			// sedeleg = 0x102,    // Supervisor Exception Delegation
+			// sideleg = 0x103,    // Supervisor Interrupt Delegation
 			sie = 0x104,        // Supervisor Interrupt Enable
 			stvec = 0x105,      // Supervisor Trap-Vector Base Address (eentry in LoongArch)
-			sscratch = 0x140,   // Supervisor Scratch Register
+			// sscratch = 0x140,   // Supervisor Scratch Register
 			sepc = 0x141,       // Supervisor Exception Program Counter (era in LoongArch)
 			scause = 0x142,     // Supervisor Cause Register (estat in LoongArch)
 			stval = 0x143,      // Supervisor Trap Value Register (badv in LoongArch)
@@ -87,14 +85,14 @@ namespace riscv
 			satp = 0x180,       // Supervisor Address Translation and Protection
 
 			// User Trap Setup
-			ustatus = 0x000,    // User Status Register
-			uie = 0x004,        // User Interrupt Enable
-			utvec = 0x005,      // User Trap-Vector Base Address
-			uscratch = 0x040,   // User Scratch Register
-			uepc = 0x041,       // User Exception Program Counter
-			ucause = 0x042,     // User Cause Register
-			utval = 0x043,      // User Trap Value Register
-			uip = 0x044,        // User Interrupt Pending
+			// ustatus = 0x000,    // User Status Register
+			// uie = 0x004,        // User Interrupt Enable
+			// utvec = 0x005,      // User Trap-Vector Base Address
+			// uscratch = 0x040,   // User Scratch Register
+			// uepc = 0x041,       // User Exception Program Counter
+			// ucause = 0x042,     // User Cause Register
+			// utval = 0x043,      // User Trap Value Register
+			// uip = 0x044,        // User Interrupt Pending
 		};
 
 #define _build_mstatus_bit_( name, mask, shift ) \
@@ -184,59 +182,172 @@ namespace riscv
 		};
 #undef _build_sip_bit_
 
-#define _build_ustatus_bit_( name, mask, shift ) \
-	ustatus_##name##_s = shift, \
-	ustatus_##name##_m = mask << ustatus_##name##_s,
-		enum Ustatus : uint32
-		{
-			_build_ustatus_bit_( uie, 0x1, 0 )
-			_build_ustatus_bit_( upie, 0x1, 4 )
-		};
-#undef _build_ustatus_bit_
+		#define DEFINE_CSR_OPS(name) \
+        static inline uint64 read_##name() { \
+            uint64 value; \
+            asm volatile("csrr %0, " #name : "=r"(value)); \
+            return value; \
+        } \
+        static inline void write_##name(uint64 value) { \
+            asm volatile("csrw " #name ", %0" : : "r"(value)); \
+        } \
+        static inline void set_##name(uint64 value) { \
+            asm volatile("csrs " #name ", %0" : : "r"(value)); \
+        } \
+        static inline void clear_##name(uint64 value) { \
+            asm volatile("csrc " #name ", %0" : : "r"(value)); \
+        }
 
-#define _build_uie_bit_( name, mask, shift ) \
-	uie_##name##_s = shift, \
-	uie_##name##_m = mask << uie_##name##_s,
-		enum Uie : uint32
-		{
-			_build_uie_bit_( usie, 0x1, 0 )
-			_build_uie_bit_( utie, 0x1, 4 )
-			_build_uie_bit_( ueie, 0x1, 8 )
-		};
-#undef _build_uie_bit_
+    // 为每个CSR生成操作函数
+    DEFINE_CSR_OPS(mstatus)
+    DEFINE_CSR_OPS(mtvec)
+    DEFINE_CSR_OPS(mepc)
+    DEFINE_CSR_OPS(mcause)
+    DEFINE_CSR_OPS(mie)
+    DEFINE_CSR_OPS(mip)
+    DEFINE_CSR_OPS(sstatus)
+    DEFINE_CSR_OPS(stvec)
+    DEFINE_CSR_OPS(sepc)
+    DEFINE_CSR_OPS(scause)
+    DEFINE_CSR_OPS(sie)
+    DEFINE_CSR_OPS(sip)
+    DEFINE_CSR_OPS(satp)
+    DEFINE_CSR_OPS(mvendorid)
+    DEFINE_CSR_OPS(marchid)
+    DEFINE_CSR_OPS(mimpid) 
+    DEFINE_CSR_OPS(mhartid)
+    DEFINE_CSR_OPS(time)
+    DEFINE_CSR_OPS(mtval)
+    DEFINE_CSR_OPS(stval)
+    // ...other CSRs...
 
-#define _build_uip_bit_( name, mask, shift ) \
-	uip_##name##_s = shift, \
-	uip_##name##_m = mask << uip_##name##_s,
-		enum Uip : uint32
-		{
-			_build_uip_bit_( usip, 0x1, 0 )
-			_build_uip_bit_( utip, 0x1, 4 )
-			_build_uip_bit_( ueip, 0x1, 8 )
-		};
-#undef _build_uip_bit_
+    #undef DEFINE_CSR_OPS
 
-		static inline uint64 _read_csr_( CsrAddr _csr )
-		{
-			uint64 value;
-			asm volatile ("csrr %0, %1" : "=r"(value) : "i"(_csr));
-			return value;
-		}
+    // 通用CSR操作函数
+    static inline uint64 _read_csr_(CsrAddr _csr) {
+        switch(_csr) {
+            // Machine Information Registers
+            case mvendorid: return read_mvendorid();
+            case marchid:   return read_marchid();
+            case mimpid:    return read_mimpid();
+            case mhartid:   return read_mhartid();
+            
+            // Timer Registers
+            case time:      return read_time();
+            
+            // ...existing cases...
+            case mstatus: return read_mstatus();
+            case mtvec:   return read_mtvec();
+            case mepc:    return read_mepc();
+            case mcause:  return read_mcause();
+            case mie:     return read_mie();
+            case mip:     return read_mip();
+            case sstatus: return read_sstatus();
+            case stvec:   return read_stvec();
+            case sepc:    return read_sepc();
+            case scause:  return read_scause();
+            case sie:     return read_sie();
+            case sip:     return read_sip();
+            case satp:    return read_satp();
+            case mtval:   return read_mtval();
+            case stval:   return read_stval();
+            // ...other cases...
+            default:      return 0;
+        }
+    }
 
-		static inline void _write_csr_( CsrAddr _csr, uint64 _data )
-		{
-			asm volatile ("csrw %0, %1" : : "i"(_csr), "r"(_data));
-		}
+    static inline void _write_csr_(CsrAddr _csr, uint64 _data) {
+        switch(_csr) {
+            // Machine Information Registers
+            case mvendorid: write_mvendorid(_data); break;
+            case marchid:   write_marchid(_data);   break;
+            case mimpid:    write_mimpid(_data);    break;
+            case mhartid:   write_mhartid(_data);   break;
+            
+            // Timer Registers  
+            case time:      write_time(_data);      break;
+            
+            // ...existing cases...
+            case mstatus: write_mstatus(_data); break;
+            case mtvec:   write_mtvec(_data);   break;
+            case mepc:    write_mepc(_data);    break;
+            case mcause:  write_mcause(_data);  break;
+            case mie:     write_mie(_data);     break;
+            case mip:     write_mip(_data);     break;
+            case sstatus: write_sstatus(_data); break;
+            case stvec:   write_stvec(_data);   break;
+            case sepc:    write_sepc(_data);    break;
+            case scause:  write_scause(_data);  break;
+            case sie:     write_sie(_data);     break;
+            case sip:     write_sip(_data);     break;
+            case satp:    write_satp(_data);    break;
+            case mtval:   write_mtval(_data);   break;
+            case stval:   write_stval(_data);   break;
+            // ...other cases...
+        }
+    }
 
-		static inline void _set_csr_( CsrAddr _csr, uint64 _data )
-		{
-			asm volatile ("csrs %0, %1" : : "i"(_csr), "r"(_data));
-		}
+    static inline void _set_csr_(CsrAddr _csr, uint64 _data) {
+        switch(_csr) {
+            // Machine Information Registers
+            case mvendorid: set_mvendorid(_data); break;
+            case marchid:   set_marchid(_data);   break;
+            case mimpid:    set_mimpid(_data);    break;
+            case mhartid:   set_mhartid(_data);   break;
+            
+            // Timer Registers
+            case time:      set_time(_data);      break;
+            
+            // ...existing cases...
+            case mstatus: set_mstatus(_data); break;
+            case mtvec:   set_mtvec(_data);   break;
+            case mepc:    set_mepc(_data);    break;
+            case mcause:  set_mcause(_data);  break;
+            case mie:     set_mie(_data);     break;
+            case mip:     set_mip(_data);     break;
+            case sstatus: set_sstatus(_data); break;
+            case stvec:   set_stvec(_data);   break;
+            case sepc:    set_sepc(_data);    break;
+            case scause:  set_scause(_data);  break;
+            case sie:     set_sie(_data);     break;
+            case sip:     set_sip(_data);     break;
+            case satp:    set_satp(_data);    break;
+            case mtval:   set_mtval(_data);   break;
+            case stval:   set_stval(_data);   break;
+            // ...other cases...
+        }
+    }
 
-		static inline void _clear_csr_( CsrAddr _csr, uint64 _data )
-		{
-			asm volatile ("csrc %0, %1" : : "i"(_csr), "r"(_data));
-		}
+    static inline void _clear_csr_(CsrAddr _csr, uint64 _data) {
+        switch(_csr) {
+            // Machine Information Registers
+            case mvendorid: clear_mvendorid(_data); break;
+            case marchid:   clear_marchid(_data);   break;
+            case mimpid:    clear_mimpid(_data);    break;
+            case mhartid:   clear_mhartid(_data);   break;
+            
+            // Timer Registers
+            case time:      clear_time(_data);      break;
+            
+            // ...existing cases...
+            case mstatus: clear_mstatus(_data); break;
+            case mtvec:   clear_mtvec(_data);   break;
+            case mepc:    clear_mepc(_data);    break;
+            case mcause:  clear_mcause(_data);  break;
+            case mie:     clear_mie(_data);     break;
+            case mip:     clear_mip(_data);     break;
+            case sstatus: clear_sstatus(_data); break;
+            case stvec:   clear_stvec(_data);   break;
+            case sepc:    clear_sepc(_data);    break;
+            case scause:  clear_scause(_data);  break;
+            case sie:     clear_sie(_data);     break;
+            case sip:     clear_sip(_data);     break;
+            case satp:    clear_satp(_data);    break;
+            case mtval:   clear_mtval(_data);   break;
+            case stval:   clear_stval(_data);   break;
+            // ...other cases...
+        }
+    }
 
 	} // namespace csr
 

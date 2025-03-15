@@ -80,7 +80,7 @@ namespace riscv
 
 		// map the trampoline page to the highest address,
 		// in both user and kernel space.
-		#define TRAMPOLINE              (MAXVA - PGSIZE)
+		#define TRAMPOLINE              (MAXVA - PG_SIZE)
 
 		// map kernel stacks beneath the trampoline,
 		// each surrounded by invalid guard pages.

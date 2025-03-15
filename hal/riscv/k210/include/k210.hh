@@ -95,7 +95,7 @@ namespace riscv
 
 		// map the trampoline page to the highest address,
 		// in both user and kernel space.
-		#define TRAMPOLINE              (MAXVA - PGSIZE)
+		#define TRAMPOLINE              (MAXVA - PG_SIZE)
 
 		// map kernel stacks beneath the trampoline,
 		// each surrounded by invalid guard pages.
@@ -114,6 +114,7 @@ namespace riscv
 		#define TRAPFRAME               (TRAMPOLINE - PG_SIZE)
 
 		#define MAXUVA                  RUSTSBI_BASE
+
 	} // namespace k210
 
 } // namespace riscv

@@ -20,8 +20,6 @@
 // the virtio spec:
 // https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf
 //
-
-
 namespace riscv
 {
 	namespace qemu
@@ -126,52 +124,53 @@ namespace riscv
              
         } __attribute__ ((aligned (PG_SIZE))) disk;
 
-		  void virtio_disk_rw( long start_block, long block_count,
-      hsai::BufferDescriptor *buf_list, int buf_count, bool write );
-      void free_desc( int i );
-      void free_chain( int i );
-      int	alloc3_desc( int *idx );
-      int	alloc_desc();
+        void virtio_disk_rw( long start_block, long block_count,
+        hsai::BufferDescriptor *buf_list, int buf_count, bool write );
+        void free_desc( int i );
+        void free_chain( int i );
+        int	alloc3_desc( int *idx );
+        int	alloc_desc();
 
-    public:
-      virtual long get_block_size() override { return (long) _block_size; }
-      virtual int  read_blocks_sync( long start_block, long block_count,
+      public:
+        virtual long get_block_size() override { return (long) _block_size; }
+        virtual int  read_blocks_sync( long start_block, long block_count,
+                      hsai::BufferDescriptor *buf_list, int buf_count ) override;
+        virtual int read_blocks( long start_block, long block_count, hsai::BufferDescriptor *buf_list,
+                    int buf_count ) override;
+        virtual int write_blocks_sync( long start_block, long block_count,
+                      hsai::BufferDescriptor *buf_list, int buf_count ) override;
+        virtual int write_blocks( long start_block, long block_count,
                     hsai::BufferDescriptor *buf_list, int buf_count ) override;
-      virtual int read_blocks( long start_block, long block_count, hsai::BufferDescriptor *buf_list,
-                  int buf_count ) override;
-      virtual int write_blocks_sync( long start_block, long block_count,
-                    hsai::BufferDescriptor *buf_list, int buf_count ) override;
-      virtual int write_blocks( long start_block, long block_count,
-                  hsai::BufferDescriptor *buf_list, int buf_count ) override;
-      virtual int handle_intr() override;
+        virtual int handle_intr() override;
 
-      virtual bool read_ready() override {
-        // 检查设备状态
-        uint32 status = *R(VIRTIO_MMIO_STATUS);
-        if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
-          return false;  // 设备未就绪
+        virtual bool read_ready() override {
+          // 检查设备状态
+          uint32 status = *R(VIRTIO_MMIO_STATUS);
+          if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
+            return false;  // 设备未就绪
+          }
+          return true;
         }
-        return true;
-      }
-	    virtual bool write_ready() override {
-        // 检查设备状态
-        uint32 status = *R(VIRTIO_MMIO_STATUS);
-        if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
-          return false;  // 设备未就绪
+        virtual bool write_ready() override {
+          // 检查设备状态
+          uint32 status = *R(VIRTIO_MMIO_STATUS);
+          if ((status & VIRTIO_CONFIG_S_DRIVER_OK) == 0) {
+            return false;  // 设备未就绪
+          }
+
+          // 检查设备是否只读
+          uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);
+          if (features & (1 << VIRTIO_BLK_F_RO)) {
+            return false;  // 设备只读
+          }
+          return true;
         }
 
-        // 检查设备是否只读
-        uint64 features = *R(VIRTIO_MMIO_DEVICE_FEATURES);
-        if (features & (1 << VIRTIO_BLK_F_RO)) {
-          return false;  // 设备只读
-        }
-        return true;
-      }
-
-	public:
-
-      VirtioDriver() = default;
-      VirtioDriver( void *base_addr, int port_id );
+	    public:
+        VirtioDriver() = default;
+        VirtioDriver( void *base_addr, int port_id );
 		};
+
 	} // namespace qemu
+
 } // namespace riscv

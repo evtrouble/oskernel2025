@@ -26,7 +26,7 @@ namespace riscv
             DiskDriver() = default;
             DiskDriver( const char *lock_name );
         };
+
 	} // namespace qemu
-}
 
-
+} // namespace riscv

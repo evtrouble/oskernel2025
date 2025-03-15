@@ -274,7 +274,14 @@ namespace klib
 
 
 			// collect the flag
-			print_flag fl = (print_flag) 0;
+			print_flag fl{ .zero_pad = 0,
+				.sign		= 0,
+				.plus		= 0,
+				.space	= 0,
+				.left		= 0,
+				.prefix	= 0,
+				.upper	= 1,
+				.seperate = 0 };
 
 			for ( bool get_fl = true; get_fl; )
 			{

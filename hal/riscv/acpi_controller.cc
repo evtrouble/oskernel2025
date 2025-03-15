@@ -22,7 +22,7 @@ namespace dev
 			_reg_base = ( void * ) acpi_reg_base;
 		}
 
-		void AcpiController::power_off() { sbi_shutdown(); }
+		void AcpiController::power_off() { riscv::sbi_shutdown(); }
 
 	} // namespace acpi
 

@@ -187,5 +187,7 @@ namespace riscv
 
 			void sd_end_cmd( void );
 		};
-	}
-}
+
+	} // namespace k210
+    
+} // namespace riscv

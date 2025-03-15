@@ -23,11 +23,9 @@ namespace riscv
 		UartConsole debug_uart;
 
 		DiskDriver disk_driver;
-	} // namespace qemu2k1000
+	} // namespace qemu
 
 } // namespace riscv
-
-using namespace riscv;
 
 extern "C" {
 extern uint64 _start_u_init;
@@ -47,7 +45,7 @@ extern ulong _bss_end_addr;
 extern ulong kernel_end;
 extern ulong etext;
 }
-
+using namespace riscv;
 using namespace riscv::qemu;
 
 namespace hsai

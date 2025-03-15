@@ -9,20 +9,26 @@
 
 #include "include/k210.hh"
 #include "include/disk_driver.hh"
-using namespace riscv::qemuk210;
-
-DiskDriver::DiskDriver( const char *lock_name )
+namespace riscv
 {
-	_lock.init( lock_name );
+	namespace k210
+	{
+		DiskDriver::DiskDriver( const char *lock_name )
+		{
+			_lock.init( lock_name );
 
-    new ( &disk_ )
-			SdcardDriver( 0 );
-	// 注册到 HSAI
-	hsai::k_devm.register_device( this, "Disk driver" );
-}
+			new ( &disk_ )
+					SdcardDriver( 0 );
+			// 注册到 HSAI
+			hsai::k_devm.register_device( this, "Disk driver" );
+		}
 
-int DiskDriver::handle_intr()
-{
-    dmac_intr(DMAC_CHANNEL0);
-	return 0;
-}
+		int DiskDriver::handle_intr()
+		{
+			dmac_intr(DMAC_CHANNEL0);
+			return 0;
+		}
+		
+	} // namespace k210
+
+} // namespace riscv

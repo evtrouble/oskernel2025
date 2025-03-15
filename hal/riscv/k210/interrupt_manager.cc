@@ -83,6 +83,7 @@ namespace riscv
 			int hart = Cpu::get_rv_cpu()->get_cpu_id();
 			*(uint32*)PLIC_MCLAIM(hart) = irq;
 		}
-	} // namespace k210
 
+	} // namespace k210
+	
 } // namespace riscv

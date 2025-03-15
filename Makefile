@@ -21,11 +21,11 @@ export CFLAGS += -march=loongarch64 -mabi=lp64d
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS += -march=rv6gc -mabi=lp64d -matomic -mcmodel=medany 
-CFLAGS += -O2 -mstrict-align
+export CFLAGS += -march=rv6gc -mabi=lp64d -mcmodel=medany
 endif
 
 LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
+export CFLAGS += -Wno-deprecated-declarations -fPIC
 
 export DEFAULT_CXX_INCLUDE_FLAG = \
 	-include $(WORKPATH)/kernel/include/xn6_config.h \

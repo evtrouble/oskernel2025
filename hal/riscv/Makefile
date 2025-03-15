@@ -31,9 +31,10 @@ card_dir = $(foreach d, $(filter-out include/, $(wildcard $1*/)), $(call card_di
 # >>>> compile flags
 # >>>>
 
-INCLUDE_FLAGS = -I$(WORKPATH)/third_party/EASTL/include \
-               -I$(WORKPATH)/third_party/EABase/include/Common \
+INCLUDE_FLAGS = -I$(WORKPATH)/thirdparty/EASTL/include \
+				-I$(WORKPATH)/thirdparty/EASTL/test/packages/EABase/include/Common \
                -I$(WORKPATH)/kernel/include \
+			   -I$(WORKPATH)/hsai/include \
 			   -DRUSTSBI_ENABLED \
 				-mcmodel=medany
 
@@ -51,7 +52,7 @@ plat_name = \
 	)
 plat_name := $(strip $(plat_name))
 ifeq ($(plat_name), qemu)
-CFLAGS += -D QEMU
+export CFLAGS += -D QEMU
 endif
 
 # architecture name
@@ -81,7 +82,7 @@ depends = \
 	$(patsubst %.S, $(BUILDPATH)/hal/$(arch_name)/%.d, $(s_src))
 
 
-.PHONY: all clean test initdir add_libcpu compile_platform build_sbi
+.PHONY: all clean test initdir add_libcpu compile_platform build_sbi rustsbi-clean
 
 all: initdir build_sbi compile_platform add_libcpu
 
@@ -150,6 +151,8 @@ test:
 clean: 
 	cd "$(BUILDPATH)/hal/$(arch_name)"; rm -f *.o *.d
 	$(MAKE) clean -C $(plat_name)
+
+rustsbi-clean:
 ifeq ($(CONF_PLATFORM),k210)
 	@cd $(SBI_PATH)/rustsbi-k210 && cargo clean
 	@rm -f $(BUILDPATH)/rustsbi-k210

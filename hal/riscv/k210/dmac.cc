@@ -21,7 +21,7 @@
 
 namespace riscv
 {
-	namespace qemuk210
+	namespace k210
 	{
         volatile dmac_t *const dmac = (dmac_t *)DMAC_V;
 
@@ -352,6 +352,7 @@ namespace riscv
             dmac_chanel_interrupt_clear(channel_num);
             hsai::wakeup_at(dmac_chan);
         }
-    }
-}
 
+    } // namespace k210
+    
+} // namespace riscv
