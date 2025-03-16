@@ -1,5 +1,6 @@
 #pragma once
 #include <kernel/types.hh>
+#include "dmac.hh"
 namespace riscv
 {
 	namespace k210

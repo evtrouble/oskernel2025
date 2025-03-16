@@ -98,7 +98,7 @@ namespace riscv
         char _dev_name[8];
 
         int _port_id = 0;
-        static struct disk {
+        struct Disk {
           // memory for virtio descriptors &c for queue 0.
           // this is a global instead of allocated because it must
           // be multiple contiguous pages, which kalloc()

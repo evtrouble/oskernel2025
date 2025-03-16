@@ -31,6 +31,8 @@ namespace hsai
 
 	extern __hsai_kernel char * get_proc_name( void * proc);
 
+	extern __hsai_kernel hsai::SpinLock& get_proc_lock( void * proc);
+
 	extern __hsai_kernel bool proc_is_killed( void * proc );
 
 	extern __hsai_kernel bool proc_is_running( void * proc );

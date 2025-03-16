@@ -8,6 +8,14 @@ export CONF_ARCH ?= riscv
 export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
+# ifeq ($(CONF_ARCH), loongarch)
+# QEMU = qemu-system-loongarch64
+# else ifeq ($(CONF_ARCH), riscv)
+# QEMU = qemu-system-riscv64
+# endif
+
+# export CONF_PLATFORM ?= k210
+
 # make variable define 
 
 HOST_OS = $(shell uname)
@@ -21,11 +29,11 @@ export CFLAGS += -march=loongarch64 -mabi=lp64d
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS += -march=rv6gc -mabi=lp64d -mcmodel=medany
+export CFLAGS += -march=rv6gc -mabi=lp64d
 endif
 
 LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
-export CFLAGS += -Wno-deprecated-declarations -fPIC
+export CFLAGS += -Wno-deprecated-declarations
 
 export DEFAULT_CXX_INCLUDE_FLAG = \
 	-include $(WORKPATH)/kernel/include/xn6_config.h \
@@ -47,7 +55,7 @@ export ASFLAGS += -I include
 export ASFLAGS += -MD
 export CFLAGS = -ggdb -Wall -O0 -fno-omit-frame-pointer
 export CFLAGS += -I include
-export CFLAGS += -MD 
+export CFLAGS += -MD -mcmodel=medany -static
 export CFLAGS += -DNUMCPU=$(CONF_CPU_NUM)
 export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
@@ -62,7 +70,7 @@ export CFLAGS += -fno-pie -no-pie
 export CXXFLAGS = $(CFLAGS)
 export CXXFLAGS += -std=c++17
 export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
-export LDFLAGS = -z max-page-size=4096
+export LDFLAGS = -z max-page-size=4096 
 
 export WORKPATH = $(shell pwd)
 export BUILDPATH = $(WORKPATH)/build
@@ -109,7 +117,8 @@ compile_all:
 load_kernel: $(BUILDPATH)/kernel.elf
 
 $(BUILDPATH)/kernel.elf: $(STATIC_MODULE) $(LD_SCRIPT)
-	$(LD) $(LDFLAGS) -T $(LD_SCRIPT) -o $@ -Wl,--whole-archive $(STATIC_MODULE) -Wl,--no-whole-archive
+	$(LD) $(LDFLAGS) -T $(LD_SCRIPT) -o $@ -Wl,--whole-archive $(STATIC_MODULE) -Wl,--no-whole-archive \
+	-Wl,--gc-sections
 
 cp_to_bin: kernel.bin
 
@@ -153,3 +162,14 @@ EASTL_test:
 # 	@echo "- 架构 : ${CONF_ARCH}"
 # 	@echo "- 平台 : ${CONF_PLATFORM}"
 # 	@echo "**************************"
+# run: build
+# ifeq ($(CONF_PLATFORM), k210)
+# 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
+# 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
+# 	@dd if=$(image) of=$(k210) bs=128k seek=1
+# 	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
+# 	@sudo chmod 777 $(k210-serialport)
+# 	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
+# else
+# 	@$(QEMU) $(QEMUOPTS)
+# endif

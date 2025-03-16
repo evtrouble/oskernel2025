@@ -18,6 +18,9 @@
 #include "include/utils.hh"
 #include "include/sysctl.hh"
 #include "include/interrupt_manager.hh"
+#include <process_interface.hh>
+#include <smp/spin_lock.hh>
+#include <pm/process.hh>
 
 namespace riscv
 {
@@ -340,12 +343,12 @@ namespace riscv
         void dmac_wait_idle(dmac_channel_number_t channel_num)
         {
             while(!dmac_is_idle(channel_num)) {
-                hsai::get_cur_proc()->_lock
-                acquire(&myproc()->lock);
-                sleep(dmac_chan, &myproc()->lock);
-                release(&myproc()->lock);
-            }
-        }
+				SpinLock &lock = hsai::get_proc_lock((hsai::get_cur_proc()));
+				lock.acquire();
+				hsai::sleep_at( dmac_chan, lock );
+				lock.release();
+			}
+		}
 
         void dmac_intr(dmac_channel_number_t channel_num)
         {

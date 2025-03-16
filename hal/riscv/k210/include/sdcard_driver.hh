@@ -8,10 +8,9 @@
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
-#include "include/k210.hh"
-#include "include/sdcard_driver.hh"
-#include "include/gpiohs.hh"
-#include "include/spi.hh"
+#include "k210.hh"
+#include "gpiohs.hh"
+#include "spi.hh"
 
 namespace riscv
 {
@@ -140,7 +139,7 @@ namespace riscv
                             
             void sd_read_data_dma(uint8 *data_buff, uint32 length) {
                 spi_init(SPI_DEVICE_0, SPI_WORK_MODE_0, SPI_FF_STANDARD, 8, 0);
-                spi_receive_data_standard_dma(-1, DMAC_CHANNEL0, SPI_DEVICE_0, SPI_CHIP_SELECT_3, NULL, 0, data_buff, length);
+                spi_receive_data_standard_dma((dmac_channel_number_t)-1, DMAC_CHANNEL0, SPI_DEVICE_0, SPI_CHIP_SELECT_3, NULL, 0, data_buff, length);
             }
                             
             /*

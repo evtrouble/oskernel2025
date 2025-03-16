@@ -652,6 +652,9 @@ namespace eastl
 		#elif defined(EA_PROCESSOR_LOONGARCH64)
 			#define EASTL_DEBUG_BREAK() asm("csrwr %0, %1" : : "r" ( 1 ), "i" ( 5 ) )
 			//#pragma message("use EASTL_DEBUG_BREAK for LoongArch64")
+		#elif defined(EA_PROCESSOR_RISCV64)
+			#define EASTL_DEBUG_BREAK() asm("ebreak")
+			//#pragma message("use EASTL_DEBUG_BREAK for riscv64")
 		#else
 			void EASTL_DEBUG_BREAK(); // User must define this externally.
 		#endif

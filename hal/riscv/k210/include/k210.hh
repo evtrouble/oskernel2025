@@ -1,6 +1,6 @@
 #pragma once
 
-#include "include/riscv.hh"
+#include "riscv.hh"
 
 namespace riscv
 {

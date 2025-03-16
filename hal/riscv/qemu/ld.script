@@ -5,22 +5,48 @@ BASE_ADDRESS = 0x80200000;
 
 SECTIONS
 {
-    /* Load the kernel at this address: "." means the current address */
     . = BASE_ADDRESS;
-
     kernel_start = .;
-
+    
     . = ALIGN(4K);
-
     text_start = .;
     .text : {
+        PROVIDE(stext = .);
+        
+        PROVIDE(_startup_text_s = .);
+        *(.text.init)
+        PROVIDE(_startup_text_e = .);
+        
+        PROVIDE(_common_text_s = .);
         *(.text .text.*)
+        
         . = ALIGN(0x1000);
         _trampoline = .;
         *(trampsec)
         . = ALIGN(0x1000);
         ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
+        
+        PROVIDE(_common_text_e = .);
         PROVIDE(etext = .);
+        
+        . = ALIGN(0x1000);
+        _start_u_init = .;
+        
+        _u_init_stks = .;
+        *(.user.init.stack);
+        _u_init_stke = .;
+        
+        . = ALIGN(0x4000);
+        _u_init_txts = .;
+        *(.user.init);
+        _u_init_txte = .;
+        
+        . = ALIGN(0x4000);
+        _u_init_dats = .;
+        *(.user.init.data .user.init.data.p);
+        _u_init_date = .;
+        
+        _end_u_init = .;
     }
 
     . = ALIGN(4K);
@@ -35,6 +61,7 @@ SECTIONS
     data_start = .;
     .data : {
         sdata = .;
+        PROVIDE(__global_pointer$ = . + 0x800);
         *(.data .data.*)
         edata = .;
     }

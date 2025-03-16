@@ -38,6 +38,11 @@ namespace hsai
 		return ( ( pm::Pcb * ) proc )->get_name();
 	}
 
+	hsai::SpinLock& get_proc_lock(void * proc) 
+	{ 
+		return  ( ( pm::Pcb * ) proc )->_lock; 
+	}
+
 	uint get_pid( void * proc )
 	{
 		return ( ( pm::Pcb * ) proc )->get_pid();
