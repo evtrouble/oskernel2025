@@ -10,7 +10,7 @@
 
 #include "kernel/types.hh"
 
-#include <atomic>
+#include <EASTL/atomic.h>
 
 namespace hsai
 {
@@ -20,7 +20,7 @@ namespace hsai
 	{
 	private:
 		const char *_name = nullptr;
-		std::atomic<VirtualCpu *> _locked = 0;
+		eastl::atomic<VirtualCpu *> _locked = 0;
 	public:
 		SpinLock();
 

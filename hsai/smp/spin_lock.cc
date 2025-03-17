@@ -32,10 +32,10 @@ namespace hsai
 		if ( is_held() )
 			hsai_panic( "lock is already held." );
 		
-		std::atomic_thread_fence( std::memory_order::memory_order_acq_rel );
+		eastl::atomic_thread_fence( eastl::memory_order_acq_rel );
 
 		VirtualCpu * expected = nullptr;
-		while ( _locked.compare_exchange_strong( expected, cpu, std::memory_order::memory_order_acq_rel ) == false )
+		while ( _locked.compare_exchange_strong( expected, cpu, eastl::memory_order_acq_rel ) == false )
 			expected = nullptr;
 	}
 
@@ -43,9 +43,9 @@ namespace hsai
 	{
 		if ( !is_held() )
 			hsai_panic( "lock is already released." );
-		_locked.store( nullptr, std::memory_order::memory_order_acq_rel );
+		_locked.store( nullptr, eastl::memory_order_acq_rel );
 
-		std::atomic_thread_fence( std::memory_order::memory_order_acq_rel );
+		eastl::atomic_thread_fence( eastl::memory_order_acq_rel );
 
 		VirtualCpu * cpu = get_cpu();
 		cpu->pop_intterupt_off();

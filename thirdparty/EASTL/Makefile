@@ -1,4 +1,4 @@
-CXXFLAGS += -I include 
+CXXFLAGS += -I include -nostdlib
 CXXFLAGS += -I test/packages/EABase/include/Common
 CXXFLAGS += -I ../../kernel/include/
 CXXFLAGS += -I ../../kernel/include/klib

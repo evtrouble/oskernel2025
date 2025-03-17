@@ -212,10 +212,10 @@ namespace riscv
 			}
 			set_next_timeout();
 
-			#ifndef QEMU
+#ifndef QEMU
 			cpu->clear_csr( csr::CsrAddr::sip, 2 );
-			cpu->set_csr( csr::CsrAddr::mie, csr::mie_msie_m | csr::mie_mtie_m | csr::mie_meie_m);
-			#endif 
+			sbi_set_mie();
+#endif
 
 			return 1;
 		}
@@ -250,7 +250,7 @@ namespace riscv
 	void ExceptionManager::set_next_timeout()
 	{
 		Cpu *cpu = Cpu::get_rv_cpu();
-		sbi_set_timer( cpu->read_csr( csr::CsrAddr::time ) + INTERVAL );
+		sbi_set_timer( r_time() + INTERVAL );
 	}
 
 	// ---------------- private helper functions ----------------

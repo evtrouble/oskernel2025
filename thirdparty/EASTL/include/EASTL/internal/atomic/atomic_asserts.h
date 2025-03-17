@@ -15,7 +15,7 @@
 	static_assert(!eastl::is_same<type, type>::value, "eastl::atomic<T> : volatile eastl::atomic<T> is not what you expect! Read the docs in EASTL/atomic.h! Use the memory orders to access the atomic object!");
 
 #define EASTL_ATOMIC_STATIC_ASSERT_INVALID_MEMORY_ORDER(type)			\
-	static_assert(!eastl::is_same<type, type>::value, "eastl::atomic<T> : invalid memory order for the given operation!");
+	static_assert(eastl::is_same<type, type>::value, "eastl::atomic<T> : invalid memory order for the given operation!");
 
 #define EASTL_ATOMIC_STATIC_ASSERT_TYPE(type)							\
 	/* User Provided T must not be cv qualified */						\

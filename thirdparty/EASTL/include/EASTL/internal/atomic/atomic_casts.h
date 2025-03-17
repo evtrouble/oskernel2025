@@ -12,10 +12,10 @@
 
 
 #include <EASTL/internal/type_transformations.h>
-
-
 #include <string.h>
-
+extern "C" {
+	void* memcpy(void* dst, const void* src, size_t n) noexcept(true);
+}
 
 namespace eastl
 {

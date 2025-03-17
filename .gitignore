@@ -18,3 +18,4 @@ glibc
 testsuits
 .gdb_cmd.txt
 target/*
+sdcard.img

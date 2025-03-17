@@ -14,7 +14,7 @@ SECTIONS
         PROVIDE(stext = .);
         
         PROVIDE(_startup_text_s = .);
-        *(.text.init)
+        *(.text.osstartup)
         PROVIDE(_startup_text_e = .);
         
         PROVIDE(_common_text_s = .);
@@ -77,4 +77,5 @@ SECTIONS
 
     . = ALIGN(4K);
     PROVIDE(kernel_end = .);
+    PROVIDE(_end = .);
 }

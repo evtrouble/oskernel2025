@@ -1,6 +1,9 @@
 #include "include/uart.hh"
 #include <process_interface.hh>
 #include "include/console.hh"
+#include <klib/printer.hh>
+#include <virtual_cpu.hh>
+#include "include/rv_cpu.hh"
 namespace riscv
 {
   UartConsole::UartConsole( void *reg_base ) { uart_addr = (uint64) reg_base; }
@@ -41,11 +44,14 @@ namespace riscv
   // output register to be empty.
   int UartConsole::put_char_sync( u8 c )
   {
-    // wait for Transmit Holding Empty to be set in LSR.
-    while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
-      ;
-    WriteReg(THR, c);
-    return 0;
+	  Cpu * cpu = Cpu::get_rv_cpu();
+		cpu->push_interrupt_off();
+	  if ( klib::k_printer.is_panic() ) { for ( ;; ); }
+	  // wait for Transmit Holding Empty to be set in LSR.
+	  while ( ( ReadReg( LSR ) & LSR_TX_IDLE ) == 0 );
+	  WriteReg( THR, c );
+	  cpu->pop_intterupt_off();
+	  return 0;
   }
 
   // add a character to the output buffer and tell the
@@ -58,6 +64,10 @@ namespace riscv
   {
     uart_tx_lock.acquire();
 
+    if(klib::k_printer.is_panic()){
+      for(;;)
+        ;
+    }
     while ( 1 )
     {
       if ( ( ( uart_tx_w + 1 ) % UART_TX_BUF_SIZE ) == uart_tx_r )

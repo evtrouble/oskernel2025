@@ -43,11 +43,11 @@ namespace hsai
 		__cxxabiv1::__init_atexit_func_entry();
 
 		new ( &k_devm ) DeviceManager;
-		if ( k_devm.register_stdin( (VirtualDevice *) &k_stdin ) < 0 )
+		if ( k_devm.register_stdin( static_cast<VirtualDevice*>(&k_stdin) ) < 0 )
 			while ( 1 );
-		if ( k_devm.register_stdout( (VirtualDevice *) &k_stdout ) < 0 )
+		if ( k_devm.register_stdout( static_cast<VirtualDevice*>(&k_stdout) ) < 0 )
 			while ( 1 );
-		if ( k_devm.register_stderr( (VirtualDevice *) &k_stderr ) < 0 )
+		if ( k_devm.register_stderr( static_cast<VirtualDevice*>(&k_stderr) ) < 0 )
 			while ( 1 );
 	}
 

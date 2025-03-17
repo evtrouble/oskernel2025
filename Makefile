@@ -8,11 +8,11 @@ export CONF_ARCH ?= riscv
 export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
-# ifeq ($(CONF_ARCH), loongarch)
-# QEMU = qemu-system-loongarch64
-# else ifeq ($(CONF_ARCH), riscv)
-# QEMU = qemu-system-riscv64
-# endif
+ifeq ($(CONF_ARCH), loongarch)
+QEMU = qemu-system-loongarch64
+else ifeq ($(CONF_ARCH), riscv)
+QEMU = qemu-system-riscv64
+endif
 
 # export CONF_PLATFORM ?= k210
 
@@ -70,7 +70,7 @@ export CFLAGS += -fno-pie -no-pie
 export CXXFLAGS = $(CFLAGS)
 export CXXFLAGS += -std=c++17
 export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
-export LDFLAGS = -z max-page-size=4096 
+export LDFLAGS = -z max-page-size=4096 -static
 
 export WORKPATH = $(shell pwd)
 export BUILDPATH = $(WORKPATH)/build
@@ -87,7 +87,7 @@ COMPILE_START_TIME := $(shell cat /proc/uptime | awk -F '.' '{print $$1}')
 
 
 # .PHONY 是一个伪规则，其后面依赖的规则目标会成为一个伪目标，使得规则执行时不会实际生成这个目标文件
-.PHONY: all clean test initdir probe_host compile_all load_kernel cp_to_bin EASTL EASTL_test config_platform print_compile_time
+.PHONY: all clean test initdir probe_host compile_all load_kernel cp_to_bin EASTL EASTL_test config_platform print_compile_time fs run
 
 # rules define 
 
@@ -155,6 +155,26 @@ clean_module:
 EASTL_test:
 	$(MAKE) test -C thirdparty/EASTL
 
+ifndef CPUS
+CPUS := 1
+endif
+
+ifeq ($(platform), k210)
+RUSTSBI = hal/$(CONF_ARCH)/SBI/sbi-k210
+else
+RUSTSBI = hal/$(CONF_ARCH)/SBI/sbi-qemu
+endif
+
+QEMUOPTS = -machine virt -kernel build/kernel.elf -m 128M -nographic
+
+# use multi-core 
+QEMUOPTS += -smp $(CPUS)
+
+QEMUOPTS += -bios $(RUSTSBI)
+
+# import virtual disk image
+QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
 # config_platform:
 # 	@cd hal/$(CONF_ARCH)/$(CONF_PLATFORM); \
 # 		cp config.mk $(WORKPATH)/hsai/Makedefs.mk
@@ -162,14 +182,20 @@ EASTL_test:
 # 	@echo "- 架构 : ${CONF_ARCH}"
 # 	@echo "- 平台 : ${CONF_PLATFORM}"
 # 	@echo "**************************"
-# run: build
-# ifeq ($(CONF_PLATFORM), k210)
-# 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
-# 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
-# 	@dd if=$(image) of=$(k210) bs=128k seek=1
-# 	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
-# 	@sudo chmod 777 $(k210-serialport)
-# 	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
-# else
-# 	@$(QEMU) $(QEMUOPTS)
-# endif
+run: build
+ifeq ($(CONF_PLATFORM), k210)
+	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
+	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
+	@dd if=$(image) of=$(k210) bs=128k seek=1
+	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
+	@sudo chmod 777 $(k210-serialport)
+	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
+else
+	@$(QEMU) $(QEMUOPTS)
+endif
+
+fs:
+	@if [ ! -f "sdcard.img" ]; then \
+	echo "making fs image..."; \
+	dd if=/dev/zero of=sdcard.img bs=512k count=512; \
+	mkfs.vfat -F 32 sdcard.img; fi

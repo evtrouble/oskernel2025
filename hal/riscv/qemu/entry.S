@@ -1,10 +1,12 @@
-    .section .text
+    .section .text.osstartup
     .globl _entry
 _entry:
-    add t0, a0, 1
-    slli t0, t0, 14
     la sp, boot_stack
-    add sp, sp, t0
+    mv tp, a0
+    call _cpu_init
+
+	li fp, 0
+    la gp, __global_pointer$
     call xn6_start_kernel
 
 loop:

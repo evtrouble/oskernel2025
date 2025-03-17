@@ -95,8 +95,8 @@ namespace hsai
 	void hardware_secondary_init()
 	{
 		// 关闭非对齐访存检查
-		Cpu*  rvcpu = (Cpu*) hsai::get_cpu();
-		rvcpu->set_csr( csr::CsrAddr::mstatus, csr::mstatus_mprv_m );
+		// Cpu*  rvcpu = (Cpu*) hsai::get_cpu();
+		// rvcpu->set_csr( csr::CsrAddr::sstatus, csr::sstatus_aie_m );
 
 		// 1. 异常管理初始化
 		riscv::k_em.init( "exception manager" );
@@ -203,7 +203,7 @@ namespace hsai
 
 	ulong get_main_frequence() { return qemu_fre; }
 
-	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->read_csr( csr::CsrAddr::time ); }
+	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->get_time(); }
 
 	ulong time_stamp_to_usec( ulong ts ) { return qemu_fre_cal_usec( ts ); }
 

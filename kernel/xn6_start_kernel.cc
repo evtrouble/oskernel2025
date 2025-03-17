@@ -259,8 +259,8 @@ int xn6_start_kernel()
 		fs::Path mnt( "/mnt" );
 		fs::Path dev( "/dev/hdap0" );
 		// fs::Path dev( "/dev/hdb" );
-		// mnt.mount( dev, "fat32", 0, 0 );  // for test mount fat32
-		mnt.mount( dev, "ext4", 0, 0 );
+		mnt.mount( dev, "fat32", 0, 0 );  // for test mount fat32
+		// mnt.mount( dev, "ext4", 0, 0 );
 		// fs::Path test_unlink( "/mnt/read" );
 		// [[maybe_unused]] fs::File* file = new fs::File( test_unlink.pathSearch(), 7 );
 

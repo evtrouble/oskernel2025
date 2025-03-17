@@ -54,6 +54,11 @@ namespace riscv
 		return csr::_read_csr_( r );
 	}
 
+	uint64 Cpu::get_time()
+	{
+		return r_time();
+	}
+
 	void Cpu::write_csr( csr::CsrAddr r, uint64 d )
 	{
 		csr::_write_csr_( r, d );
