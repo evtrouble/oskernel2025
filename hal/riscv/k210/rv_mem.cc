@@ -20,8 +20,8 @@
 #include "tlb_manager.hh"
 
 extern "C" {
-	extern ulong kernel_end;
-	extern ulong etext;
+	extern char kernel_end[]; // first address after kernel.
+	extern char	 etext[];
 	extern char trampoline[];
 }
 
@@ -58,60 +58,60 @@ namespace riscv
 
 		void Memory::config_pt( ulong pt_addr )
 		{
-			mm::PageTable* addr = (mm::PageTable*) pt_addr;
 			// uart registers
-			mm::k_vmm.map_pages(*addr, UART_V, PG_SIZE, UART, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, UART, PG_SIZE, UART, false);
 			
 			// CLINT
-			mm::k_vmm.map_pages(*addr, CLINT_V, 0x10000, CLINT, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, CLINT_V, 0x10000, CLINT, false);
 
 			// PLIC
-			mm::k_vmm.map_pages(*addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
-			mm::k_vmm.map_pages(*addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V, 0x4000, PLIC, false);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, PG_SIZE, PLIC + 0x200000, false);
 
 			// GPIOHS
-			mm::k_vmm.map_pages(*addr, GPIOHS_V, 0x1000, GPIOHS, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, GPIOHS_V, 0x1000, GPIOHS, false);
 
 			// DMAC
-			mm::k_vmm.map_pages(*addr, DMAC_V, 0x1000, DMAC, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, DMAC_V, 0x1000, DMAC, false);
 
 			// GPIO
-			// map_pages(*(PageTable*)pt_addr, GPIO_V, 0x1000, GPIO, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			// map_pages(*(PageTable*)pt_addr, GPIO_V, 0x1000, GPIO, false);
 
 			// SPI_SLAVE
-			mm::k_vmm.map_pages(*addr, SPI_SLAVE_V, 0x1000, SPI_SLAVE, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, SPI_SLAVE_V, 0x1000, SPI_SLAVE, false);
 
 			// FPIOA
-			mm::k_vmm.map_pages(*addr, FPIOA_V, 0x1000, FPIOA, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, FPIOA_V, 0x1000, FPIOA, false);
 
 			// SPI0
-			mm::k_vmm.map_pages(*addr, SPI0_V, 0x1000, SPI0, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, SPI0_V, 0x1000, SPI0, false);
 
 			// SPI1
-			mm::k_vmm.map_pages(*addr, SPI1_V, 0x1000, SPI1, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, SPI1_V, 0x1000, SPI1, false);
 
 			// SPI2
-			mm::k_vmm.map_pages(*addr, SPI2_V, 0x1000, SPI2, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, SPI2_V, 0x1000, SPI2, false);
 
 			// SYSCTL
-			mm::k_vmm.map_pages(*addr, SYSCTL_V, 0x1000, SYSCTL, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, SYSCTL_V, 0x1000, SYSCTL, false);
 			
 			// map rustsbi
 			// kvmmap(RUSTSBI_BASE, RUSTSBI_BASE, KERNBASE - RUSTSBI_BASE, PTE_R | PTE_X);
 			// map kernel text executable and read-only.
-			mm::k_vmm.map_pages(*addr, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			mm::k_vmm.map_code_pages(mm::k_pagetable, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, false);
 			// map kernel data and the physical RAM we'll make use of.
-			mm::k_vmm.map_pages(*addr, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, false);
 			// map the trampoline for trap entry/exit to
 			// the highest virtual address in the kernel.
-			mm::k_vmm.map_pages(*addr, TRAMPOLINE, PG_SIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			mm::k_vmm.map_code_pages(mm::k_pagetable, TRAMPOLINE, PG_SIZE, (uint64)trampoline, false);
 
 			Cpu* cpu = (Cpu*) hsai::get_cpu();
 			// 定义适用于四级页表的 SATP 模式
 			#define SATP_SV48 (9L << 60)
+			#define SATP_SV39 (8L << 60)
 
 			// 修改 MAKE_SATP 宏以适应四级页表
-			#define MAKE_SATP(pagetable) (SATP_SV48 | (((uint64)pagetable) >> 12))
+			#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
 			cpu->write_csr( csr::CsrAddr::satp, MAKE_SATP( pt_addr ) );
 
 			k_tlbm.invalid_all_tlb();

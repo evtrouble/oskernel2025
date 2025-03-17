@@ -98,6 +98,7 @@ namespace mm
 			// _lock.release();
 			// log_warn( "no available buddy" );
 			printf( "[warn] no available buddy\n" );
+			_lock.release();
 			return nullptr;
 		}
 
@@ -107,6 +108,7 @@ namespace mm
 		{
 			// log_warn( "find buddy-node but isn't inited for magic 0x%x != 0x%x", node->magic, buddy_node_magic );
 			printf( "[warn] find buddy-node but isn't inited for magic(0x%x) != 0x%x", node->_head.magic, buddy_node_magic );
+			_lock.release();
 			return nullptr;
 		}
 

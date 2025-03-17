@@ -44,7 +44,6 @@ extern "C" {
 extern ulong _bss_start_addr;
 extern ulong _bss_end_addr;
 extern ulong kernel_end;
-extern ulong etext;
 }
 using namespace riscv;
 using namespace riscv::k210;
@@ -81,7 +80,7 @@ namespace hsai
 	{
 		// 1. 使用 UART0 作为 debug 输出
 		new ( &k210::debug_uart ) UartConsole(
-			(void*) ( UART_V) );
+			(void*) ( UART) );
 			k210::debug_uart.init();
 		register_debug_uart( &k210::debug_uart );
 

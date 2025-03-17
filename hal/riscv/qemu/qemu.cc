@@ -43,7 +43,6 @@ extern "C" {
 extern ulong _bss_start_addr;
 extern ulong _bss_end_addr;
 extern ulong kernel_end;
-extern ulong etext;
 }
 using namespace riscv;
 using namespace riscv::qemu;

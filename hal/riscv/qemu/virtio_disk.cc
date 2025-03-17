@@ -22,9 +22,13 @@ namespace riscv
       uint32 status = 0;
       _port_id = port_id;
       virtio_addr = (uint32 *) base_addr;
+      printf("virtio_addr:%p\n", virtio_addr);
 
       disk.vdisk_lock.init("virtio_disk");
 
+      printf("VIRTIO_MMIO_MAGIC_VALUE: %d VIRTIO_MMIO_VERSION:%d\nVIRTIO_MMIO_DEVICE_ID:%d"
+        "VIRTIO_MMIO_VENDOR_ID:%d\n", *R(VIRTIO_MMIO_MAGIC_VALUE), *R(VIRTIO_MMIO_VERSION),
+        *R(VIRTIO_MMIO_DEVICE_ID), *R(VIRTIO_MMIO_VENDOR_ID));
       if(*R(VIRTIO_MMIO_MAGIC_VALUE) != 0x74726976 ||
         *R(VIRTIO_MMIO_VERSION) != 1 ||
         *R(VIRTIO_MMIO_DEVICE_ID) != 2 ||

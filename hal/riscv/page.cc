@@ -31,7 +31,7 @@ namespace hsai
 	void Pte::set_super_plv() { *_data_addr &= ~user_plv_flag(); }
 	void Pte::set_user_plv() { *_data_addr |= user_plv_flag(); }
 
-	ulong Pte::to_pa() { return *_data_addr & PteEnum::pte_ppn_m; }
+	ulong Pte::to_pa() { return (*(_data_addr) >> 10 ) << 12; }
 	pte_t Pte::get_flags() { return *_data_addr & PteEnum::pte_flags_m; }
 
 	pte_t Pte::map_code_page_flags() { return PteEnum::pte_valid_m | PteEnum::pte_read_m | PteEnum::pte_execute_m; }
@@ -43,6 +43,6 @@ namespace hsai
 
 	void Pte::set_data( uint64 data ) {
 		uint64 low	= data & PteEnum::pte_flags_m;
-		*_data_addr = ( ( ( data >> 12 ) << 10 ) & low );
+		*_data_addr = ( ( ( data >> 12 ) << 10 ) | low );
 	}
 } // namespace hsai

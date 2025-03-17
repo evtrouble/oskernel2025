@@ -25,7 +25,7 @@ HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 ifeq ($(CONF_ARCH), loongarch)
 export TOOLPREFIX = loongarch64-linux-gnu-
 export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
-export CFLAGS += -march=loongarch64 -mabi=lp64d
+export CFLAGS += -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
@@ -175,6 +175,7 @@ QEMUOPTS += -bios $(RUSTSBI)
 # import virtual disk image
 QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
+# QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 # config_platform:
 # 	@cd hal/$(CONF_ARCH)/$(CONF_PLATFORM); \
 # 		cp config.mk $(WORKPATH)/hsai/Makedefs.mk

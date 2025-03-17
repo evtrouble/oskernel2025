@@ -43,11 +43,13 @@ namespace hsai
 	{
 		if ( !is_held() )
 			hsai_panic( "lock is already released." );
-		_locked.store( nullptr, eastl::memory_order_acq_rel );
+		// _locked.store( nullptr, eastl::memory_order_acq_rel );
+		VirtualCpu * cpu = get_cpu();;
+		while ( _locked.compare_exchange_strong( cpu, nullptr, eastl::memory_order_acq_rel ) ==
+				false );
 
 		eastl::atomic_thread_fence( eastl::memory_order_acq_rel );
 
-		VirtualCpu * cpu = get_cpu();
 		cpu->pop_intterupt_off();
 	}
 

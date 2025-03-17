@@ -73,7 +73,7 @@ namespace riscv
 		// from physical address 0x80200000 to PHYSTOP.
 		#define KERNBASE                0x80200000
 
-		#define PHYSTOP                 0x80600000
+		#define PHYSTOP                 0x82000000
 
 		// Sv48
 		#define MAXVA (1L << (9 + 9 + 9 + 9 + 12 - 1))

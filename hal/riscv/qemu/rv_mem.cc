@@ -21,9 +21,11 @@
 #include "tlb_manager.hh"
 
 extern "C" {
-extern ulong kernel_end;
-extern ulong etext;
-extern char trampoline[];
+extern char kernel_end[]; // first address after kernel.
+extern char	 etext[];
+extern ulong _common_text_e;
+extern ulong _common_text_s;
+extern char	 trampoline[];
 }
 
 namespace riscv
@@ -59,35 +61,35 @@ namespace riscv
 
 		void Memory::config_pt( ulong pt_addr )
 		{
-			mm::PageTable* addr = (mm::PageTable*) pt_addr;
 			// uart registers
-			mm::k_vmm.map_pages(*addr, UART_V, PG_SIZE, UART, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, UART, PG_SIZE, UART, false);
 			
 			// virtio mmio disk interface
-			mm::k_vmm.map_pages(*addr, VIRTIO0_V, PG_SIZE, VIRTIO0, pte_read_m | pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, VIRTIO0_V, PG_SIZE, VIRTIO0, false);
 			// CLINT
-			mm::k_vmm.map_pages(*addr, CLINT_V, 0x10000, CLINT, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, CLINT_V, 0x10000, CLINT, false);
 
 			// PLIC
-			mm::k_vmm.map_pages(*addr, PLIC_V, 0x4000, PLIC, PteEnum::pte_read_m | PteEnum::pte_write_m);
-			mm::k_vmm.map_pages(*addr, PLIC_V + 0x4000, PG_SIZE, PLIC + 0x200000, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V, 0x4000, PLIC, false);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, PG_SIZE, PLIC + 0x200000, false);
 			
 			// map rustsbi
 			// kvmmap(RUSTSBI_BASE, RUSTSBI_BASE, KERNBASE - RUSTSBI_BASE, PTE_R | PTE_X);
 			// map kernel text executable and read-only.
-			mm::k_vmm.map_pages(*addr, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			mm::k_vmm.map_code_pages(mm::k_pagetable, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, false);
 			// map kernel data and the physical RAM we'll make use of.
-			mm::k_vmm.map_pages(*addr, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, PteEnum::pte_read_m | PteEnum::pte_write_m);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, false);
 			// map the trampoline for trap entry/exit to
 			// the highest virtual address in the kernel.
-			mm::k_vmm.map_pages(*addr, TRAMPOLINE, PG_SIZE, (uint64)trampoline, PteEnum::pte_read_m | PteEnum::pte_execute_m);
+			mm::k_vmm.map_code_pages(mm::k_pagetable, TRAMPOLINE, PG_SIZE, (uint64)trampoline, false);
 
 			Cpu* cpu = (Cpu*) hsai::get_cpu();
 			// 定义适用于四级页表的 SATP 模式
 			#define SATP_SV48 (9L << 60)
+			#define SATP_SV39 (8L << 60)
 
 			// 修改 MAKE_SATP 宏以适应四级页表
-			#define MAKE_SATP(pagetable) (SATP_SV48 | (((uint64)pagetable) >> 12))
+			#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
 			cpu->write_csr( csr::CsrAddr::satp, MAKE_SATP( pt_addr ) );
 
 			k_tlbm.invalid_all_tlb();
