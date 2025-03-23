@@ -40,6 +40,8 @@ namespace mm
 		/// @return physical address mapped from va
 		virtual ulong walk_addr( uint64 va ) override;
 
+		ulong kwalk_addr( uint64 va );
+
 		/// @brief 递归地释放页表占用的页表
 		void freewalk();
 

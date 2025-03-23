@@ -8,6 +8,7 @@
 
 #include "rv_cpu.hh"
 #include "include/qemu.hh"
+#include "sbi.hh"
 
 namespace riscv
 {
@@ -81,6 +82,7 @@ namespace riscv
 			int hart = Cpu::get_rv_cpu()->get_cpu_id();
 			*(uint32*)PLIC_SCLAIM(hart) = irq;
 		}
+
 	} // namespace qemu
 
 } // namespace riscv

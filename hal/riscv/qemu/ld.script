@@ -27,7 +27,6 @@ SECTIONS
         ASSERT(. - _trampoline == 0x1000, "error: trampoline larger than one page");
         
         PROVIDE(_common_text_e = .);
-        PROVIDE(etext = .);
         
         . = ALIGN(0x1000);
         _start_u_init = .;
@@ -47,6 +46,8 @@ SECTIONS
         _u_init_date = .;
         
         _end_u_init = .;
+        . = ALIGN(0x1000);
+        PROVIDE(etext = .);
     }
 
     . = ALIGN(4K);

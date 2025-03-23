@@ -71,14 +71,16 @@ namespace riscv
 
 			// PLIC
 			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V, 0x4000, PLIC, false);
-			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, PG_SIZE, PLIC + 0x200000, false);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, 0x4000, PLIC + 0x200000, false);
 			
 			// map rustsbi
 			// kvmmap(RUSTSBI_BASE, RUSTSBI_BASE, KERNBASE - RUSTSBI_BASE, PTE_R | PTE_X);
 			// map kernel text executable and read-only.
 			mm::k_vmm.map_code_pages(mm::k_pagetable, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, false);
 			// map kernel data and the physical RAM we'll make use of.
-			mm::k_vmm.map_data_pages(mm::k_pagetable, (uint64)etext, PHYSTOP - (uint64)etext, (uint64)etext, false);
+			printf( "etext:%p", etext );
+			mm::k_vmm.map_data_pages( mm::k_pagetable, (uint64) etext, PHYSTOP - (uint64) etext,
+									  (uint64) etext, false );
 			// map the trampoline for trap entry/exit to
 			// the highest virtual address in the kernel.
 			mm::k_vmm.map_code_pages(mm::k_pagetable, TRAMPOLINE, PG_SIZE, (uint64)trampoline, false);

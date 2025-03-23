@@ -101,6 +101,21 @@ namespace mm
 		return pa;
 	}
 
+	ulong PageTable::kwalk_addr( uint64 va )
+	{
+		uint64 pa;
+
+		// if ( va >= vml::vm_end )
+		// return 0;
+
+		hsai::Pte pte = walk( va, false /* alloc */ );
+		if ( pte.is_null() ) return 0;
+		if ( !pte.is_valid() ) return 0;
+
+		pa	= (uint64) pte.to_pa();
+		pa |= va & ( hsai::page_size - 1 );
+		return pa;
+	}
 
 	void PageTable::freewalk()
 	{

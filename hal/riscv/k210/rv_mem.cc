@@ -66,7 +66,7 @@ namespace riscv
 
 			// PLIC
 			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V, 0x4000, PLIC, false);
-			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, PG_SIZE, PLIC + 0x200000, false);
+			mm::k_vmm.map_data_pages(mm::k_pagetable, PLIC_V + 0x200000, 0x4000, PLIC + 0x200000, false);
 
 			// GPIOHS
 			mm::k_vmm.map_data_pages(mm::k_pagetable, GPIOHS_V, 0x1000, GPIOHS, false);

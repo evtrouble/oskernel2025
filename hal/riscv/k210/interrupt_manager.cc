@@ -9,6 +9,7 @@
 
 #include "rv_cpu.hh"
 #include "include/k210.hh"
+#include "sbi.hh"
 
 namespace riscv
 {

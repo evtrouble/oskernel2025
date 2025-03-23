@@ -364,6 +364,14 @@ namespace riscv
 			for ( ulong i = 0; i < sizeof _default_dev_name; ++i ) _dev_name[i] = _default_dev_name[i];
 			_dev_name[2] = 'a' + (char) _port_id;
 			_dev_name[3] = '\0';
+			for ( auto &pname : _partition_name )
+			{
+				for ( ulong i = 0; i < sizeof _dev_name; ++i ) pname[i] = _dev_name[i];
+
+				pname[3] = 'p';
+				pname[4] = '?';
+				pname[5] = 0;
+			}
 			hsai::k_devm.register_block_device( this, _dev_name );
 		}
 

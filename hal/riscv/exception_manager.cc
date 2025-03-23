@@ -48,9 +48,6 @@ namespace riscv
 		Cpu *cpu = Cpu::get_rv_cpu();
 		cpu->write_csr( csr::CsrAddr::stvec, (uint64)kernelvec );
 		cpu->set_csr( csr::CsrAddr::sstatus, csr::sstatus_sie_m );
-		// enable supervisor-mode timer interrupts.
-		cpu->set_csr(csr::CsrAddr::sie, csr::sie_seie_m | csr::sie_ssie_m | csr::sie_stie_m);
-		set_next_timeout();
 		hsai_printf( "ExceptionManager init\n" );
 	}
 
@@ -76,19 +73,23 @@ namespace riscv
 		if ( cpu->is_interruptible() ) hsai_panic( "kerneltrap: interrupts enabled" );
 
 		int which_dev;
+		void	  *proc		 = hsai::get_cur_proc();
 		if ( ( which_dev = dev_intr() ) == 0 )
 		{
 			hsai_printf("scause %p\n", scause);
 			hsai_printf("sepc=%p stval=%p hart=%d\n", cpu->read_csr( csr::CsrAddr::sepc ), 
 				cpu->read_csr( csr::CsrAddr::stval ), cpu->get_cpu_id());
-			void *proc = hsai::get_cur_proc();
 			if (proc != 0) {
 				hsai_printf("pid: %d, name: %s\n", hsai::get_pid(proc), hsai::get_proc_name( proc ));
 			}
 			hsai_panic("kerneltrap");
 		}
 
-		void *proc = hsai::get_cur_proc();
+		if(scause == 9){
+			_user_or_kernel = 'k';
+			_syscall();
+		}
+
 		// give up the CPU if this is a timer interrupt.
 		if(which_dev == 2 && proc && hsai::proc_is_running(proc)) {
 			hsai::sched_proc( proc );
@@ -202,7 +203,7 @@ namespace riscv
 		// in alternative to supervisor external interrupt, 
 		// which is not available on k210. 
 		if (0x8000000000000001L == scause && 9 == cpu->read_csr( csr::CsrAddr::stval )) 
-		#endif 
+#endif 
 		{
 			rc = hsai::k_im->handle_dev_intr();
 			if ( rc < 0 )
@@ -210,13 +211,11 @@ namespace riscv
 				hsai_error( "im handle dev intr fail" );
 				return rc;
 			}
-			set_next_timeout();
 
 #ifndef QEMU
 			cpu->clear_csr( csr::CsrAddr::sip, 2 );
 			sbi_set_mie();
 #endif
-
 			return 1;
 		}
 		else if (0x8000000000000005L == scause) {
@@ -229,6 +228,7 @@ namespace riscv
 					hsai_error( "tm handle dev intr fail" );
 					return rc;
 				}
+				set_next_timeout();
 			}
 			return 2;
 		}

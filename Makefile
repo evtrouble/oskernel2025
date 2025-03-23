@@ -174,8 +174,8 @@ QEMUOPTS += -bios $(RUSTSBI)
 
 # import virtual disk image
 QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 
-QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
-# QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+# QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
+QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 # config_platform:
 # 	@cd hal/$(CONF_ARCH)/$(CONF_PLATFORM); \
 # 		cp config.mk $(WORKPATH)/hsai/Makedefs.mk

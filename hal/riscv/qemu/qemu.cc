@@ -106,6 +106,10 @@ namespace hsai
 		new ( &riscv::qemu::k_im )
 			riscv::qemu::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
+
+		// 4. Disk 识别设备（需要在中断初始化后进行）
+		DiskDriver* disk = (DiskDriver*) k_devm.get_device( "Disk driver" );
+		disk->identify_device();
 	}
 
 	void user_proc_init( void* proc )

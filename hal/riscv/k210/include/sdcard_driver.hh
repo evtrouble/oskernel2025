@@ -18,13 +18,13 @@ namespace riscv
 	{
         class SdcardDriver : public hsai::BlockDevice
 		{
-            
+			friend class DiskDriver;
 			/*
 			 * Be noticed: all commands & responses below
 			 * 		are in SPI mode format. May differ from
 			 * 		what they are in SD mode.
 			 */
-                            
+
              #define SD_CMD0 	0 
              #define SD_CMD8 	8
              #define SD_CMD58 	58 		// READ_OCR
@@ -42,6 +42,9 @@ namespace riscv
             // Used to differ whether sdcard is SDSC type.
 			bool is_standard_sd = false;
             static constexpr int _block_size = 512;
+            char _partition_name[4][8];
+            hsai::DiskPartitionDevice _disk_partition[4]; // MBR 硬盘只支持最多4个分区
+
 
 		public:
 

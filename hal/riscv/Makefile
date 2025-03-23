@@ -52,7 +52,7 @@ plat_name = \
 	)
 plat_name := $(strip $(plat_name))
 ifeq ($(plat_name), qemu)
-export CFLAGS += -D QEMU
+export CFLAGS += -DQEMU
 endif
 
 # architecture name
