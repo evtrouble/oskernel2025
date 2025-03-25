@@ -85,12 +85,6 @@ namespace riscv
 			mm::k_vmm.map_code_pages(mm::k_pagetable, TRAMPOLINE, PG_SIZE, (uint64)trampoline, false);
 
 			Cpu* cpu = (Cpu*) hsai::get_cpu();
-			// 定义适用于四级页表的 SATP 模式
-			#define SATP_SV48 (9L << 60)
-			#define SATP_SV39 (8L << 60)
-
-			// 修改 MAKE_SATP 宏以适应四级页表
-			#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
 			cpu->write_csr( csr::CsrAddr::satp, MAKE_SATP( pt_addr ) );
 
 			k_tlbm.invalid_all_tlb();

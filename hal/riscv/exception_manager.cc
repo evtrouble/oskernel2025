@@ -5,6 +5,7 @@
 #include "include/trap_wrapper.hh"
 #include "include/trap_frame.hh"
 #include "include/sbi.hh"
+#include <kernel/mm/virtual_memory_manager.hh>
 // #include "kernel/pm/process_manager.hh"
 
 // #include "kernel/mm/memlayout.hh"
@@ -30,10 +31,8 @@
 
 extern "C" {
 extern void kernelvec();
-extern void handle_tlbr();
-extern void handle_merr();
-extern void uservec();
-extern void userret( uint64, uint64 );
+extern char uservec[];
+extern char trampoline[], uservec[], userret[];
 }
 
 namespace riscv
@@ -162,11 +161,11 @@ namespace riscv
 		// turn off interrupts until back to user space
 		cur_cpu->intr_off();
 
-		cur_cpu->write_csr( csr::CsrAddr::stvec, (uint64) uservec );
+		cur_cpu->write_csr( csr::CsrAddr::stvec, TRAMPOLINE + (uservec - trampoline) );
 
 		void	  *cur_proc	   = hsai::get_cur_proc();
 		TrapFrame *trapframe   = (TrapFrame *) hsai::get_trap_frame_from_proc( cur_proc );
-		trapframe->epc = cur_cpu->read_csr( csr::CsrAddr::sepc );
+		trapframe->kernel_satp = cur_cpu->read_csr( csr::CsrAddr::satp );
 		trapframe->kernel_sp =
 			hsai::get_kstack_from_proc( cur_proc ) + hsai::get_kstack_size( cur_proc );
 		trapframe->kernel_trap	 = (uint64) &_wrp_user_trap;
@@ -183,7 +182,8 @@ namespace riscv
 
 		volatile uint64 pgdl = hsai::get_pgd_addr( cur_proc );
 
-		userret( hsai::get_trap_frame_vir_addr(), pgdl );
+		uint64 fn = TRAMPOLINE + (userret - trampoline);//525312
+  		((void (*)(uint64,uint64))fn)(hsai::get_trap_frame_vir_addr(), MAKE_SATP(pgdl));
 	}
 
 

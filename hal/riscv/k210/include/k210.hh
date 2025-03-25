@@ -57,61 +57,40 @@ namespace riscv
 		#define PLIC_MPRIORITY(hart)    (PLIC_V + 0x200000 + (hart) * 0x2000)
 		#define PLIC_MCLAIM(hart)       (PLIC_V + 0x200004 + (hart) * 0x2000)
 
-		#define GPIOHS                  0x38001000
-		#define DMAC                    0x50000000
-		#define GPIO                    0x50200000
-		#define SPI_SLAVE               0x50240000
-		#define FPIOA                   0x502B0000
-		#define SPI0                    0x52000000
-		#define SPI1                    0x53000000
-		#define SPI2                    0x54000000
-		#define SYSCTL                  0x50440000
+		#define GPIOHS                  0x38001000L
+		#define DMAC                    0x50000000L
+		#define GPIO                    0x50200000L
+		#define SPI_SLAVE               0x50240000L
+		#define FPIOA                   0x502B0000L
+		#define SPI0                    0x52000000L
+		#define SPI1                    0x53000000L
+		#define SPI2                    0x54000000L
+		#define SYSCTL                  0x50440000L
 
-		#define GPIOHS_V                (0x38001000 + VIRT_OFFSET)
-		#define DMAC_V                  (0x50000000 + VIRT_OFFSET)
-		#define GPIO_V                  (0x50200000 + VIRT_OFFSET)
-		#define SPI_SLAVE_V             (0x50240000 + VIRT_OFFSET)
-		#define FPIOA_V                 (0x502B0000 + VIRT_OFFSET)
-		#define SPI0_V                  (0x52000000 + VIRT_OFFSET)
-		#define SPI1_V                  (0x53000000 + VIRT_OFFSET)
-		#define SPI2_V                  (0x54000000 + VIRT_OFFSET)
-		#define SYSCTL_V                (0x50440000 + VIRT_OFFSET)
+		#define GPIOHS_V                (GPIOHS + VIRT_OFFSET)
+		#define DMAC_V                  (DMAC + VIRT_OFFSET)
+		#define GPIO_V                  (GPIO + VIRT_OFFSET)
+		#define SPI_SLAVE_V             (SPI_SLAVE + VIRT_OFFSET)
+		#define FPIOA_V                 (FPIOA + VIRT_OFFSET)
+		#define SPI0_V                  (SPI0 + VIRT_OFFSET)
+		#define SPI1_V                  (SPI1 + VIRT_OFFSET)
+		#define SPI2_V                  (SPI2 + VIRT_OFFSET)
+		#define SYSCTL_V                (SYSCTL + VIRT_OFFSET)
 
 		// the physical address of rustsbi
-		#define RUSTSBI_BASE            0x80000000
+		#define RUSTSBI_BASE            0x80000000L
 
 		// the kernel expects there to be RAM
 		// for use by the kernel and user pages
 		// from physical address 0x80020000 to PHYSTOP.
-		#define KERNBASE                0x80020000
+		#define KERNBASE                0x80020000L
 
-		#define PHYSTOP                 0x82000000
-
-		// Sv48
-		// #define MAXVA (1L << (9 + 9 + 9 + 9 + 12 - 1))
-
-		// Sv39
-		#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
-
-		// map the trampoline page to the highest address,
-		// in both user and kernel space.
-		#define TRAMPOLINE              (MAXVA - PG_SIZE)
+		#define PHYSTOP                 0x82400000L
 
 		// map kernel stacks beneath the trampoline,
 		// each surrounded by invalid guard pages.
 		// #define KSTACK(p)               (TRAMPOLINE - ((p) + 1) * 2 * PGSIZE)
 		#define VKSTACK                 0x3EC0000000L
-
-		// User memory layout.
-		// Address zero first:
-		//   text
-		//   original data and bss
-		//   fixed-size stack
-		//   expandable heap
-		//   ...
-		//   TRAPFRAME (p->trapframe, used by the trampoline)
-		//   TRAMPOLINE (the same page as in the kernel)
-		#define TRAPFRAME               (TRAMPOLINE - PG_SIZE)
 
 		#define MAXUVA                  RUSTSBI_BASE
 

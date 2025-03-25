@@ -5,6 +5,23 @@ namespace riscv
 	#define RISCV_ENTRY_STACK_SIZE		0x4000	/* 16 KiB */
 	constexpr uint entry_stack_size = RISCV_ENTRY_STACK_SIZE;
 
+	// 定义适用于四级页表的 SATP 模式
+	#define SATP_SV48 (9L << 60)
+	#define SATP_SV39 (8L << 60)
+		
+	// 三级页表
+	#define MAKE_SATP(pagetable) (SATP_SV39 | (((uint64)pagetable) >> 12))
+
+	// Sv48
+	// #define MAXVA (1L << (9 + 9 + 9 + 9 + 12 - 1))
+
+	// Sv39
+	#define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+	// map the trampoline page to the highest address,
+	// in both user and kernel space.
+	#define TRAMPOLINE              (MAXVA - PG_SIZE)
+
 	void riscv_init();
 	// supervisor-mode cycle counter
 	inline uint64 r_time()
