@@ -41,7 +41,7 @@ namespace riscv
 				}
 
 			#define UART_IRQ    10 
-			#define DISK_IRQ    11
+			#define DISK_IRQ    1
 
 		public:
 			InterruptManager() = default;

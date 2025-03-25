@@ -45,8 +45,7 @@ namespace hsai
 			hsai_panic( "lock is already released." );
 		// _locked.store( nullptr, eastl::memory_order_acq_rel );
 		VirtualCpu * cpu = get_cpu();;
-		while ( _locked.compare_exchange_strong( cpu, nullptr, eastl::memory_order_acq_rel ) ==
-				false );
+		_locked.store( nullptr );
 
 		eastl::atomic_thread_fence( eastl::memory_order_acq_rel );
 

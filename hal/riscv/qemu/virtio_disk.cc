@@ -81,10 +81,6 @@ namespace riscv
       for(int i = 0; i < NUM; i++)
         disk.free[i] = 1;
 
-      // plic.c and trap.c arrange for interrupts from VIRTIO0_IRQ.
-      #ifdef DEBUG
-      printf("virtio_disk_init\n");
-      #endif
       static char _default_dev_name[] = "hd?";
       for ( ulong i = 0; i < sizeof _default_dev_name; ++i ) _dev_name[i] = _default_dev_name[i];
       _dev_name[2] = 'a' + (char) _port_id;
@@ -180,7 +176,7 @@ namespace riscv
       
       // 设置请求头描述符
       
-      disk.desc[idx[0]].addr = mm::k_pagetable.walk_addr((uint64) &buf0);
+      disk.desc[idx[0]].addr = mm::k_pagetable.kwalk_addr((uint64) &buf0);
       disk.desc[idx[0]].len = sizeof(buf0);
       disk.desc[idx[0]].flags = VRING_DESC_F_NEXT;
       disk.desc[idx[0]].next = idx[1];
@@ -205,13 +201,21 @@ namespace riscv
       // 通知设备
       disk.avail[2 + (disk.avail[1] % NUM)] = idx[0];
       __sync_synchronize();
-      disk.avail[1] = disk.avail[1]++;
+      disk.avail[1]++;
       
       *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0;
       
       // 等待操作完成
       while(disk.info[idx[0]].b) {
-        hsai::sleep_at(buf_list, disk.vdisk_lock);
+        if(hsai::get_cur_proc())
+          hsai::sleep_at(buf_list, disk.vdisk_lock);
+        else 
+        {
+          disk.vdisk_lock.release();
+          asm("wfi");
+          disk.vdisk_lock.acquire();
+        }
+          
       }
 
       free_chain(idx[0]);
@@ -245,8 +249,6 @@ namespace riscv
 
     int VirtioDriver::handle_intr()
     {
-      hsai_info("virtio_disk_intr handle\n");
-
       disk.vdisk_lock.acquire();
 
       while((disk.used_idx % NUM) != (disk.used->id % NUM)){
@@ -266,72 +268,6 @@ namespace riscv
       disk.vdisk_lock.release();
       return 0;
     }
-
-    int	VirtioDriver::read_blocks_sync_mbr( long start_block, long block_count, hsai::BufferDescriptor *buf_list,
-      int buf_count )
-    {
-      if(buf_count > 1)
-        hsai_panic( "buf_count > 1 not implement" );
-      // the spec says that legacy block operations use three
-      // descriptors: one for type/reserved/sector, one for
-      // the data, one for a 1-byte status result.
-
-      int idx[3];
-      while(1){
-        if(alloc3_desc(idx) == 0) {
-          break;
-        }
-      }
-      
-      struct virtio_blk_outhdr {
-        uint32 type;
-        uint32 reserved;
-        uint64 sector;
-      } buf0;
-      
-      buf0.type = VIRTIO_BLK_T_IN;
-      buf0.reserved = 0;
-      buf0.sector = start_block;
-      
-      // 设置请求头描述符
-      disk.desc[idx[0]].addr = mm::k_pagetable.kwalk_addr((uint64) &buf0);
-      disk.desc[idx[0]].len = sizeof(buf0);
-      disk.desc[idx[0]].flags = VRING_DESC_F_NEXT;
-      disk.desc[idx[0]].next = idx[1];
-      
-      // 设置数据描述符
-      disk.desc[idx[1]].addr = buf_list[0].buf_addr;
-      disk.desc[idx[1]].len	 = _block_size * block_count;
-      disk.desc[idx[1]].flags = VRING_DESC_F_WRITE | VRING_DESC_F_NEXT;
-      disk.desc[idx[1]].next = idx[2];
-      
-      // 设置状态描述符
-      disk.info[idx[0]].status = 0; 
-      disk.desc[idx[2]].addr = (uint64) &disk.info[idx[0]].status;
-      disk.desc[idx[2]].len = 1;
-      disk.desc[idx[2]].flags = VRING_DESC_F_WRITE;
-      disk.desc[idx[2]].next = 0;
-      
-      // 记录请求信息
-      disk.info[idx[0]].b = buf_list;
-
-      // 通知设备
-      disk.avail[2 + (disk.avail[1] % NUM)] = idx[0];
-      __sync_synchronize();
-      disk.avail[1] = disk.avail[1]++;
-      
-      *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0;
-      
-      // 等待操作完成
-      hsai_info("virtio_disk_intr waiting\n");
-		  while ( disk.info[idx[0]].b )
-        asm("wfi");
-      hsai_info("virtio_disk_intr handle1\n");
-    
-      free_chain(idx[0]);
-      return 0;
-    }
-    
 	} // namespace qemu
 
 } // namespace riscv

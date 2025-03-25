@@ -174,7 +174,7 @@ int init_main( void )
 		// write( 1, exec_fail_str, 21 );
 	}
 
-	while ( 1 );
+	// while ( 1 );
 
 #if OS_DEBUG != 0 && OS_FAT32_TEST != 0
 

@@ -21,6 +21,11 @@ namespace riscv
 		{
 			_lock.init( lock_name );
 			Cpu	  *cpu	 = Cpu::get_rv_cpu();
+			intr_init();
+			if ( register_interrupt_manager( this ) < 0 )
+			{
+				hsai_panic( "register interrupt manager fail." );
+			}
 
 			writed(1, PLIC_V + DISK_IRQ * sizeof(uint32));
 			writed(1, PLIC_V + UART_IRQ * sizeof(uint32));
@@ -31,12 +36,6 @@ namespace riscv
 			uint32 *hart0_m_int_enable_hi = hart_m_enable + 1;
 			*(hart0_m_int_enable_hi) = readd(hart0_m_int_enable_hi) | (1 << (UART_IRQ % 32));
 
-			if ( register_interrupt_manager( this ) < 0 )
-			{
-				hsai_panic( "register interrupt manager fail." );
-			}
-
-			intr_init();
 			cpu->intr_on();
 		}
 

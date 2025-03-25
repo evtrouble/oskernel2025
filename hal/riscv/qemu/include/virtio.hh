@@ -147,9 +147,6 @@ namespace riscv
                     hsai::BufferDescriptor *buf_list, int buf_count ) override;
         virtual int handle_intr() override;
 
-		int read_blocks_sync_mbr( long start_block, long block_count,
-								  hsai::BufferDescriptor *buf_list, int buf_count );
-
 		virtual bool read_ready() override {
           // 检查设备状态
           uint32 status = *R(VIRTIO_MMIO_STATUS);

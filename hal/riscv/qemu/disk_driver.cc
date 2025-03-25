@@ -36,7 +36,7 @@ namespace riscv
 			u8 *mbr_data = new u8[520]; // actually just use 512-bytes
 
 			hsai::BufferDescriptor bdp = { .buf_addr = (u64) mbr_data, .buf_size = 520 };
-			disk_.read_blocks_sync_mbr( 0, 1, &bdp, 1 );
+			disk_.read_blocks_sync( 0, 1, &bdp, 1 );
 
 			if ( int rc = _check_mbr_partition( mbr_data) < 0 )
 			{

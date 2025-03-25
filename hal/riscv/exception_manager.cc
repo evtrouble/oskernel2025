@@ -48,18 +48,21 @@ namespace riscv
 		Cpu *cpu = Cpu::get_rv_cpu();
 		cpu->write_csr( csr::CsrAddr::stvec, (uint64)kernelvec );
 		cpu->set_csr( csr::CsrAddr::sstatus, csr::sstatus_sie_m );
+		// enable supervisor-mode timer interrupts.
+		cpu->set_csr( csr::CsrAddr::sie, csr::sie_seie_m | csr::sie_ssie_m | csr::sie_stie_m);
+		set_next_timeout();
 		hsai_printf( "ExceptionManager init\n" );
 	}
 
 	static int kernel_trap_cnt = 0;
 
 	void ExceptionManager::kernel_trap()
-	{
+	{ 
 		Cpu *cpu = Cpu::get_rv_cpu();
 
-		u32 sepc = cpu->read_csr( csr::CsrAddr::sepc );
-		u32 sstatus = cpu->read_csr( csr::CsrAddr::sstatus );
-		u32 scause = cpu->read_csr( csr::CsrAddr::scause );
+		uint64 sepc = cpu->read_csr( csr::CsrAddr::sepc );
+		uint64 sstatus = cpu->read_csr( csr::CsrAddr::sstatus );
+		uint64 scause = cpu->read_csr( csr::CsrAddr::scause );
 
 		if((sstatus & csr::sstatus_spp_m) == 0)
 			hsai_panic("kerneltrap: not from supervisor mode");
@@ -83,8 +86,7 @@ namespace riscv
 				hsai_printf("pid: %d, name: %s\n", hsai::get_pid(proc), hsai::get_proc_name( proc ));
 			}
 			hsai_panic("kerneltrap");
-		}
-
+		} 
 		if(scause == 9){
 			_user_or_kernel = 'k';
 			_syscall();
@@ -196,7 +198,7 @@ namespace riscv
 		uint64 scause = cpu->read_csr( csr::CsrAddr::scause );
 		int	   rc;
 #ifdef QEMU
-		// handle external interrupt 
+		// handle external interrupt
 		if ((0x8000000000000000L & scause) && 9 == (scause & 0xff))
 #else 
 		// on k210, supervisor software interrupt is used 
@@ -249,7 +251,6 @@ namespace riscv
 
 	void ExceptionManager::set_next_timeout()
 	{
-		Cpu *cpu = Cpu::get_rv_cpu();
 		sbi_set_timer( r_time() + INTERVAL );
 	}
 

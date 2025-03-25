@@ -40,6 +40,9 @@ namespace riscv
 					(*(volatile uint64 *)(addr)) = (v); \
 				}
 
+			#define UART_IRQ    33
+			#define DISK_IRQ    27
+
 		public:
 			InterruptManager() = default;
 			InterruptManager( const char *lock_name );

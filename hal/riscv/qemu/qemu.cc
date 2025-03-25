@@ -10,7 +10,7 @@
 
 #include "context.hh"
 #include "exception_manager.hh"
-#include "interrupt_manager.hh"
+#include "include/interrupt_manager.hh"
 #include "rv_cpu.hh"
 #include "rv_mem.hh"
 #include "trap_frame.hh"

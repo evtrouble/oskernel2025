@@ -78,7 +78,6 @@ namespace riscv
 			// map kernel text executable and read-only.
 			mm::k_vmm.map_code_pages(mm::k_pagetable, KERNBASE, (uint64)etext - KERNBASE, KERNBASE, false);
 			// map kernel data and the physical RAM we'll make use of.
-			printf( "etext:%p", etext );
 			mm::k_vmm.map_data_pages( mm::k_pagetable, (uint64) etext, PHYSTOP - (uint64) etext,
 									  (uint64) etext, false );
 			// map the trampoline for trap entry/exit to

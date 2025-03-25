@@ -25,11 +25,15 @@ HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 ifeq ($(CONF_ARCH), loongarch)
 export TOOLPREFIX = loongarch64-linux-gnu-
 export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
-export CFLAGS += -march=loongarch64 -mabi=lp64d -DLOONGARCH
+export CFLAGS = -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS += -march=rv6gc -mabi=lp64d
+export CFLAGS = -march=rv64gc -mabi=lp64d
+endif
+
+ifeq ($(CONF_PLATFORM), qemu)
+export CFLAGS += -DQEMU
 endif
 
 LD_SCRIPT = hal/$(CONF_ARCH)/$(CONF_PLATFORM)/ld.script
@@ -53,7 +57,7 @@ export AR  = ${TOOLPREFIX}ar
 
 export ASFLAGS += -I include
 export ASFLAGS += -MD
-export CFLAGS = -ggdb -Wall -O0 -fno-omit-frame-pointer
+export CFLAGS += -ggdb -Wall -O0 -fno-omit-frame-pointer
 export CFLAGS += -I include
 export CFLAGS += -MD -mcmodel=medany -static
 export CFLAGS += -DNUMCPU=$(CONF_CPU_NUM)
@@ -197,6 +201,17 @@ endif
 
 fs:
 	@if [ ! -f "sdcard.img" ]; then \
-	echo "making fs image..."; \
-	dd if=/dev/zero of=sdcard.img bs=512k count=512; \
-	mkfs.vfat -F 32 sdcard.img; fi
+		echo "Making fs image..."; \
+		dd if=/dev/zero of=sdcard.img bs=512k count=512; \
+		echo "Creating MBR partition table..."; \
+		echo -e "o\nn\np\n1\n\n\nt\n83\nw" | fdisk sdcard.img; \
+		echo "Setting up loop device..."; \
+		sudo losetup -fP sdcard.img; \
+		LOOP_DEVICE=$$(losetup -j sdcard.img | awk -F: '{print $$1}'); \
+		echo "Formatting partition as ext4..."; \
+		sudo mkfs.ext4 $${LOOP_DEVICE}p1; \
+		echo "Cleaning up loop device..."; \
+		sudo losetup -d $${LOOP_DEVICE}; \
+		echo "sdcard.img created with MBR and ext4 partition."; \
+	fi
+

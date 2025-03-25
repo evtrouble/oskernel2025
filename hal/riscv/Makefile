@@ -51,9 +51,6 @@ plat_name = \
 	$(error platform '${CONF_PLATFORM}' is not supported)\
 	)
 plat_name := $(strip $(plat_name))
-ifeq ($(plat_name), qemu)
-export CFLAGS += -DQEMU
-endif
 
 # architecture name
 arch_name = $(CONF_ARCH)

@@ -42,7 +42,6 @@ namespace mm
 		if ( debug_trace_walk ) printf( "[walk trace] 0x%x : ", va );
 		uint64 pg_num;
 
-#ifdef LOONGARCH
 		// search in level-3
 		pg_num = hsai::pgd_num( va );
 		pte	   = pt.get_pte( pg_num );
@@ -53,7 +52,6 @@ namespace mm
 					   pt._base_addr );
 			return hsai::Pte();
 		}
-#endif
 		// search in level-2
 		pg_num = hsai::pud_num( va );
 		pte	   = pt.get_pte( pg_num );
