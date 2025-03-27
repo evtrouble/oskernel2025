@@ -15,7 +15,7 @@
 #include "interrupt_manager.hh"
 #include "rv_cpu.hh"
 #include "rv_mem.hh"
-#include "pci/pci.hh"
+#include "include/spi.hh"
 #include "trap_frame.hh"
 
 namespace riscv

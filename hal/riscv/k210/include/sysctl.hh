@@ -4,10 +4,6 @@ namespace riscv
 {
 	namespace k210
 	{
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
-
         /**
          * @brief      System controller register
          *
@@ -50,15 +46,16 @@ namespace riscv
          *
          */
 
-        typedef enum _sysctl_pll_t
+        enum _sysctl_pll_t
         {
             SYSCTL_PLL0,
             SYSCTL_PLL1,
             SYSCTL_PLL2,
             SYSCTL_PLL_MAX
-        } sysctl_pll_t;
+        };
+		using sysctl_pll_t = _sysctl_pll_t;
 
-        typedef enum _sysctl_clock_source_t
+		enum _sysctl_clock_source_t
         {
             SYSCTL_SOURCE_IN0,
             SYSCTL_SOURCE_PLL0,
@@ -66,9 +63,10 @@ namespace riscv
             SYSCTL_SOURCE_PLL2,
             SYSCTL_SOURCE_ACLK,
             SYSCTL_SOURCE_MAX
-        } sysctl_clock_source_t;
+        };
+		using sysctl_clock_source_t = _sysctl_clock_source_t;
 
-        typedef enum _sysctl_dma_channel_t
+		enum _sysctl_dma_channel_t
         {
             SYSCTL_DMA_CHANNEL_0,
             SYSCTL_DMA_CHANNEL_1,
@@ -77,9 +75,10 @@ namespace riscv
             SYSCTL_DMA_CHANNEL_4,
             SYSCTL_DMA_CHANNEL_5,
             SYSCTL_DMA_CHANNEL_MAX
-        } sysctl_dma_channel_t;
+        };
+		using sysctl_dma_channel_t = _sysctl_dma_channel_t;
 
-        typedef enum _sysctl_dma_select_t
+		enum _sysctl_dma_select_t
         {
             SYSCTL_DMA_SELECT_SSI0_RX_REQ,
             SYSCTL_DMA_SELECT_SSI0_TX_REQ,
@@ -115,12 +114,13 @@ namespace riscv
             SYSCTL_DMA_SELECT_I2S0_BF_DIR_REQ,
             SYSCTL_DMA_SELECT_I2S0_BF_VOICE_REQ,
             SYSCTL_DMA_SELECT_MAX
-        } sysctl_dma_select_t;
+        };
+		using sysctl_dma_select_t = _sysctl_dma_select_t;
 
-        /**
+		/**
          * @brief      System controller clock id
          */
-        typedef enum _sysctl_clock_t
+        enum _sysctl_clock_t
         {
             SYSCTL_CLOCK_PLL0,
             SYSCTL_CLOCK_PLL1,
@@ -164,9 +164,10 @@ namespace riscv
             SYSCTL_CLOCK_HCLK,
             SYSCTL_CLOCK_IN0,
             SYSCTL_CLOCK_MAX
-        } sysctl_clock_t;
+        };
+		using sysctl_clock_t = _sysctl_clock_t;
 
-        /**
+		/**
          * @brief      System controller clock select id
          */
         typedef enum _sysctl_clock_select_t
@@ -1056,10 +1057,6 @@ namespace riscv
          * @return      The status of reset
          */
         sysctl_reset_enum_status_t sysctl_get_reset_status(void);
-
-        #ifdef __cplusplus
-        }
-        #endif
 
     } // namespace k210
     

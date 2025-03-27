@@ -1,11 +1,11 @@
 // SPI Protocol Implementation
 
-#include "include/types.hh"
-#include "include/riscv.hh"
+#include <kernel/types.hh>
+#include "riscv.hh"
 #include "include/utils.hh"
 #include "include/dmac.hh"
 #include "include/spi.hh"
-#include "kernel/include/klib/klib.hh"
+#include <klib/klib.hh>
 #include "include/sysctl.hh"
 #include <memory_interface.hh>
 #include "include/interrupt_manager.hh"
@@ -201,7 +201,7 @@ namespace riscv
         {
             // configASSERT(spi_num < SPI_DEVICE_MAX && spi_num != 2);
             // uint8 *v_buf = malloc(cmd_len + tx_len);
-            uint8 *v_buf = hsai::alloc_pages(1);
+            uint8 *v_buf = (uint8*)hsai::alloc_pages(1);
             uint64 i;
             for(i = 0; i < cmd_len; i++)
                 v_buf[i] = cmd_buff[i];
@@ -324,7 +324,7 @@ namespace riscv
                     break;
             }
             volatile spi_t *spi_adapter = spi[spi_num];
-            return ((spi_adapter->ctrlr0 >> frf_offset) & 0x3);
+            return (spi_frame_format_t)((spi_adapter->ctrlr0 >> frf_offset) & 0x3);
         }
 
         void spi_receive_data_normal_dma(dmac_channel_number_t dma_send_channel_num,
@@ -345,8 +345,8 @@ namespace riscv
             spi_handle->dmacr = 0x3;
             spi_handle->ssienr = 0x01;
             if(cmd_len)
-                sysctl_dma_select((sysctl_dma_channel_t)dma_send_channel_num, SYSCTL_DMA_SELECT_SSI0_TX_REQ + spi_num * 2);
-            sysctl_dma_select((sysctl_dma_channel_t)dma_receive_channel_num, SYSCTL_DMA_SELECT_SSI0_RX_REQ + spi_num * 2);
+                sysctl_dma_select((sysctl_dma_channel_t)dma_send_channel_num, (sysctl_dma_select_t)(SYSCTL_DMA_SELECT_SSI0_TX_REQ + spi_num * 2));
+            sysctl_dma_select((sysctl_dma_channel_t)dma_receive_channel_num, (sysctl_dma_select_t)(SYSCTL_DMA_SELECT_SSI0_RX_REQ + spi_num * 2));
 
             dmac_set_single_mode(dma_receive_channel_num, (void *)(&spi_handle->dr[0]), rx_buff, DMAC_ADDR_NOCHANGE, DMAC_ADDR_INCREMENT,
                                 DMAC_MSIZE_1, DMAC_TRANS_WIDTH_32, rx_len);
@@ -372,7 +372,7 @@ namespace riscv
             spi_set_tmod(spi_num, SPI_TMOD_TRANS);
             volatile spi_t *spi_handle = spi[spi_num];
             uint32 *buf;
-            int i;
+            uint64 i;
             switch(spi_transfer_width)
             {
                 case SPI_TRANS_SHORT:
@@ -393,7 +393,7 @@ namespace riscv
             spi_handle->dmacr = 0x2; /*enable dma transmit*/
             spi_handle->ssienr = 0x01;
 
-            sysctl_dma_select((sysctl_dma_channel_t)channel_num, SYSCTL_DMA_SELECT_SSI0_TX_REQ + spi_num * 2);
+            sysctl_dma_select((sysctl_dma_channel_t)channel_num, (sysctl_dma_select_t)(SYSCTL_DMA_SELECT_SSI0_TX_REQ + spi_num * 2));
             dmac_set_single_mode(channel_num, buf, (void *)(&spi_handle->dr[0]), DMAC_ADDR_INCREMENT, DMAC_ADDR_NOCHANGE,
                                 DMAC_MSIZE_4, DMAC_TRANS_WIDTH_32, tx_len);
             spi_handle->ser = 1U << chip_select;
@@ -515,7 +515,7 @@ namespace riscv
 
             uint32 *buf;
             uint64 v_send_len;
-            int i;
+            uint64 i;
             switch(frame_width)
             {
                 case SPI_TRANS_INT:

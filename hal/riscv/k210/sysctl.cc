@@ -1,5 +1,6 @@
 #include "include/sysctl.hh"
 #include "include/k210.hh"
+#include <klib/klib.hh>
 namespace riscv
 {
 	namespace k210
@@ -279,8 +280,8 @@ namespace riscv
             sysctl_dma_sel1_t dma_sel1;
 
             /* Read register from bus */
-            dma_sel0 = sysctl->dma_sel0;
-            dma_sel1 = sysctl->dma_sel1;
+            dma_sel0 = const_cast<sysctl_dma_sel0_t&>(sysctl->dma_sel0);
+            dma_sel1 = const_cast<sysctl_dma_sel1_t&>(sysctl->dma_sel1);
             switch(channel)
             {
                 case SYSCTL_DMA_CHANNEL_0:
@@ -312,8 +313,8 @@ namespace riscv
             }
 
             /* Write register back to bus */
-            sysctl->dma_sel0 = dma_sel0;
-            sysctl->dma_sel1 = dma_sel1;
+			memcpy( (void*)&sysctl->dma_sel0, &dma_sel0, sizeof( dma_sel0 ) );
+			memcpy( (void*)&sysctl->dma_sel1, &dma_sel1, sizeof( dma_sel1 ) );
 
             return 0;
         }

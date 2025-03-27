@@ -171,7 +171,7 @@ namespace riscv
 		trapframe->kernel_trap	 = (uint64) &_wrp_user_trap;
 		trapframe->kernel_hartid = cur_cpu->get_cpu_id();
 
-		uint32 x  = (uint32) cur_cpu->read_csr( csr::CsrAddr::sstatus );
+		uint64 x  = (uint64) cur_cpu->read_csr( csr::CsrAddr::sstatus );
 		x &= ~csr::sstatus_spp_m; // clear SPP to 0 for user mode
   		x |= csr::sstatus_spie_m; // enable interrupts in user mode
 		cur_cpu->write_csr( csr::CsrAddr::sstatus, x );
@@ -182,7 +182,7 @@ namespace riscv
 
 		volatile uint64 pgdl = hsai::get_pgd_addr( cur_proc );
 
-		uint64 fn = TRAMPOLINE + (userret - trampoline);//525312
+		uint64 fn = TRAMPOLINE + (userret - trampoline);
   		((void (*)(uint64,uint64))fn)(hsai::get_trap_frame_vir_addr(), MAKE_SATP(pgdl));
 	}
 

@@ -14,7 +14,7 @@ namespace riscv
 		private:
 			hsai::SpinLock _lock;
 			UartConsole * _uart0 = nullptr;
-			DiskDriver * _sata = nullptr;
+			DiskDriver * _disk = nullptr;
 
 			int plic_claim( void );
 			void plic_complete( int irq );

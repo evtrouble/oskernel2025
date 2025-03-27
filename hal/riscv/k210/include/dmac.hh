@@ -5,9 +5,6 @@ namespace riscv
 {
 	namespace k210
 	{   
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
 
         /* DMAC */
         #define DMAC_CHANNEL_COUNT (DMAC_CHANNEL_MAX)
@@ -1518,10 +1515,6 @@ namespace riscv
         void dmac_channel_enable(dmac_channel_number_t channel_num);
 
         void dmac_intr(dmac_channel_number_t channel_num);
-
-        #ifdef __cplusplus
-        }
-        #endif
 
 	} // namespace k210
 	

@@ -25,10 +25,6 @@ namespace riscv
 {
 	namespace k210
 	{   
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
-
         /* clang-format off */
         /* Pad number settings */
         #define FPIOA_NUM_IO    (48)
@@ -304,7 +300,7 @@ namespace riscv
          */
 
         /* clang-format off */
-        typedef enum _fpioa_function
+        enum _fpioa_function
         {
             FUNC_JTAG_TCLK        = 0,  /*!< JTAG Test Clock */
             FUNC_JTAG_TDI         = 1,  /*!< JTAG Test Data In */
@@ -563,8 +559,9 @@ namespace riscv
             FUNC_DEBUG30          = 254,    /*!< Debug function 30 */
             FUNC_DEBUG31          = 255,    /*!< Debug function 31 */
             FUNC_MAX              = 256,    /*!< Function numbers */
-        } fpioa_function_t;
-        /* clang-format on */
+        };
+        using fpioa_function_t = _fpioa_function;
+		/* clang-format on */
 
         /**
          * @brief      FPIOA pull settings
@@ -581,13 +578,14 @@ namespace riscv
          */
 
         /* clang-format off */
-        typedef enum _fpioa_pull
+        enum _fpioa_pull
         {
             FPIOA_PULL_NONE,      /*!< No Pull */
             FPIOA_PULL_DOWN,      /*!< Pull Down */
             FPIOA_PULL_UP,        /*!< Pull Up */
             FPIOA_PULL_MAX        /*!< Count of pull settings */
-        } fpioa_pull_t;
+        };
+        using fpioa_pull_t = _fpioa_pull;
         /* clang-format on */
 
         /**
@@ -625,7 +623,7 @@ namespace riscv
          */
 
         /* clang-format off */
-        typedef enum _fpioa_driving
+        enum _fpioa_driving
         {
             FPIOA_DRIVING_0,      /*!< 0000 */
             FPIOA_DRIVING_1,      /*!< 0001 */
@@ -644,7 +642,8 @@ namespace riscv
             FPIOA_DRIVING_14,     /*!< 1110 */
             FPIOA_DRIVING_15,     /*!< 1111 */
             FPIOA_DRIVING_MAX     /*!< Count of driving settings */
-        } fpioa_driving_t;
+        };
+        using fpioa_driving_t = _fpioa_driving;
         /* clang-format on */
 
         /**
@@ -678,7 +677,7 @@ namespace riscv
          * | 7:0       | CH_SEL   | Channel select from 256 input.                    |
          *
          */
-        typedef struct _fpioa_io_config
+        struct _fpioa_io_config
         {
             uint32 ch_sel : 8;
             /*!< Channel select from 256 input. */
@@ -712,7 +711,8 @@ namespace riscv
             /*!< Reserved bits. */
             uint32 pad_di : 1;
             /*!< Read current IO's data input. */
-        } __attribute__((packed, aligned(4))) fpioa_io_config_t;
+        } __attribute__((packed, aligned(4)));
+        using fpioa_io_config_t = _fpioa_io_config;
 
         /**
          * @brief      FPIOA tie setting
@@ -751,13 +751,14 @@ namespace riscv
          *             Tie high means the SPI Arbitration input is 1
          *
          */
-        typedef struct _fpioa_tie
+        struct _fpioa_tie
         {
-            uint32 en[FUNC_MAX / 32];
+            uint32 en[fpioa_function_t::FUNC_MAX / 32];
             /*!< FPIOA GPIO multiplexer tie enable array */
-            uint32 val[FUNC_MAX / 32];
+            uint32 val[fpioa_function_t::FUNC_MAX / 32];
             /*!< FPIOA GPIO multiplexer tie value array */
-        } __attribute__((packed, aligned(4))) fpioa_tie_t;
+        } __attribute__((packed, aligned(4)));
+        using fpioa_tie_t = _fpioa_tie;
 
         /**
          * @brief      FPIOA Object
@@ -819,18 +820,19 @@ namespace riscv
          * | 0x0BC     | PAD47    | FPIOA GPIO multiplexer io 47   |
          *
          */
-        typedef struct _fpioa
+        struct _fpioa
         {
             fpioa_io_config_t io[FPIOA_NUM_IO];
             /*!< FPIOA GPIO multiplexer io array */
             fpioa_tie_t tie;
             /*!< FPIOA GPIO multiplexer tie */
-        } __attribute__((packed, aligned(4))) fpioa_t;
+        } __attribute__((packed, aligned(4)));
+        using fpioa_t = _fpioa;
 
         /**
          * @brief       FPIOA object instanse
          */
-        extern volatile fpioa_t *const fpioa;
+        extern volatile fpioa_t *fpioa;
 
         /**
          * @brief       Initialize FPIOA user custom default settings
@@ -1016,9 +1018,6 @@ namespace riscv
         int fpioa_set_oe_inv(int number, uint8 inv_enable);
 
         void fpioa_pin_init(void);
-        #ifdef __cplusplus
-        }
-        #endif
 
     } // namespace k210
 

@@ -5,12 +5,8 @@ namespace riscv
 {
 	namespace k210
     {    
-        #ifdef __cplusplus
-        extern "C" {
-        #endif
-
         /* clang-format off */
-        typedef struct _spi
+        struct _spi
         {
             /* SPI Control Register 0                                    (0x00)*/
             volatile uint32 ctrlr0;
@@ -83,66 +79,74 @@ namespace riscv
             /* SPI XIP time out register for continuous transfers        (0x114)*/
             volatile uint32 xip_cnt_time_out;
             volatile uint32 endian;
-        } __attribute__((packed, aligned(4))) spi_t;
-        /* clang-format on */
+        } __attribute__((packed, aligned(4)));
+        using spi_t = _spi;
+		/* clang-format on */
 
-        typedef enum _spi_device_num
+		enum _spi_device_num
         {
             SPI_DEVICE_0,
             SPI_DEVICE_1,
             SPI_DEVICE_2,
             SPI_DEVICE_3,
             SPI_DEVICE_MAX,
-        } spi_device_num_t;
+        };
+		using spi_device_num_t = _spi_device_num;
 
-        typedef enum _spi_work_mode
+		enum _spi_work_mode
         {
             SPI_WORK_MODE_0,
             SPI_WORK_MODE_1,
             SPI_WORK_MODE_2,
             SPI_WORK_MODE_3,
-        } spi_work_mode_t;
+        };
+		using spi_work_mode_t = _spi_work_mode;
 
-        typedef enum _spi_frame_format
+		enum _spi_frame_format
         {
             SPI_FF_STANDARD,
             SPI_FF_DUAL,
             SPI_FF_QUAD,
             SPI_FF_OCTAL
-        } spi_frame_format_t;
+        };
+		using spi_frame_format_t = _spi_frame_format;
 
-        typedef enum _spi_instruction_address_trans_mode
+		enum _spi_instruction_address_trans_mode
         {
             SPI_AITM_STANDARD,
             SPI_AITM_ADDR_STANDARD,
             SPI_AITM_AS_FRAME_FORMAT
-        } spi_instruction_address_trans_mode_t;
+        };
+		using spi_instruction_address_trans_mode_t = _spi_instruction_address_trans_mode;
 
-        typedef enum _spi_transfer_mode
+		enum _spi_transfer_mode
         {
             SPI_TMOD_TRANS_RECV,
             SPI_TMOD_TRANS,
             SPI_TMOD_RECV,
             SPI_TMOD_EEROM
-        } spi_transfer_mode_t;
+        };
+		using spi_transfer_mode_t = _spi_transfer_mode;
 
-        typedef enum _spi_transfer_width
+		enum _spi_transfer_width
         {
             SPI_TRANS_CHAR = 0x1,
             SPI_TRANS_SHORT = 0x2,
             SPI_TRANS_INT = 0x4,
-        } spi_transfer_width_t;
+        };
+		using spi_transfer_width_t = _spi_transfer_width;
 
-        typedef enum _spi_chip_select
+		enum _spi_chip_select
         {
             SPI_CHIP_SELECT_0,
             SPI_CHIP_SELECT_1,
             SPI_CHIP_SELECT_2,
             SPI_CHIP_SELECT_3,
             SPI_CHIP_SELECT_MAX,
-        } spi_chip_select_t;
+        };
+		using spi_chip_select_t = _spi_chip_select;
 
-        typedef enum
+		typedef enum
         {
             WRITE_CONFIG,
             READ_CONFIG,
@@ -474,10 +478,6 @@ namespace riscv
          *
          */
         // void spi_handle_data_dma(spi_device_num_t spi_num, spi_chip_select_t chip_select, spi_data_t data, plic_interrupt_t *cb);
-
-        #ifdef __cplusplus
-        }
-        #endif
         
     } // namespace k210
 

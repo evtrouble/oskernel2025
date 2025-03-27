@@ -1,6 +1,6 @@
 #include "include/sdcard_driver.hh"
 #include "include/dmac.hh"
-#include "kernel/include/klib/common.hh"
+#include <klib/common.hh>
 #include <device_manager.hh>
 
 namespace riscv

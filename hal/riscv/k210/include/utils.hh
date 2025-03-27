@@ -4,9 +4,6 @@ namespace riscv
 {
 	namespace k210
 	{
-        #ifdef __cplusplus
-        extern "C" {
-        #endif /* __cplusplus */
 
         #define KENDRYTE_MIN(a, b) ((a) > (b) ? (b) : (a))
         #define KENDRYTE_MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -310,10 +307,6 @@ namespace riscv
          * @return      The bit value
          */
         uint32 get_gpio_bit(volatile uint32 *bits, uint64 offset);
-
-        #ifdef __cplusplus
-        }
-        #endif /* __cplusplus */
 
     } // namespace k210
     
