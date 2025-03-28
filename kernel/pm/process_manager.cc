@@ -1576,7 +1576,7 @@ namespace pm
 		if ( pt.get_base() == 0 ) return;
 
 		if ( !mm::k_vmm.map_data_pages( pt, mm::vml::vm_trap_frame, hsai::page_size,
-										(uint64) ( p->_trapframe ), true ) )
+										(uint64) ( p->_trapframe ), false ) )
 		{
 			mm::k_vmm.vm_unmap( pt, mm::vm_trap_frame, 1, 0 );
 			log_panic( "proc create vm but no mem." );

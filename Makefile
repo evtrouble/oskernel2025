@@ -1,5 +1,5 @@
 # configure 
-CONF_CPU_NUM = 2
+CONF_CPU_NUM = 1
 # export CONF_ARCH ?= loongarch
 # export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1

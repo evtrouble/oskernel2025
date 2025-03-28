@@ -122,7 +122,7 @@ namespace hsai
 		hsai_info( "user init: epc = %p", tf->epc );
 		mm::PageTable& pt = *(mm::PageTable*) get_pt_from_proc( proc );
 		mm::k_vmm.map_code_pages(pt, TRAMPOLINE, 
-			PG_SIZE, (uint64) trampoline, true );
+			PG_SIZE, (uint64) trampoline, false );
 		// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
 		// hsai_info( "user init: sp  = %p", tf->sp );
 	}

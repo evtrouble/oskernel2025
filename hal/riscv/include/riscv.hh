@@ -67,7 +67,7 @@ namespace riscv
 	};
 #undef _build_pte_bit_
 
-	enum PlvEnum : uint
+	enum PlvEnum : uint64
 	{
 		plv_super = 0,
 		plv_user = 3
@@ -104,7 +104,7 @@ namespace riscv
 	#define _build_sstatus_bit_( name, mask, shift ) \
 		sstatus_##name##_s = shift, \
 		sstatus_##name##_m = mask << sstatus_##name##_s,
-			enum Sstatus : uint32
+			enum Sstatus : uint64
 			{
 				_build_sstatus_bit_( uie, 0x1, 0 )
 				_build_sstatus_bit_( sie, 0x1, 1 )
@@ -118,7 +118,7 @@ namespace riscv
 	#define _build_sie_bit_( name, mask, shift ) \
 		sie_##name##_s = shift, \
 		sie_##name##_m = mask << sie_##name##_s,
-			enum Sie : uint32
+			enum Sie : uint64
 			{
 				_build_sie_bit_( ssie, 0x1, 1 )
 				_build_sie_bit_( stie, 0x1, 5 )
@@ -129,7 +129,7 @@ namespace riscv
 	#define _build_sip_bit_( name, mask, shift ) \
 		sip_##name##_s = shift, \
 		sip_##name##_m = mask << sip_##name##_s,
-			enum Sip : uint32
+			enum Sip : uint64
 			{
 				_build_sip_bit_( ssip, 0x1, 1 )
 				_build_sip_bit_( stip, 0x1, 5 )
