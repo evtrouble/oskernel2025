@@ -172,15 +172,9 @@ namespace riscv
 		trapframe->kernel_hartid = cur_cpu->get_cpu_id();
 
 		uint64 x  = (uint64) cur_cpu->read_csr( csr::CsrAddr::sstatus );
-		hsai_printf( "user trap ret1: sstatus %p\n", x);
 		x &= ~csr::sstatus_spp_m; // clear SPP to 0 for user mode
-		uint64 d  = csr::sstatus_spp_m;
-		hsai_printf( "user trap ret2: sstatus %p, val:%p\n", x, d );
 		x |= csr::sstatus_spie_m; // enable interrupts in user mode
-		  hsai_printf( "user trap ret3: sstatus %p\n", x);
-		cur_cpu->write_csr( csr::CsrAddr::sstatus, x );//0x8000000200006020
-		x  = (uint64) cur_cpu->read_csr( csr::CsrAddr::sstatus );
-		hsai_printf( "user trap ret: sstatus %p\n", x);
+		cur_cpu->write_csr( csr::CsrAddr::sstatus, x );
 
 		cur_cpu->write_csr( csr::CsrAddr::sepc, trapframe->epc );
 
@@ -190,8 +184,7 @@ namespace riscv
 
 		uint64 fn = TRAMPOLINE + (userret - trampoline);
   		((void (*)(uint64,uint64))fn)(hsai::get_trap_frame_vir_addr(), MAKE_SATP(pgdl));
-	}//ra 0xa110ca110ca110c
-
+	}
 
 	// Check if it's an external/software interrupt, 
 	// and handle it. 

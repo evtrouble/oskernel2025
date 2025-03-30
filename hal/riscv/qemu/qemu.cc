@@ -39,6 +39,7 @@ extern uint64 _u_init_dats;
 extern uint64 _u_init_date;
 extern int	  init_main( void );
 extern char trampoline[];
+extern char	  __global_pointer$[];
 }
 
 extern "C" {
@@ -122,8 +123,9 @@ namespace hsai
 		mm::PageTable *pt = (mm::PageTable*) get_pt_from_proc( proc );
 		mm::k_vmm.map_code_pages(*pt, TRAMPOLINE, 
 			PG_SIZE, (uint64) trampoline, false );
-			// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
-			// hsai_info( "user init: sp  = %p", tf->sp );
+		tf->gp = (uint64)__global_pointer$;
+		// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
+		// hsai_info( "user init: sp  = %p", tf->sp );
 	}
 
 	void set_trap_frame_return_value( void* trapframe, ulong v )

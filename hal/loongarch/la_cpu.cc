@@ -61,6 +61,11 @@ namespace loongarch
 		csr::_write_csr_( r, d );
 	}
 
+	void Cpu::set_mmu( mm::PageTable& pt )
+	{
+
+	}
+
 } // namespace loongarch
 
 extern "C" {

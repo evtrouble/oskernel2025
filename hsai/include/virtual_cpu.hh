@@ -9,6 +9,7 @@
 #pragma once
 
 #include "kernel/types.hh"
+#include "kernel/mm/page_table.hh"
 
 namespace pm
 {
@@ -35,6 +36,7 @@ namespace hsai	// hardware service abstract interface
 		virtual int is_interruptible() = 0;
 		virtual void _interrupt_on() = 0;
 		virtual void _interrupt_off() = 0;
+		virtual void set_mmu(mm::PageTable& pt) = 0;
 
 	public:
 		int get_num_off() { return _num_off; }

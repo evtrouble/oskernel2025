@@ -19,6 +19,7 @@
 #include "pm/process.hh"
 #include "pm/scheduler.hh"
 #include "tm/timer_manager.hh"
+#include "klib/klib.hh"
 // #include "fs/fat/fat32_dir_entry.hh"
 // #include "fs/fat/fat32Dentry.hh"
 // #include "fs/fat/fat32_file_system.hh"
@@ -189,12 +190,14 @@ namespace pm
 			ulong stack_page_cnt = default_proc_ustack_pages;
 			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
 			mm::k_vmm.vm_unmap( p->_pt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
+			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
 
 			ulong heapbase = p->_heap_start;
 			ulong heapsize = hsai::page_round_up( p->_heap_ptr - p->_heap_start );
 			mm::k_vmm.vm_unmap( p->_pt, heapbase, heapsize / hsai::page_size, 1 );
 
 			p->_pt.freewalk();
+			mm::k_pmm.free_pages( (void*)(p->_kpt.get_base()) );
 		}
 		p->_pt.set_base( 0 );
 		p->_prog_section_cnt = 0;
@@ -257,6 +260,13 @@ namespace pm
 			log_panic( "user-init: vmalloc when allocating stack" );
 			return;
 		}
+
+		if ( mm::k_vmm.vm_alloc( p->_kpt, stackbase - hsai::page_size, sp, false ) == 0 )
+		{
+			log_panic( "user-init: vmalloc when allocating stack" );
+			return;
+		}
+		log_info( "pt:%p,kpt:%p", p->_pt.get_base(), p->_kpt.get_base() );
 
 		log_trace( "user-init set stack-base = %p", p->_pt.walk_addr( stackbase ) );
 		log_trace( "user-init set page containing sp is %p",
@@ -437,6 +447,11 @@ namespace pm
 			{
 				freeproc( np );
 				np->_lock.release();
+				return -3;
+			}
+			if ( mm::k_vmm.vm_alloc( np->_kpt, stack_start, mm::vml::vm_ustack_end, false ) == 0 )
+			{
+				log_panic( "user-init: vmalloc when allocating stack" );
 				return -3;
 			}
 		}
@@ -1084,7 +1099,6 @@ namespace pm
 		Pcb *p = k_pm.get_cur_pcb();
 		int	 havekids, pid;
 		Pcb *np = nullptr;
-
 		if ( child_pid > 0 )
 		{
 			bool has_child = false;
@@ -1588,12 +1602,18 @@ namespace pm
 
 	void ProcessManager::_proc_create_vm( Pcb *p )
 	{
-		mm::PageTable pt;
+		mm::PageTable pt, kpt;
 
 		pt = mm::k_vmm.vm_create();
+		kpt = mm::k_vmm.vm_create();
+
 		if ( pt.get_base() == 0 ) { return; }
 
 		_proc_create_vm( p, pt );
+		memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
+				hsai::page_size  );
+
+		p->_kpt = kpt;
 	}
 
 	// ---------------- test function ----------------

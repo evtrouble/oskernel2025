@@ -67,9 +67,10 @@ namespace pm
 				if ( p->get_state() == pm::ProcState::runnable )
 				{
 					p->_state = pm::ProcState::running;
-					// printf( "sche proc %d\n", p->_gid );
 					cpu->set_cur_proc( p );
+					cpu->set_mmu( *(p->get_kpagetable()) );
 					swtch( cpu->get_context(), p->_context );
+					cpu->set_mmu( mm::k_pagetable );
 					cpu->set_cur_proc( nullptr );
 				}
 				p->_lock.release();

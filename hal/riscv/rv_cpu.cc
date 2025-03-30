@@ -74,6 +74,12 @@ namespace riscv
 		csr::_clear_csr_( r, d );
 	}
 
+	void Cpu::set_mmu(mm::PageTable& pt)
+	{
+		write_csr( csr::CsrAddr::satp, MAKE_SATP( pt.get_base() ) );
+		asm("sfence.vma");
+	}
+
 } // namespace riscv
 
 extern "C" {

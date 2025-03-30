@@ -73,7 +73,7 @@ namespace klib
 
 	void Printer::printbyte( uint8 x )
 	{
-		char buf[2];
+		char buf[2];//0x8021abb6 <klib::Printer::print_number(klib::PrinterBuffer&, unsigned long, int, klib::Printer::print_flag, char, int)+152>
 
 		buf[0]	 = _lower_digits[x & 0xFU];
 		x	   >>= 4;
@@ -113,7 +113,7 @@ namespace klib
 
 		// check if use upper-case letter
 
-		digits = ( flag.upper == 1 ) ? _upper_digits : _lower_digits;
+		digits = ( flag.upper == 1 ) ? Printer::_upper_digits : Printer::_lower_digits;
 
 		// check sign
 

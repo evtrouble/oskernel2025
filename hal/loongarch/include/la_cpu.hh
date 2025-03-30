@@ -31,6 +31,7 @@ namespace loongarch
 
 		virtual uint get_cpu_id() override;
 		virtual int is_interruptible() override;
+		virtual void set_mmu( mm::PageTable& pt ) override;
 
 		uint64 read_csr( csr::CsrAddr r );
 		void write_csr( csr::CsrAddr r, uint64 d );

@@ -92,6 +92,7 @@ namespace pm
 		uint64		  _kstack = 0; // Virtual address of kernel stack
 		uint64		  _sz	  = 0; // 进程在内存中占用的大小（包括栈，堆，数据和代码）
 		mm::PageTable _pt;		   // User lower half address page table
+		mm::PageTable _kpt;		   
 		TrapFrame	 *_trapframe;  // data page for uservec.S, use DMW address
 		void		 *_context;	   // swtch() here to run process
 		fs::file	 *_ofile[max_open_files]; // Open files
@@ -164,6 +165,7 @@ namespace pm
 		TrapFrame	  *get_trapframe() { return _trapframe; }
 		uint64		   get_kstack() { return _kstack; }
 		mm::PageTable *get_pagetable() { return &_pt; }
+		mm::PageTable *get_kpagetable() { return &_kpt; }
 		ProcState	   get_state() { return _state; }
 		char		  *get_name() { return _name; }
 		uint64		   get_size() { return _sz; }
