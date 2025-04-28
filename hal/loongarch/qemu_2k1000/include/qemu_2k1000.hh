@@ -73,25 +73,25 @@ namespace loongarch
 		/// @param x > core number
 		/// @param y > pin number
 		/// @return
-		constexpr inline uchar itr_route_xy( uchar x, uchar y )
+		inline uchar itr_route_xy( uchar x, uchar y )
 		{
 			return ( ( 0x1U << x ) << 0 ) | ( ( 0x1U << y ) << 4 );
 		}
 
-		constexpr inline void write_itr_cfg( ItrCfg itrReg, uint32 data )
+		inline void write_itr_cfg( ItrCfg itrReg, uint32 data )
 		{
 			*( (volatile uint32 *) itrReg ) = data;
 		}
-		constexpr inline uint32 read_itr_cfg( ItrCfg itrReg )
+		inline uint32 read_itr_cfg( ItrCfg itrReg )
 		{
 			return *( (volatile uint32 *) itrReg );
 		}
 
-		constexpr inline void write_itr_cfg_8b( ItrCfg itr_reg, u8 data )
+		inline void write_itr_cfg_8b( ItrCfg itr_reg, u8 data )
 		{
 			*(volatile u8 *) itr_reg = data;
 		}
-		constexpr inline u8 read_itr_cfg_8b( ItrCfg itr_reg )
+		inline u8 read_itr_cfg_8b( ItrCfg itr_reg )
 		{
 			return *( (volatile u8 *) itr_reg );
 		}

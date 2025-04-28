@@ -1,11 +1,11 @@
 # configure 
 CONF_CPU_NUM = 1
-# export CONF_ARCH ?= loongarch
-# export CONF_PLATFORM ?= qemu_2k1000
+export CONF_ARCH ?= loongarch
+export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
 
-export CONF_ARCH ?= riscv
-export CONF_PLATFORM ?= qemu
+# export CONF_ARCH ?= riscv
+# export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
 ifeq ($(CONF_ARCH), loongarch)
@@ -23,13 +23,16 @@ HAL_LIB_NAME = hal_${CONF_ARCH}_${CONF_PLATFORM}.a
 
 # 带有export的变量会在递归调用子目录的Makefile时传递下去
 ifeq ($(CONF_ARCH), loongarch)
+# gcc version 13.2.0 (GCC) 
 export TOOLPREFIX = loongarch64-linux-gnu-
 export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export CFLAGS = -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
+# gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS = -march=rv64gc -mabi=lp64d
+export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany
+export LDFLAGS = -static
 endif
 
 ifeq ($(CONF_PLATFORM), qemu)
@@ -59,12 +62,13 @@ export ASFLAGS += -I include
 export ASFLAGS += -MD
 export CFLAGS += -ggdb -Wall -O0 -fno-omit-frame-pointer
 export CFLAGS += -I include
-export CFLAGS += -MD -mcmodel=medany -static
+export CFLAGS += -MD -static 
 export CFLAGS += -DNUMCPU=$(CONF_CPU_NUM)
 export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
 export CFLAGS += -DOPEN_COLOR_PRINT=1
-export CFLAGS += -DOS_DEBUG										# open debug output
+# open debug output
+export CFLAGS += -DOS_DEBUG
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif
@@ -72,9 +76,9 @@ export CFLAGS += -ffreestanding -fno-common -nostdlib -fno-stack-protector
 export CFLAGS += -fno-pie -no-pie 
 # export CFLAGS += -static-libstdc++ -lstdc++
 export CXXFLAGS = $(CFLAGS)
-export CXXFLAGS += -std=c++17
+export CXXFLAGS += -std=c++23
 export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
-export LDFLAGS = -z max-page-size=4096 -static
+export LDFLAGS += -z max-page-size=4096
 
 export WORKPATH = $(shell pwd)
 export BUILDPATH = $(WORKPATH)/build
@@ -169,8 +173,27 @@ else
 RUSTSBI = hal/$(CONF_ARCH)/SBI/sbi-qemu
 endif
 
-QEMUOPTS = -machine virt -kernel build/kernel.elf -m 128M -nographic
+# config_platform:
+# 	@cd hal/$(CONF_ARCH)/$(CONF_PLATFORM); \
+# 		cp config.mk $(WORKPATH)/hsai/Makedefs.mk
+# 	@echo "******** 配置成功 ********"
+# 	@echo "- 架构 : ${CONF_ARCH}"
+# 	@echo "- 平台 : ${CONF_PLATFORM}"
+# 	@echo "**************************"
 
+ifeq ($(CONF_ARCH), loongarch)
+QEMUOPTS = -kernel build/kernel.elf -m 1G -nographic
+# use multi-core 
+QEMUOPTS += -smp $(CPUS)
+
+# import virtual disk image
+QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 
+# QEMUOPTS += -device virtio-blk-pci,drive=x0,bus=virtio-mmio-bus.0 -s -S
+# QEMUOPTS += -device virtio-blk-pci,drive=x0,bus=virtio-mmio-bus.0
+# QEMUOPTS += -no-reboot -device virtio-net-pci,netdev=net0
+# QEMUOPTS += -netdev user,id=net0,hostfwd=tcp::5555-:5555,hostfwd=udp::5555-:5555
+else 
+QEMUOPTS = -machine virt -kernel build/kernel.elf -m 128M -nographic
 # use multi-core 
 QEMUOPTS += -smp $(CPUS)
 
@@ -180,15 +203,12 @@ QEMUOPTS += -bios $(RUSTSBI)
 QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 
 # QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-# config_platform:
-# 	@cd hal/$(CONF_ARCH)/$(CONF_PLATFORM); \
-# 		cp config.mk $(WORKPATH)/hsai/Makedefs.mk
-# 	@echo "******** 配置成功 ********"
-# 	@echo "- 架构 : ${CONF_ARCH}"
-# 	@echo "- 平台 : ${CONF_PLATFORM}"
-# 	@echo "**************************"
+endif
+
 run: build
-ifeq ($(CONF_PLATFORM), k210)
+ifeq ($(CONF_PLATFORM), qemu_2k1000)
+	@$(QEMU) $(QEMUOPTS)
+else ifeq ($(CONF_PLATFORM), k210)
 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
 	@dd if=$(image) of=$(k210) bs=128k seek=1

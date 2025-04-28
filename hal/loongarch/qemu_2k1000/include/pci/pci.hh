@@ -32,7 +32,7 @@ namespace loongarch
 				   ( (ulong) dev_num << pci_dev_num_shift ) |
 				   ( (ulong) fun_num << pci_fun_num_shift );
 		}
-		constexpr ulong pci_type0_bar( ulong cfg_addr, int bar_index )
+		ulong pci_type0_bar( ulong cfg_addr, int bar_index )
 		{
 			hsai::PciType0ConfigHeader *cfg	 = (hsai::PciType0ConfigHeader *) cfg_addr;
 			ulong					   *bars = (ulong *) cfg->base_address;

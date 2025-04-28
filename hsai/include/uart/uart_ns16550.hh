@@ -168,12 +168,12 @@ namespace hsai
 		static_assert( sizeof( regPSD ) == 1 );
 
 	private:
-		constexpr void _write_reg( RegOffset reg, u8 data ) { ( ( volatile u8* ) _reg_base )[ ( int ) reg ] = data; }
-		constexpr u8 _read_reg( RegOffset reg ) { return ( ( volatile u8* ) _reg_base )[ ( int ) reg ]; }
-		constexpr bool _read_buffer_full() { return _read_front == _read_tail + _buf_size; }
-		constexpr bool _read_buffer_empty() { return _read_front == _read_tail; }
-		constexpr void _read_buffer_put( char c ) { _read_buf[ _read_front % _buf_size ] = c; _read_front++; }
-		constexpr char _read_buffer_get() { _read_tail++; return _read_buf[ ( _read_tail - 1 ) % _buf_size ]; }
+		void _write_reg( RegOffset reg, u8 data ) { ( ( volatile u8* ) _reg_base )[ ( int ) reg ] = data; }
+		u8 _read_reg( RegOffset reg ) { return ( ( volatile u8* ) _reg_base )[ ( int ) reg ]; }
+		bool _read_buffer_full() { return _read_front == _read_tail + _buf_size; }
+		bool _read_buffer_empty() { return _read_front == _read_tail; }
+		void _read_buffer_put( char c ) { _read_buf[ _read_front % _buf_size ] = c; _read_front++; }
+		char _read_buffer_get() { _read_tail++; return _read_buf[ ( _read_tail - 1 ) % _buf_size ]; }
 	};
 
 } // namespace hsai

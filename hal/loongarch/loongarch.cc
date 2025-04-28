@@ -16,11 +16,11 @@
 #include "tlb_manager.hh"
 #include "trap_frame.hh"
 
-// extern "C" {
-// // entry.S needs one stack per CPU.
-// char  entry_stack[loongarch::entry_stack_size * NUMCPU] __attribute__( ( aligned( 16 ) ) );
-// char *entry_stack_end = entry_stack + loongarch::entry_stack_size * NUMCPU;
-// }
+extern "C" {
+// entry.S needs one stack per CPU.
+char  entry_stack[loongarch::entry_stack_size * NUMCPU] __attribute__( ( aligned( 16 ) ) );
+char *entry_stack_end = entry_stack + loongarch::entry_stack_size * NUMCPU;
+}
 
 namespace loongarch
 {

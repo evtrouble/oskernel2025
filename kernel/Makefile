@@ -63,8 +63,8 @@ initdir:
 $(BUILDPATH)/kernel.a: $(objs)
 	$(AR) rcs $@ $^
 
-$(BUILDPATH)/kernel.elf: $(objs) kernel.ld 
-	$(LD) $(LDFLAGS) -T kernel.ld -o $@ $(objs) $(BUILDPATH)/thirdparty/EASTL/libeastl.a 
+# $(BUILDPATH)/kernel.elf: $(objs) kernel.ld 
+#	$(LD) $(LDFLAGS) -T kernel.ld -o $@ $(objs) $(BUILDPATH)/thirdparty/EASTL/libeastl.a 
 
 # mode match example
 # $(objs) : %.o : %.c
