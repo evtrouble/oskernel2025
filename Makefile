@@ -1,11 +1,11 @@
 # configure 
 CONF_CPU_NUM = 1
-export CONF_ARCH ?= loongarch
-export CONF_PLATFORM ?= qemu_2k1000
+# export CONF_ARCH ?= loongarch
+# export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
 
-# export CONF_ARCH ?= riscv
-# export CONF_PLATFORM ?= qemu
+export CONF_ARCH ?= riscv
+export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
 ifeq ($(CONF_ARCH), loongarch)
@@ -185,16 +185,16 @@ ifeq ($(CONF_ARCH), loongarch)
 # QEMUOPTS = -M ls2k -serial stdio -kernel build/kernel.elf -m 1G -k ./share/qemu/keymaps/en-us -serial vc \
 # -net nic -net user,net=10.0.2.0/24,tftp=/srv/tftp -vnc :0 -S -s -hda sdcard.img
 # 加载内核镜像，分配内存，不要图形化
-QEMUOPTS = -kernel build/kernel.elf -m 1G -nographic
+# QEMUOPTS = -kernel build/kernel.elf -m 1G -nographic
 # use multi-core 
-QEMUOPTS += -smp $(CPUS)
+# QEMUOPTS += -smp $(CPUS)
 # 挂载第一个磁盘
-QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 -s -S
+# QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 -s -S
 # QEMUOPTS += -device virtio-blk-pci,drive=x0,bus=virtio-mmio-bus.0 -s -S
 # 用virtio-blk设备接上第一个磁盘
-QEMUOPTS += -device virtio-blk-pci,drive=x0
+# QEMUOPTS += -device virtio-blk-pci,drive=x0
 # 运行后不要重启，加载第一个网卡
-QEMUOPTS += -no-reboot -device virtio-net-pci
+# QEMUOPTS += -no-reboot -device virtio-net-pci
 # 配置用户模式网络（netdev=net0）
 #QEMUOPTS += -netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:5555,hostfwd=udp::5555-:5555
 else 
@@ -205,14 +205,14 @@ QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -bios $(RUSTSBI)
 
 # import virtual disk image
-QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 -s -S
-# QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -s -S
+# QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 -s -S
+QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endif
 
 run: build
 ifeq ($(CONF_PLATFORM), qemu_2k1000)
-	@$(QEMU) $(QEMUOPTS)
+	./start.sh
 else ifeq ($(CONF_PLATFORM), k210)
 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)

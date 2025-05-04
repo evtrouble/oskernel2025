@@ -817,7 +817,7 @@ int init_main( void )
 #endif
 
 
-	for ( long int i = 0; i < 0x40000000; i++ ) {}
+	// for ( long int i = 0; i < 0x40000000; i++ ) {}
 
 #ifndef OS_DEBUG
 	// power off

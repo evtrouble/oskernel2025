@@ -24,6 +24,7 @@
 #include "la_cpu.hh"
 #include "la_mem.hh"
 #include "pci/pci.hh"
+#include "fs/dev/acpi_controller.hh"
 #include "trap_frame.hh"
 
 namespace loongarch
@@ -247,6 +248,7 @@ namespace hsai
 		// 4. AHCI 识别设备（需要在中断初始化后进行）
 		AhciDriverLs* ahd = (AhciDriverLs*) k_devm.get_device( "AHCI driver" );
 		ahd->identify_device();
+		dev::acpi::k_acpi_controller.init( "acpi", 0x1fe27000 | loongarch::win_1 );
 
 		// while ( 1 );
 

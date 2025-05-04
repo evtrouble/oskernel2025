@@ -2,12 +2,12 @@
 
 # 通常情况下该文件应当放在项目的根目录下
 
-RUNENV_PREFIX=/home/binzc/code/qemu
+RUNENV_PREFIX=/home/gyl/qemu/
 KERNEL_PREFIX=`pwd`
 
 cd $RUNENV_PREFIX
 
-qemu-system-loongarch64 \
+./bin/qemu-system-loongarch64 \
     -M ls2k \
     -serial stdio \
     -k ./share/qemu/keymaps/en-us \
@@ -17,8 +17,8 @@ qemu-system-loongarch64 \
     -net nic \
     -net user,net=10.0.2.0/24,tftp=/srv/tftp \
     -vnc :0 \
-    # -S -s \
     -hda ${KERNEL_PREFIX}/sdcard.img
+    # -S -s \
     # -hdb your_sdcard_img 
 
     
