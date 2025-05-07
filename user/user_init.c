@@ -819,10 +819,10 @@ int init_main( void )
 
 	// for ( long int i = 0; i < 0x40000000; i++ ) {}
 
-#ifndef OS_DEBUG
+// #ifndef OS_DEBUG
 	// power off
 	poweroff();
-#endif
+// #endif
 
 	while ( 1 );
 }

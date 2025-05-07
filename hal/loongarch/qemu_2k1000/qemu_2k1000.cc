@@ -282,6 +282,11 @@ namespace hsai
 		// hsai_info( "user init: sp  = %p", tf->sp );
 	}
 
+	void proc_init( void * proc )
+	{
+		
+	}
+
 	void set_trap_frame_return_value( void* trapframe, ulong v )
 	{
 		TrapFrame* tf = (TrapFrame*) trapframe;

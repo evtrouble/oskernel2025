@@ -460,6 +460,54 @@ namespace mm
 		return 0;
 	}
 
+	int VirtualMemoryManager::vm_copy( PageTable &old_pt, PageTable &new_pt, PageTable &new_kpt, 
+									   uint64 start, uint64 size )
+	{
+		hsai::Pte pte;
+		uint64	  pa, va;
+		uint64	  va_end;
+		uint64	  flags;
+		void	 *mem;
+
+		if ( !hsai::is_page_align( start ) )
+			log_panic( "vm copy : va start not page-align" );
+		if ( !hsai::is_page_align( size ) )
+			log_panic( "vm copy : copy size is not page-align" );
+
+		va_end = start + size;
+		for ( va = start; va < va_end; va += hsai::page_size )
+		{
+			if ( ( pte = old_pt.walk( va, 0 ) ).is_null() )
+				log_panic( "uvmcopy: pte should exist" );
+			if ( !pte.is_present() ) log_panic( "uvmcopy: page not present" );
+			pa	  = (uint64) pte.to_pa();
+			pa	  = hsai::k_mem->to_vir( pa );
+			flags = pte.get_flags();
+			if ( ( mem = mm::k_pmm.alloc_page() ) == nullptr )
+			{
+				vm_unmap( new_pt, start, ( va - start ) / hsai::page_size, 1 );
+				return -1;
+			}
+			memmove( mem, (const char *) pa, hsai::page_size );
+			if ( map_pages( new_pt, va, hsai::page_size, (uint64) mem,
+							flags ) == false )
+			{
+				mm::k_pmm.free_pages( mem );
+				vm_unmap( new_pt, start, ( va - start ) / hsai::page_size, 1 );
+				return -1;
+			}
+			if ( map_pages( new_kpt, va, hsai::page_size, (uint64) mem,
+							flags & (~hsai::Pte::user_plv_flag()) ) == false )
+			{
+				mm::k_pmm.free_pages( mem );
+				vm_unmap( new_pt, start, ( va - start ) / hsai::page_size, 1 );
+				vm_unmap( new_kpt, start, ( va - start ) / hsai::page_size, 1 );
+				return -1;
+			}
+		}
+		return 0;
+	}
+
 	int VirtualMemoryManager::vm_set_super( PageTable &pt, uint64 va,
 											ulong page_cnt )
 	{

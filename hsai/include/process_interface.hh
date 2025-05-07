@@ -51,8 +51,9 @@ namespace hsai
 
 	extern __hsai_kernel void wakeup_at( void * chan );
 
-
 	extern __hsai_hal void user_proc_init( void * proc );
+
+	extern __hsai_hal void proc_init( void * proc );
 
 	extern __hsai_hal void set_trap_frame_return_value( void * trapframe, ulong value );
 

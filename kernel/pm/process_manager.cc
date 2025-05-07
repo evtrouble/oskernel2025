@@ -196,12 +196,17 @@ namespace pm
 			mm::k_vmm.vm_unmap( p->_pt, heapbase, heapsize / hsai::page_size, 1 );
 
 			p->_pt.freewalk();
-#ifndef LOONGARCH
-			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
-			mm::k_pmm.free_pages( (void*)(p->_kpt.get_base()) );
-#endif
 		}
+
+		if ( !p->_kpt.is_null() )
+		{
+			ulong stack_page_cnt = default_proc_ustack_pages;
+			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
+			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
+		}
+
 		p->_pt.set_base( 0 );
+		p->_kpt.set_base( 0 );
 		p->_prog_section_cnt = 0;
 		p->_sz				 = 0;
 		p->_heap_ptr		 = 0;
@@ -262,16 +267,9 @@ namespace pm
 			log_panic( "user-init: vmalloc when allocating stack" );
 			return;
 		}
-#ifndef LOONGARCH
-		if ( mm::k_vmm.vm_alloc( p->_kpt, stackbase - hsai::page_size, sp, false ) == 0 )
-		{
-			log_panic( "user-init: vmalloc when allocating stack" );
-			return;
-		}
-		log_info( "pt:%p,kpt:%p", p->_pt.get_base(), p->_kpt.get_base() );
-#endif
 
-		log_trace( "user-init set stack-base = %p", p->_pt.walk_addr( stackbase ) );
+		ulong phy_stackbase = p->_pt.walk_addr( stackbase );
+		log_trace( "user-init set stack-base = %p", phy_stackbase);
 		log_trace( "user-init set page containing sp is %p",
 				   p->_pt.walk_addr( sp - hsai::page_size ) );
 
@@ -322,6 +320,22 @@ namespace pm
 				hsai::page_round_up( (ulong) p->_prog_sections[ps_cnt - 1]._sec_start +
 									 p->_prog_sections[ps_cnt - 1]._sec_size );
 		}
+
+#ifndef LOONGARCH
+		mm::k_vmm.map_data_pages( p->_kpt, stackbase, sp - stackbase, 
+									  phy_stackbase, false );
+		// {
+		// 	// map user init code
+		// 	mm::k_vmm.map_code_pages( p->_kpt, (uint64) &_u_init_txts - (uint64) &_start_u_init,
+		// 							  (uint64) &_u_init_txte - (uint64) &_u_init_txts,
+		// 							  (uint64) &_u_init_txts, true );
+
+		// 	// map user init data
+		// 	mm::k_vmm.map_data_pages( p->_kpt, (uint64) &_u_init_dats - (uint64) &_start_u_init,
+		// 							  (uint64) &_u_init_date - (uint64) &_u_init_dats,
+		// 							  (uint64) &_u_init_dats, true );
+		// }
+#endif
 
 		// p->_trapframe->era = ( uint64 ) &init_main - ( uint64 )
 		// &_start_u_init; log_info( "user init: era = %p", p->_trapframe->era
@@ -445,21 +459,21 @@ namespace pm
 			// 多出的一页是保护页面，防止栈溢出
 			ulong stack_start =
 				mm::vml::vm_ustack_end - ( 1 + default_proc_ustack_pages ) * hsai::page_size;
+#ifdef LOONGARCH
 			if ( mm::k_vmm.vm_copy( *curpt, *newpt, stack_start,
 									( 1 + default_proc_ustack_pages ) * hsai::page_size ) < 0 )
+#else 
+			if ( mm::k_vmm.vm_copy( *curpt, *newpt, *np->get_kpagetable(), stack_start, 
+									( 1 + default_proc_ustack_pages ) * hsai::page_size ) < 0 )	
+#endif
 			{
 				freeproc( np );
 				np->_lock.release();
 				return -3;
 			}
-#ifndef LOONGARCH
-			if ( mm::k_vmm.vm_alloc( np->_kpt, stack_start, mm::vml::vm_ustack_end, false ) == 0 )
-			{
-				log_panic( "user-init: vmalloc when allocating stack" );
-				return -3;
-			}
-#endif
 		}
+
+		hsai::proc_init( (void *) np );
 
 		np->_sz			= p->_sz;
 		np->_heap_start = p->_heap_start;
@@ -776,7 +790,8 @@ namespace pm
 			return -1;
 		}
 
-		log_trace( "execve set stack-base = %p", new_pt.walk_addr( stackbase ) );
+		ulong phy_stackbase = new_pt.walk_addr( stackbase );
+		log_trace( "execve set stack-base = %p", phy_stackbase );
 		log_trace( "execve set page containing sp is %p",
 				   new_pt.walk_addr( sp - hsai::page_size ) );
 
@@ -790,6 +805,11 @@ namespace pm
 		mm::k_vmm.vm_set( new_pt, (void *) stackbase, 0, stack_page_cnt );
 
 		new_sz += ( stack_page_cnt + 1 ) * hsai::page_size;
+
+#ifndef LOONGARCH
+		mm::k_vmm.map_data_pages( p->_kpt, stackbase, sp - stackbase, 
+									  phy_stackbase, false );
+#endif
 
 		// >>>> 此后的代码用于支持 glibc，包括将 auxv, envp, argv, argc
 		// 压到用户栈中由glibc解析
