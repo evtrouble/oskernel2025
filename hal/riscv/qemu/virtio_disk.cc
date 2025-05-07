@@ -175,7 +175,6 @@ namespace riscv
       buf0.sector = start_block;
       
       // 设置请求头描述符
-      
       disk.desc[idx[0]].addr = mm::k_pagetable.kwalk_addr((uint64) &buf0);
       disk.desc[idx[0]].len = sizeof(buf0);
       disk.desc[idx[0]].flags = VRING_DESC_F_NEXT;
@@ -197,6 +196,7 @@ namespace riscv
       
       // 记录请求信息
       disk.info[idx[0]].b = buf_list;
+      disk.info[idx[0]].wait = true;
 
       // 通知设备
       disk.avail[2 + (disk.avail[1] % NUM)] = idx[0];
@@ -204,9 +204,8 @@ namespace riscv
       disk.avail[1]++;
       
       *R(VIRTIO_MMIO_QUEUE_NOTIFY) = 0;
-      
       // 等待操作完成
-      while(disk.info[idx[0]].b) {
+      while(disk.info[idx[0]].wait) {
         if(hsai::get_cur_proc())
           hsai::sleep_at(buf_list, disk.vdisk_lock);
         else 
@@ -215,8 +214,8 @@ namespace riscv
           asm("wfi");
           disk.vdisk_lock.acquire();
         }
-          
       }
+      disk.info[idx[0]].b = 0;   // disk is done with buf
 
       free_chain(idx[0]);
       disk.vdisk_lock.release();
@@ -256,10 +255,9 @@ namespace riscv
 
         if(disk.info[id].status != 0)
           hsai_panic("virtio_disk_intr status");
-        
-        disk.info[id].b = 0;   // disk is done with buf
-        if(hsai::get_cur_proc())
-          hsai::wakeup_at(disk.info[id].b);
+
+        disk.info[id].wait = false;   // disk is done with buf
+        hsai::wakeup_at(disk.info[id].b);
 
         disk.used_idx = (disk.used_idx + 1) % NUM;
       }

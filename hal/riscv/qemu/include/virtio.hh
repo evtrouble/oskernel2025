@@ -122,6 +122,7 @@ namespace riscv
           struct {
             hsai::BufferDescriptor *b;
             char status;
+            bool wait;
           } info[NUM];
              
           hsai::SpinLock vdisk_lock;

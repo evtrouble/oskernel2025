@@ -135,6 +135,12 @@ namespace hsai
 			PG_SIZE, (uint64) trampoline, false );
 	}
 
+	void proc_free( void * proc )
+	{
+		mm::PageTable& pt = *(mm::PageTable*) get_pt_from_proc( proc );
+		mm::k_vmm.vm_unmap( pt, TRAMPOLINE, 1, 0 );
+	}
+
 	void set_trap_frame_return_value( void* trapframe, ulong v )
 	{
 		TrapFrame* tf = (TrapFrame*) trapframe;

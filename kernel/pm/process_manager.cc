@@ -194,7 +194,7 @@ namespace pm
 			ulong heapbase = p->_heap_start;
 			ulong heapsize = hsai::page_round_up( p->_heap_ptr - p->_heap_start );
 			mm::k_vmm.vm_unmap( p->_pt, heapbase, heapsize / hsai::page_size, 1 );
-
+			hsai::proc_free( p );
 			p->_pt.freewalk();
 		}
 
@@ -202,7 +202,8 @@ namespace pm
 		{
 			ulong stack_page_cnt = default_proc_ustack_pages;
 			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
-			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
+			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 0 );
+			mm::k_pmm.free_pages( (void *) p->_kpt.get_base() );
 		}
 
 		p->_pt.set_base( 0 );
@@ -324,17 +325,6 @@ namespace pm
 #ifndef LOONGARCH
 		mm::k_vmm.map_data_pages( p->_kpt, stackbase, sp - stackbase, 
 									  phy_stackbase, false );
-		// {
-		// 	// map user init code
-		// 	mm::k_vmm.map_code_pages( p->_kpt, (uint64) &_u_init_txts - (uint64) &_start_u_init,
-		// 							  (uint64) &_u_init_txte - (uint64) &_u_init_txts,
-		// 							  (uint64) &_u_init_txts, true );
-
-		// 	// map user init data
-		// 	mm::k_vmm.map_data_pages( p->_kpt, (uint64) &_u_init_dats - (uint64) &_start_u_init,
-		// 							  (uint64) &_u_init_date - (uint64) &_u_init_dats,
-		// 							  (uint64) &_u_init_dats, true );
-		// }
 #endif
 
 		// p->_trapframe->era = ( uint64 ) &init_main - ( uint64 )
@@ -806,11 +796,6 @@ namespace pm
 
 		new_sz += ( stack_page_cnt + 1 ) * hsai::page_size;
 
-#ifndef LOONGARCH
-		mm::k_vmm.map_data_pages( p->_kpt, stackbase, sp - stackbase, 
-									  phy_stackbase, false );
-#endif
-
 		// >>>> 此后的代码用于支持 glibc，包括将 auxv, envp, argv, argc
 		// 压到用户栈中由glibc解析
 
@@ -1078,6 +1063,23 @@ namespace pm
 		proc->_pt.freewalk();
 		proc->_pt = new_pt;
 		_proc_create_vm( proc, new_pt );
+
+#ifndef LOONGARCH
+		mm::PageTable kpt;
+		kpt = mm::k_vmm.vm_create();
+		memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
+				hsai::page_size  );
+
+		mm::k_vmm.map_data_pages( kpt, stackbase, sp - stackbase, 
+			phy_stackbase, false );
+
+		ulong pgs	= default_proc_ustack_pages + 1;
+		ulong start = mm::vm_ustack_end - pgs * hsai::page_size;
+		mm::k_vmm.vm_unmap( proc->_kpt, start, pgs, 1 );
+		mm::k_pmm.free_pages( (void *) proc->_kpt.get_base() );
+
+		proc->_kpt = kpt;
+#endif
 
 		proc->_heap_ptr = proc->_heap_start;
 

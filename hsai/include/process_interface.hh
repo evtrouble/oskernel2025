@@ -55,6 +55,8 @@ namespace hsai
 
 	extern __hsai_hal void proc_init( void * proc );
 
+	extern __hsai_hal void proc_free( void * proc );
+
 	extern __hsai_hal void set_trap_frame_return_value( void * trapframe, ulong value );
 
 	extern __hsai_hal void set_trap_frame_entry( void * trapframe, void * entry );
