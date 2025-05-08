@@ -153,6 +153,18 @@ namespace mm
 		k_pmm.free_pages( (void *) _base_addr );
 	}
 
+	void PageTable::kfreewalk(uint64 va)
+	{
+		if ( ( va % hsai::page_size ) != 0 )
+			log_panic( "vmunmap: not aligned" );
+
+#ifdef LOONGARCH
+		kfreewalk( va, 4 );
+#else
+		kfreewalk(va, 3);
+#endif
+	}
+
 	void PageTable::freewalk_mapped()
 	{
 		uint pte_cnt = hsai::page_size / sizeof( pte_t );
@@ -179,6 +191,24 @@ namespace mm
 
 
 	// ---------------- private helper functions ----------------
+	void PageTable::kfreewalk( uint64 va, int level)
+	{
+		uint64 pg_num;
+		switch (level)
+		{
+			case 4 : pg_num = hsai::pgd_num( va ); break;
+			case 3 : pg_num = hsai::pud_num( va ); break;
+			case 2 : pg_num = hsai::pmd_num( va ); break;
+			case 1 : pg_num = hsai::pt_num( va ); break;
+			default: break;
+		}
+		hsai::Pte pte = get_pte( pg_num );
+		PageTable pt;
+		if ( pte.is_valid() ) { pt.set_base( hsai::k_mem->to_vir( pte.to_pa() ) ); }
+		if ( level > 1 ) pt.kfreewalk( va, level - 1 );
+
+		mm::k_pmm.free_pages( (void *) _base_addr );
+	}
 
 	bool PageTable::_walk_to_next_level( hsai::Pte pte, bool alloc, PageTable &pt )
 	{

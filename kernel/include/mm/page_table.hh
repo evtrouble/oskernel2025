@@ -45,6 +45,8 @@ namespace mm
 		/// @brief 递归地释放页表占用的页表
 		void freewalk();
 
+		void kfreewalk(uint64 va);
+
 		/// @brief 递归地释放页表及其映射的所有页
 		void freewalk_mapped();
 
@@ -56,6 +58,7 @@ namespace mm
 
 	private:
 		bool _walk_to_next_level( hsai::Pte pte, bool alloc, PageTable &pt );
+		void kfreewalk( uint64 va, int level );
 	};
 
 	extern PageTable k_pagetable;

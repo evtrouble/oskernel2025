@@ -203,7 +203,7 @@ namespace pm
 			ulong stack_page_cnt = default_proc_ustack_pages;
 			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
 			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 0 );
-			mm::k_pmm.free_pages( (void *) p->_kpt.get_base() );
+			p->_kpt.kfreewalk( stackbase - hsai::page_size );
 		}
 
 		p->_pt.set_base( 0 );
@@ -1188,13 +1188,12 @@ namespace pm
 
 	void ProcessManager::exit_proc( Pcb *p, int state )
 	{
+		if(p == _init_proc)
+			log_panic("init exiting");
 		// log_info( "exit proc %d", p->_pid );
 
-		/// @todo close opened file, set proc's pwd
-
 		_wait_lock.acquire();
-
-		/// @todo give it's children to initproc
+		reparent( p );
 
 		if ( p->parent ) wakeup( p->parent );
 
@@ -1206,6 +1205,21 @@ namespace pm
 
 		k_scheduler.call_sched(); // jump to schedular, never return
 		log_panic( "zombie exit" );
+	}
+
+	// Pass p's abandoned children to init.
+	void ProcessManager::reparent(Pcb *p)
+	{
+		Pcb *pp;
+		for ( uint i = 0; i < num_process; i++ )
+		{
+			pp = &k_proc_pool[( _last_alloc_proc_gid + i ) % num_process];
+			if(pp->parent == p){
+				pp->_lock.acquire();
+				pp->parent = _init_proc;
+				pp->_lock.release();
+			}
+		}
 	}
 
 	void ProcessManager::exit( int state )

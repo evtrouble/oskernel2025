@@ -92,9 +92,9 @@ namespace pm
 		int set_robust_list( robust_list_head * head, size_t len );
 		int prlimit64( int pid, int resource, rlimit64 * new_limit, rlimit64 * old_limit );
 		void exit_group( int status );
+		void reparent( Pcb *p );
 
 		void user_init();
-
 
 		int alloc_fd( Pcb * p, fs::file * f );
 		int alloc_fd( Pcb * p, fs::file * f, int fd );
