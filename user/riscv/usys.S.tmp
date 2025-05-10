@@ -1,11 +1,3 @@
-//
-// Created by Li shuang ( pseudonym ) on 2024-05-21 
-// --------------------------------------------------------------
-// | Note: This code file just for study, not for commercial use 
-// | Contact Author: lishuang.mk@whu.edu.cn 
-// --------------------------------------------------------------
-//
-
 #include "usys_macro.S"
 
 .section .user.init
@@ -13,8 +5,9 @@
 GEN_USER_SYSCALL getcwd 17
 GEN_USER_SYSCALL dup 23
 GEN_USER_SYSCALL dup2 24
-GEN_USER_SYSCALL mkdir 34
+GEN_USER_SYSCALL mkdirat 34
 GEN_USER_SYSCALL unlinkat 35
+GEN_USER_SYSCALL linkat 37
 GEN_USER_SYSCALL umount 39
 GEN_USER_SYSCALL mount 40
 GEN_USER_SYSCALL chdir 49
@@ -41,11 +34,10 @@ GEN_USER_SYSCALL mmap 222
 GEN_USER_SYSCALL wait 260
 GEN_USER_SYSCALL poweroff 2024
 
-
 .global fork
 fork:
-	li.w	$a7, 220
-	li.w	$a0, 17
-	move	$a1, $zero
-	syscall	0
-	ret
+    li      a7, 220
+    li      a0, 17
+    mv      a1, zero
+    ecall
+    ret

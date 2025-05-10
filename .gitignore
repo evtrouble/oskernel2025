@@ -18,5 +18,5 @@ glibc
 testsuits
 .gdb_cmd.txt
 target/*
-sdcard.img
+sdcard-rv.img
 disassembly.txt

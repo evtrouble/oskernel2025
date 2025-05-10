@@ -542,7 +542,6 @@ namespace syscall
 		mm::PageTable *pt = p->get_pagetable();
 		eastl::string  path;
 		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 100 ) < 0 ) return -1;
-
 		int res = pm::k_pm.open( dir_fd, path, flags );
 		log_trace( "openat return fd is %d", res );
 		return res;
@@ -579,7 +578,6 @@ namespace syscall
 		fs::file *f;
 		uint64	  buf_addr;
 		uint64	  buf_len;
-
 		if ( _arg_fd( 0, nullptr, &f ) < 0 ) return -1;
 		if ( _arg_addr( 1, buf_addr ) < 0 ) return -1;
 		if ( _arg_addr( 2, buf_len ) < 0 ) return -1;
@@ -603,7 +601,25 @@ namespace syscall
 		return rlen;
 	}
 
-	uint64 SyscallHandler::_sys_mkdir() { return 0; }
+	uint64 SyscallHandler::_sys_mkdir() 
+	{
+		int	   dir_fd;
+		uint64 path_addr;
+		int	   flags;
+
+		if ( _arg_int( 0, dir_fd ) < 0 ) return -1;
+		if ( _arg_addr( 1, path_addr ) < 0 ) return -1;
+		if ( _arg_int( 2, flags ) < 0 ) return -1;
+
+		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		eastl::string  path;
+		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 100 ) < 0 ) return -1;
+
+		int res = pm::k_pm.mkdir( dir_fd, path, flags );
+		log_trace( "mkdir return is %d", res );
+		return res;
+	}
 
 	uint64 SyscallHandler::_sys_chdir()
 	{

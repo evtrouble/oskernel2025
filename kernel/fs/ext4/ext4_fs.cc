@@ -139,6 +139,7 @@ namespace fs
 				return;
 			}
 			_root_inode = new Ext4IndexNode( node, this );
+			_root_inode->setAttr(FileAttrs( fs::FileTypes::FT_DIRECT, 0777 ));
 
 			// 初始化根dentry
 

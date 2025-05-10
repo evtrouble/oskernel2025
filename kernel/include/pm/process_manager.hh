@@ -81,6 +81,7 @@ namespace pm
 		void fork_ret();
 		long brk( long n );
 		int open( int dir_fd, eastl::string path, uint flags );
+		int mkdir( int dir_fd, eastl::string path, uint flags );
 		int close( int fd );
 		int fstat( int fd, struct fs::Kstat *buf );
 		int chdir( eastl::string &path );

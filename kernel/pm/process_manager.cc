@@ -1341,6 +1341,35 @@ namespace pm
 		return newhp; // 返回堆的大小
 	}
 
+	int ProcessManager::mkdir( int dir_fd, eastl::string path, uint flags )
+	{
+		Pcb *p = get_cur_pcb();
+		fs::file   *file = nullptr;
+		fs::dentry *dentry;
+
+		if ( dir_fd != AT_FDCWD ) { file = p->get_open_file( dir_fd ); }
+
+		fs::Path path_( path, file );
+		dentry = path_.pathSearch();
+
+		if ( dentry == nullptr) 
+		{
+			fs::dentry *par_ = path_.pathSearch( true );
+			if( par_ == nullptr )
+			    return -1;
+			fs::FileAttrs attrs;
+			attrs.filetype = fs::FileTypes::FT_DIRECT;
+			attrs._value = 0777;
+			if( ( dentry = par_->EntryCreate( path_.rFileName(), attrs ) ) == nullptr )
+			{
+				printf("Error creating new dentry %s failed\n", path_.rFileName() );
+				return -1;
+			}
+		}
+		if ( dentry == nullptr ) return -1;
+		return 0;
+	}
+
 	int ProcessManager::open( int dir_fd, eastl::string path, uint flags )
 	{
 		// enum OpenFlags : uint
@@ -1353,9 +1382,12 @@ namespace pm
 		// };
 
 		Pcb *p = get_cur_pcb();
+		fs::file   *file = nullptr;
 		fs::dentry *dentry;
 
-		fs::Path path_( path );
+		if ( dir_fd != AT_FDCWD ) { file = p->get_open_file( dir_fd ); }
+
+		fs::Path path_( path, file );
 		dentry = path_.pathSearch();
 
 		if ( dentry == nullptr && flags & O_CREAT ) 

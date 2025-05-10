@@ -29,4 +29,6 @@ extern int close( int fd );
 extern int unlinkat( int fd, char *fname, int flags );
 extern int pipe( int *fd );
 extern int chdir( const char *path );
+extern int getdents(int fd, char *dirp64, unsigned long len);
+
 #endif

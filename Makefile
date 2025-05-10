@@ -205,8 +205,8 @@ QEMUOPTS += -smp $(CPUS)
 QEMUOPTS += -bios $(RUSTSBI)
 
 # import virtual disk image
-# QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
+# QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
+QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endif
 

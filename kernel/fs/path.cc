@@ -26,12 +26,16 @@ namespace fs
 	Path::Path( const eastl::string& path_, file *base_ )
 		: pathname( path_ )
 	{
-
-		fs::normal_file *file = static_cast<fs::normal_file *>( base_ );
-		if( file == nullptr ) 
-			log_panic("Path: base file is not a normalfile");
-		
-		base = file->getDentry();
+		if(base_ == nullptr)
+		{
+			base = nullptr;
+		} else {
+			fs::normal_file *file = static_cast<fs::normal_file *>( base_ );
+			if( file == nullptr ) 
+				log_panic("Path: base file is not a normalfile");
+			
+			base = file->getDentry();
+		}
 		pathbuild();
 	}
 
@@ -197,7 +201,6 @@ namespace fs
 	{
 		fs::dentry *mntEnt = pathSearch();
 		fs::dentry *devEnt = dev.pathSearch();
-		
 		if( mntEnt->getNode( )->getFS()->mount( devEnt, mntEnt, fstype ) == 0)
 		{
 			return 0;

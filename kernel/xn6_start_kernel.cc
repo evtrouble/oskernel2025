@@ -64,12 +64,12 @@ ulong now_ns()
 	return ts.tv_sec * _1G + ts.tv_nsec;
 }
 
-ulong iter( ulong n )
-{
-	volatile size_t v = 0;
-	for ( ulong i = 0; i < n; i++ ) { v += 1; }
-	return 0;
-}
+// ulong iter( ulong n )
+// {
+// 	volatile size_t v = 0;
+// 	for ( ulong i = 0; i < n; i++ ) { v += 1; }
+// 	return 0;
+// }
 
 int xn6_start_kernel()
 {
@@ -257,7 +257,7 @@ int xn6_start_kernel()
 		fs::mnt_table["/"] = &fs::ramfs::k_ramfs;
 		log_info( "ramfs init" );
 		fs::Path mnt( "/mnt" );
-		fs::Path dev( "/dev/hdap0" );
+		fs::Path dev( "/dev/hda" );
 		// fs::Path dev( "/dev/hdb" );
 		// mnt.mount( dev, "fat32", 0, 0 );  // for test mount fat32
 		mnt.mount( dev, "ext4", 0, 0 );
