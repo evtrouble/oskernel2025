@@ -206,7 +206,7 @@ QEMUOPTS += -bios $(RUSTSBI)
 
 # import virtual disk image
 # QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endif
 
@@ -224,19 +224,18 @@ else
 	@$(QEMU) $(QEMUOPTS)
 endif
 
+dst=/mnt
+# 测试点代码
+# sudo mount -o loop sdcard.img /mnt
+# sudo cp test /mnt
+# sudo umount /mnt
+TEST=riscv-syscalls-testing/user
 fs:
 	@if [ ! -f "sdcard.img" ]; then \
 		echo "Making fs image..."; \
 		dd if=/dev/zero of=sdcard.img bs=512k count=512; \
-		echo "Creating MBR partition table..."; \
-		echo -e "o\nn\np\n1\n\n\nt\n83\nw" | fdisk sdcard.img; \
-		echo "Setting up loop device..."; \
-		sudo losetup -fP sdcard.img; \
-		LOOP_DEVICE=$$(losetup -j sdcard.img | awk -F: '{print $$1}'); \
-		echo "Formatting partition as ext4..."; \
-		sudo mkfs.ext4 $${LOOP_DEVICE}p1; \
-		echo "Cleaning up loop device..."; \
-		sudo losetup -d $${LOOP_DEVICE}; \
-		echo "sdcard.img created with MBR and ext4 partition."; \
+		sudo mkfs.ext4 sdcard.img; \
 	fi
-
+	@sudo mount -o loop sdcard.img $(dst)
+	@sudo cp -r $(TEST)/build/riscv64/* $(dst);
+	@sudo umount $(dst)

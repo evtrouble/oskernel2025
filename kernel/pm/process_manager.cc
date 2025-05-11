@@ -1060,31 +1060,37 @@ namespace pm
 		}
 		proc->_prog_section_cnt = new_sec_cnt;
 		mm::k_vmm.vm_unmap( proc->_pt, mm::vml::vm_trap_frame, 1, 0 );
+		hsai::proc_free( proc );
 		proc->_pt.freewalk();
-		proc->_pt = new_pt;
 		_proc_create_vm( proc, new_pt );
+		hsai::proc_init( proc );
 
-#ifndef LOONGARCH
-		mm::PageTable kpt;
-		kpt = mm::k_vmm.vm_create();
-		memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
-				hsai::page_size  );
+		if(!proc->_kpt.is_null())
+		{
+			mm::PageTable kpt;
+			kpt = mm::k_vmm.vm_create();
+			memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
+					hsai::page_size  );
 
-		mm::k_vmm.map_data_pages( kpt, stackbase, sp - stackbase, 
-			phy_stackbase, false );
+			ulong pgs	= default_proc_ustack_pages + 1;
+			ulong start = mm::vm_ustack_end - pgs * hsai::page_size;
+			mm::k_vmm.map_data_pages( kpt, start, pgs * hsai::page_size, 
+				phy_stackbase, false );
 
-		ulong pgs	= default_proc_ustack_pages + 1;
-		ulong start = mm::vm_ustack_end - pgs * hsai::page_size;
-		mm::k_vmm.vm_unmap( proc->_kpt, start, pgs, 1 );
-		mm::k_pmm.free_pages( (void *) proc->_kpt.get_base() );
+			hsai::VirtualCpu * cpu = hsai::get_cpu();
+			cpu->set_mmu( kpt );
 
-		proc->_kpt = kpt;
-#endif
+			mm::k_vmm.vm_unmap( proc->_kpt, start, pgs, 0 );
+			proc->_kpt.kfreewalk( stackbase - hsai::page_size );
+
+			proc->_kpt = kpt;
+		}
 
 		proc->_heap_ptr = proc->_heap_start;
 
 		hsai::set_trap_frame_entry( proc->_trapframe, (void *) elf.entry );
 		hsai::set_trap_frame_user_sp( proc->_trapframe, ustack.sp() );
+		hsai::set_trap_frame_arg( proc->_trapframe, 1, ustack.sp() );
 		proc->_state = ProcState::runnable;
 
 		/// @note 此处是为了兼容glibc的需要，详见 how_to_adapt_glibc.md

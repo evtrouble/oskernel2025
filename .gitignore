@@ -20,3 +20,7 @@ testsuits
 target/*
 sdcard-rv.img
 disassembly.txt
+riscv-syscalls-testing/*
+sdcard.img
+test
+test.c
