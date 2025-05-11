@@ -4,8 +4,8 @@ CONF_CPU_NUM = 1
 # export CONF_PLATFORM ?= qemu_2k1000
 # CONF_LINUX_BUILD = 1
 
-export CONF_ARCH ?= riscv
-export CONF_PLATFORM ?= qemu
+# export CONF_ARCH ?= riscv
+# export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
 ifeq ($(CONF_ARCH), loongarch)
@@ -29,6 +29,7 @@ export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export CFLAGS = -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
 # gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
+# riscv64-linux-gnu-gcc
 export TOOLPREFIX = riscv64-linux-gnu-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
 export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany
@@ -68,7 +69,7 @@ export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
 export CFLAGS += -DOPEN_COLOR_PRINT=1
 # open debug output
-export CFLAGS += -DOS_DEBUG
+# export CFLAGS += -DOS_DEBUG
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif
@@ -81,7 +82,7 @@ export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
 export LDFLAGS += -z max-page-size=4096
 
 export WORKPATH = $(shell pwd)
-export BUILDPATH = $(WORKPATH)/build
+export BUILDPATH = $(WORKPATH)/build-$(CONF_ARCH)-$(CONF_PLATFORM)
 
 
 STATIC_MODULE = \
@@ -95,11 +96,11 @@ COMPILE_START_TIME := $(shell cat /proc/uptime | awk -F '.' '{print $$1}')
 
 
 # .PHONY 是一个伪规则，其后面依赖的规则目标会成为一个伪目标，使得规则执行时不会实际生成这个目标文件
-.PHONY: all clean test initdir probe_host compile_all load_kernel cp_to_bin EASTL EASTL_test config_platform print_compile_time fs run
+.PHONY: all clean test initdir probe_host compile_all load_kernel EASTL EASTL_test config_platform print_compile_time fs run build-la build-rv all_sub
 
 # rules define 
 
-all: probe_host compile_all load_kernel cp_to_bin
+all_sub: probe_host compile_all load_kernel
 	@current_time=`cat /proc/uptime | awk -F '.' '{print $$1}'`; \
 	echo "######## 生成结束时间戳: $${current_time} ########"; \
 	time_interval=`expr $${current_time} - $(COMPILE_START_TIME)`; \
@@ -128,10 +129,10 @@ $(BUILDPATH)/kernel.elf: $(STATIC_MODULE) $(LD_SCRIPT)
 	$(LD) $(LDFLAGS) -T $(LD_SCRIPT) -o $@ -Wl,--whole-archive $(STATIC_MODULE) -Wl,--no-whole-archive \
 	-Wl,--gc-sections
 
-cp_to_bin: kernel.bin
+# cp_to_bin: kernel.bin
 
-kernel.bin: $(BUILDPATH)/kernel.elf
-	$(OBJCOPY) -O binary ./build/kernel.elf ./kernel.bin
+# kernel.bin: $(BUILDPATH)/kernel.elf
+# 	$(OBJCOPY) -O binary ./build/kernel.elf ./kernel.bin
 
 test:
 	@echo $(COMPILE_START_TIME); sleep 3; \
@@ -148,13 +149,6 @@ print_compile_time:
 	time_interval=`expr $${current_time} - $(COMPILE_START_TIME)`; \
 	runtime=`date -u -d @$${time_interval} "+%Mm %Ss"`; \
 	echo "######## 生成用时 : $${runtime} ########"
-
-clean:
-	$(MAKE) clean -C kernel
-	$(MAKE) clean -C user
-	$(MAKE) clean -C thirdparty/EASTL
-	$(MAKE) clean -C hsai
-	$(MAKE) clean -C hal/$(CONF_ARCH)
 
 .PHONY+= clean_module
 clean_module:
@@ -198,7 +192,7 @@ ifeq ($(CONF_ARCH), loongarch)
 # 配置用户模式网络（netdev=net0）
 #QEMUOPTS += -netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:5555,hostfwd=udp::5555-:5555
 else 
-QEMUOPTS = -machine virt -kernel build/kernel.elf -m 128M -nographic
+QEMUOPTS = -machine virt -kernel kernel-rv -m 128M -nographic
 # use multi-core 
 QEMUOPTS += -smp $(CPUS)
 
@@ -206,11 +200,11 @@ QEMUOPTS += -bios $(RUSTSBI)
 
 # import virtual disk image
 # QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endif
 
-run: build
+run: 
 ifeq ($(CONF_PLATFORM), qemu_2k1000)
 	./start.sh
 else ifeq ($(CONF_PLATFORM), k210)
@@ -239,3 +233,27 @@ fs:
 	@sudo mount -o loop sdcard.img $(dst)
 	@sudo cp -r $(TEST)/build/riscv64/* $(dst);
 	@sudo umount $(dst)
+
+build-la:
+	@echo "######## 编译 LoongArch 架构 ########"
+	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu_2k1000
+	cp "build-loongarch-qemu_2k1000/kernel.elf" ./kernel-la
+
+build-rv:
+	which riscv64-linux-gnu-gcc
+	@echo "######## 编译 RISC-V 架构 ########"
+	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=qemu
+	cp "build-riscv-qemu/kernel.elf" ./kernel-rv
+
+all: build-rv build-la
+	@echo "######## 双架构编译完成 ########"
+
+# 清理规则
+clean:
+	@echo "清理所有构建目录和生成文件..."
+	rm -rf ./build-* ./kernel-la ./kernel-rv
+	$(MAKE) clean -C kernel
+	$(MAKE) clean -C user
+	$(MAKE) clean -C thirdparty/EASTL
+	$(MAKE) clean -C hsai
+	$(MAKE) clean -C hal/$(CONF_ARCH)
