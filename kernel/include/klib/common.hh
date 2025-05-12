@@ -8,8 +8,8 @@
 
 #pragma once 
 
-#include "types.hh"
-#include "./printer.hh"
+#include "kernel/types.hh"
+#include "printer.hh"
 
 void printf( const char *fmt, ... );
 // void *memset( void *dst, int c, uint n );
