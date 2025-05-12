@@ -243,8 +243,8 @@ build-la:
 	cp "build-loongarch-qemu_2k1000/kernel.elf" ./kernel-la
 
 build-rv:
-	wget https://toolchains.bootlin.com/downloads/releases/toolchains/riscv64-lp64d/tarballs/riscv64-lp64d--glibc--stable-2022.08-1.tar.bz2
-	tar -xvf riscv64-lp64d--glibc--stable-2022.08-1.tar
+	cat riscv64-lp64d-glibc.tar.bz2.* > riscv64-lp64d-glibc.tar.bz2
+	tar -xvf riscv64-lp64d-glibc.tar.bz2
 	@echo "######## 编译 RISC-V 架构 ########"
 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=qemu
 	cp "build-riscv-qemu/kernel.elf" ./kernel-rv
