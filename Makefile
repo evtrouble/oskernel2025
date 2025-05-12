@@ -178,7 +178,7 @@ endif
 # 	@echo "- 平台 : ${CONF_PLATFORM}"
 # 	@echo "**************************"
 
-ifeq ($(CONF_ARCH), loongarch)
+# ifeq ($(CONF_ARCH), loongarch)
 # QEMUOPTS = -M ls2k -serial stdio -kernel build/kernel.elf -m 1G -k ./share/qemu/keymaps/en-us -serial vc \
 # -net nic -net user,net=10.0.2.0/24,tftp=/srv/tftp -vnc :0 -S -s -hda sdcard.img
 # 加载内核镜像，分配内存，不要图形化
@@ -194,7 +194,7 @@ ifeq ($(CONF_ARCH), loongarch)
 # QEMUOPTS += -no-reboot -device virtio-net-pci
 # 配置用户模式网络（netdev=net0）
 #QEMUOPTS += -netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:5555,hostfwd=udp::5555-:5555
-else 
+# else 
 QEMUOPTS = -machine virt -kernel kernel-rv -m 128M -nographic
 # use multi-core 
 QEMUOPTS += -smp $(CPUS)
@@ -203,9 +203,9 @@ QEMUOPTS += -bios hal/riscv/SBI/sbi-qemu
 
 # import virtual disk image
 # QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-endif
+# endif
 
 run: 
 # ifeq ($(CONF_PLATFORM), qemu_2k1000)

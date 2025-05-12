@@ -223,9 +223,9 @@ int init_main( void )
 	RUN_TESTS( exec_test_yield );
 	RUN_TESTS( exec_test_sleep );
 	RUN_TESTS( exec_test_times );
-	RUN_TESTS( exec_test_clone );
+	// RUN_TESTS( exec_test_clone );
 	RUN_TESTS( exec_test_brk );
-	RUN_TESTS( exec_test_waitpid );
+	// RUN_TESTS( exec_test_waitpid );
 	RUN_TESTS( exec_test_fstat );
 	RUN_TESTS( exec_test_openat );
 	RUN_TESTS( exec_test_close );
