@@ -86,27 +86,13 @@ all: initdir build_sbi compile_platform add_libcpu
 # 添加SBI构建目标
 build_sbi:
 ifeq ($(CONF_PLATFORM),k210)
-	@if which cargo >/dev/null; then \
-        echo "Building RustSBI for K210 from source..."; \
-        cd $(SBI_PATH)/rustsbi-k210 && \
-        cargo build --release && \
-        cp target/riscv64gc-unknown-none-elf/release/rustsbi-k210 $(BUILDPATH)/; \
-    else \
-        echo "Using pre-built RustSBI for K210..."; \
-        cp $(SBI_PATH)/sbi-k210 $(BUILDPATH)/rustsbi-k210; \
-    fi
-	@$(OBJDUMP) -S $(BUILDPATH)/rustsbi-k210 > $(BUILDPATH)/rustsbi-k210.asm
+	@echo "Using pre-built RustSBI for K210..."; \
+	cp $(SBI_PATH)/sbi-k210 $(BUILDPATH)/rustsbi-k210; \
+	$(OBJDUMP) -S $(BUILDPATH)/rustsbi-k210 > $(BUILDPATH)/rustsbi-k210.asm
 else
-	@if which cargo >/dev/null; then \
-        echo "Building RustSBI for QEMU from source..."; \
-        cd $(SBI_PATH)/rustsbi-qemu && \
-        cargo build --release && \
-        cp target/riscv64gc-unknown-none-elf/release/rustsbi-qemu $(BUILDPATH)/; \
-    else \
-        echo "Using pre-built RustSBI for QEMU..."; \
-        cp $(SBI_PATH)/sbi-qemu $(BUILDPATH)/rustsbi-qemu; \
-    fi
-	@$(OBJDUMP) -S $(BUILDPATH)/rustsbi-qemu > $(BUILDPATH)/rustsbi-qemu.asm
+	@echo "Using pre-built RustSBI for QEMU..."; \
+	cp $(SBI_PATH)/sbi-qemu $(BUILDPATH)/rustsbi-qemu; \
+	$(OBJDUMP) -S $(BUILDPATH)/rustsbi-qemu > $(BUILDPATH)/rustsbi-qemu.asm
 endif
 
 initdir:

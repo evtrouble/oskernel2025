@@ -19,6 +19,7 @@ testsuits
 .gdb_cmd.txt
 target/*
 sdcard-rv.img
+sdcard-la.img
 disassembly.txt
 riscv-syscalls-testing/*
 sdcard.img
@@ -30,3 +31,4 @@ build-loongarch-qemu_2k1000/*
 build-riscv-qemu/*
 riscv64-linux-gnu/*
 riscv64-lp64d--glibc--stable-2022.08-1/*
+riscv64-lp64d-glibc.tar.bz2
