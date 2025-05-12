@@ -8,11 +8,11 @@ CONF_CPU_NUM = 1
 # export CONF_PLATFORM ?= qemu
 # export CONF_PLATFORM ?= k210
 
-ifeq ($(CONF_ARCH), loongarch)
-QEMU = qemu-system-loongarch64
-else ifeq ($(CONF_ARCH), riscv)
-QEMU = qemu-system-riscv64
-endif
+# ifeq ($(CONF_ARCH), loongarch)
+# QEMU = qemu-system-loongarch64
+# else ifeq ($(CONF_ARCH), riscv)
+# QEMU = qemu-system-riscv64
+# endif
 
 # export CONF_PLATFORM ?= k210
 
@@ -29,8 +29,7 @@ export ASFLAGS = -ggdb -march=loongarch64 -mabi=lp64d -O0
 export CFLAGS = -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
 # gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
-# riscv64-linux-gnu-gcc
-export TOOLPREFIX = riscv64-linux-gnu-
+export TOOLPREFIX = $(WORKPATH)/riscv64-lp64d--glibc--stable-2022.08-1/bin/riscv64-linux-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
 export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany
 export LDFLAGS = -static
@@ -77,7 +76,11 @@ export CFLAGS += -ffreestanding -fno-common -nostdlib -fno-stack-protector
 export CFLAGS += -fno-pie -no-pie 
 # export CFLAGS += -static-libstdc++ -lstdc++
 export CXXFLAGS = $(CFLAGS)
+ifeq ($(CONF_ARCH), loongarch)
 export CXXFLAGS += -std=c++23
+else ifeq ($(CONF_ARCH), riscv)
+export CXXFLAGS += -std=c++17
+endif
 export CXXFLAGS += $(DEFAULT_CXX_INCLUDE_FLAG)
 export LDFLAGS += -z max-page-size=4096
 
@@ -196,27 +199,27 @@ QEMUOPTS = -machine virt -kernel kernel-rv -m 128M -nographic
 # use multi-core 
 QEMUOPTS += -smp $(CPUS)
 
-QEMUOPTS += -bios $(RUSTSBI)
+QEMUOPTS += -bios hal/riscv/SBI/sbi-qemu
 
 # import virtual disk image
 # QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=sdcard.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endif
 
 run: 
-ifeq ($(CONF_PLATFORM), qemu_2k1000)
-	./start.sh
-else ifeq ($(CONF_PLATFORM), k210)
-	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
-	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
-	@dd if=$(image) of=$(k210) bs=128k seek=1
-	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
-	@sudo chmod 777 $(k210-serialport)
-	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
-else
-	@$(QEMU) $(QEMUOPTS)
-endif
+# ifeq ($(CONF_PLATFORM), qemu_2k1000)
+# 	./start.sh
+# else ifeq ($(CONF_PLATFORM), k210)
+# 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
+# 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
+# 	@dd if=$(image) of=$(k210) bs=128k seek=1
+# 	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
+# 	@sudo chmod 777 $(k210-serialport)
+# 	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
+# else
+	qemu-system-riscv64 $(QEMUOPTS)
+# endif
 
 dst=/mnt
 # 测试点代码
@@ -240,12 +243,13 @@ build-la:
 	cp "build-loongarch-qemu_2k1000/kernel.elf" ./kernel-la
 
 build-rv:
-	which riscv64-linux-gnu-gcc
+	wget https://toolchains.bootlin.com/downloads/releases/toolchains/riscv64-lp64d/tarballs/riscv64-lp64d--glibc--stable-2022.08-1.tar.bz2
+	tar -xvf riscv64-lp64d--glibc--stable-2022.08-1.tar
 	@echo "######## 编译 RISC-V 架构 ########"
 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=qemu
 	cp "build-riscv-qemu/kernel.elf" ./kernel-rv
 
-all: build-rv build-la
+all: build-la build-rv
 	@echo "######## 双架构编译完成 ########"
 
 # 清理规则
