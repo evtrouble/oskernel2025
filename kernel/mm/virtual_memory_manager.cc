@@ -110,7 +110,7 @@ namespace mm
 
 				bool is_ok;
 				if ( executable )
-					is_ok = map_code_pages( pt, oa + has_alloc, ls, (ulong) mem,
+					is_ok = map_code_pages_canwrite( pt, oa + has_alloc, ls, (ulong) mem,
 											for_user );
 				else
 					is_ok = map_data_pages( pt, oa + has_alloc, ls, (ulong) mem,

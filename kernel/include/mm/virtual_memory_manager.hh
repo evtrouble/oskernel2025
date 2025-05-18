@@ -115,6 +115,13 @@ namespace mm
 				| ( for_user ? ( hsai::Pte::user_plv_flag() ) : ( hsai::Pte::super_plv_flag() ) )
 			);
 		};
+		bool map_code_pages_canwrite( PageTable &pt, ulong va, ulong size, ulong pa, bool for_user )
+		{
+			return map_pages( pt, va, size, pa,
+				hsai::Pte::map_data_page_flags()| hsai::Pte::map_code_page_flags() | hsai::Pte::valid_flag()
+				| ( for_user ? ( hsai::Pte::user_plv_flag() ) : ( hsai::Pte::super_plv_flag() ) )
+			);
+		};
 		bool map_data_pages( PageTable &pt, ulong va, ulong size, ulong pa, bool for_user )
 		{
 			return map_pages( pt, va, size, pa,
