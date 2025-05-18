@@ -91,7 +91,6 @@ int xn6_start_kernel()
 
 		log_info( "xn6_start_kernel addr: %p", &xn6_start_kernel );
 
-
 		// physical memory init
 		new ( &mm::k_pmm ) mm::PhysicalMemoryManager( "physical memory manager" );
 		log_info( "pmm init" );
@@ -247,20 +246,7 @@ int xn6_start_kernel()
 
 		// test_buffer();
 		// while ( 1 );
-		new ( &fs::dentrycache::k_dentryCache ) fs::dentrycache::dentryCache;
-		fs::dentrycache::k_dentryCache.init();
-		new ( &fs::mnt_table ) eastl::unordered_map<eastl::string, fs::FileSystem*>;
-		fs::mnt_table.clear(); // clean mnt_Table
-		new ( &fs::ramfs::k_ramfs ) fs::ramfs::RamFS;
-		fs::ramfs::k_ramfs.initfd();
-		// fs::ramfs::k_ramfs.dentryCacheTest();
-		fs::mnt_table["/"] = &fs::ramfs::k_ramfs;
-		log_info( "ramfs init" );
-		fs::Path mnt( "/mnt" );
-		fs::Path dev( "/dev/hda" );
-		// fs::Path dev( "/dev/hdb" );
-		// mnt.mount( dev, "fat32", 0, 0 );  // for test mount fat32
-		mnt.mount( dev, "ext4", 0, 0 );
+		
 		// fs::Path test_unlink( "/mnt/read" );
 		// [[maybe_unused]] fs::File* file = new fs::File( test_unlink.pathSearch(), 7 );
 

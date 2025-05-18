@@ -117,6 +117,13 @@ namespace hsai
 		lacpu->write_csr( csr::tcfg, tcfg_data );
 	}
 
+	void identify_device()
+	{
+		// AHCI 识别设备（需要在中断初始化后进行）
+		AhciDriverLs* ahd = (AhciDriverLs*) k_devm.get_device( "AHCI driver" );
+		ahd->identify_device();
+	}
+
 	void hardware_secondary_init()
 	{
 		// 关闭非对齐访存检查
@@ -245,9 +252,6 @@ namespace hsai
 			loongarch::qemu2k1000::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
 
-		// 4. AHCI 识别设备（需要在中断初始化后进行）
-		AhciDriverLs* ahd = (AhciDriverLs*) k_devm.get_device( "AHCI driver" );
-		ahd->identify_device();
 		dev::acpi::k_acpi_controller.init( "acpi", 0x1fe27000 | loongarch::win_1 );
 
 		// while ( 1 );

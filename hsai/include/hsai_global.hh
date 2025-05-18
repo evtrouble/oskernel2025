@@ -20,6 +20,8 @@ namespace hsai
 
 	void __hsai_hal hardware_secondary_init( void );
 
+	void __hsai_hal identify_device( void );
+
 	void hsai_internal_init( void );
 	
 

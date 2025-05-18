@@ -48,6 +48,7 @@
 #include "fs/path.hh"
 #include "fs/ramfs/ramfs.hh"
 #include "klib/common.hh"
+#include "fs/dentrycache.hh"
 
 extern "C" {
 extern uint64 _start_u_init;
@@ -333,37 +334,6 @@ namespace pm
 		// &_start_u_init; log_info( "user init: sp  = %p", p->_trapframe->sp );
 		hsai::user_proc_init( (void *) p );
 
-		// fs::File *f = fs::k_file_table.alloc_file();
-		fs::Path		 path( "/dev/stdin" );
-		fs::FileAttrs	 fAttrsin = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0444 ); // only read
-		fs::device_file *f_in = new fs::device_file( fAttrsin, DEV_STDIN_NUM, path.pathSearch() );
-		assert( f_in != nullptr, "pm: alloc stdin file fail while user init." );
-
-		fs::Path		 pathout( "/dev/stdout" );
-		fs::FileAttrs	 fAttrsout = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0222 ); // only write
-		fs::device_file *f_out =
-			new fs::device_file( fAttrsout, DEV_STDOUT_NUM, pathout.pathSearch() );
-		assert( f_out != nullptr, "pm: alloc stdout file fail while user init." );
-
-		fs::Path		 patherr( "/dev/stderr" );
-		fs::FileAttrs	 fAttrserr = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0222 ); // only write
-		fs::device_file *f_err =
-			new fs::device_file( fAttrserr, DEV_STDERR_NUM, patherr.pathSearch() );
-		assert( f_err != nullptr, "pm: alloc stderr file fail while user init." );
-
-		// new ( &f->ops ) fs::FileOps( 3 );
-		// f->major = DEV_STDOUT_NUM;
-
-		// f->type = fs::FileTypes::FT_DEVICE;
-		p->_ofile[0] = f_in;
-		p->_ofile[1] = f_out;
-		p->_ofile[2] = f_err;
-		// p->_cwd = fs::fat::k_fatfs.get_root();
-		/// @todo 这里暂时修改进程的工作目录为fat的挂载点
-		p->_cwd		 = fs::ramfs::k_ramfs.getRoot()->EntrySearch( "mnt" );
-		p->_cwd_name = "/mnt/";
-
-
 		/// TODO:
 		/// set p->cwd = "/"
 
@@ -528,9 +498,63 @@ namespace pm
 
 	void ProcessManager::fork_ret()
 	{
+		static int first = 1;
+  
 		// Still holding p->lock from scheduler.
 		pm::Pcb *proc = get_cur_pcb();
 		proc->_lock.release();
+		if (first) {
+			// File system initialization must be run in the context of a
+			// regular process (e.g., because it calls sleep), and thus cannot
+			// be run from main().
+			// printf("[forkret]first scheduling\n");
+			first = 0;
+			hsai::identify_device();
+			new ( &fs::dentrycache::k_dentryCache ) fs::dentrycache::dentryCache;
+			fs::dentrycache::k_dentryCache.init();
+			new ( &fs::mnt_table ) eastl::unordered_map<eastl::string, fs::FileSystem*>;
+			fs::mnt_table.clear(); // clean mnt_Table
+			new ( &fs::ramfs::k_ramfs ) fs::ramfs::RamFS;
+			fs::ramfs::k_ramfs.initfd();
+			// fs::ramfs::k_ramfs.dentryCacheTest();
+			fs::mnt_table["/"] = &fs::ramfs::k_ramfs;
+			log_info( "ramfs init" );
+			fs::Path mnt( "/mnt" );
+			fs::Path dev( "/dev/hda" );
+			// fs::Path dev( "/dev/hdb" );
+			// mnt.mount( dev, "fat32", 0, 0 );  // for test mount fat32
+			mnt.mount( dev, "ext4", 0, 0 );
+
+			// fs::File *f = fs::k_file_table.alloc_file();
+			fs::Path		 path( "/dev/stdin" );
+			fs::FileAttrs	 fAttrsin = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0444 ); // only read
+			fs::device_file *f_in = new fs::device_file( fAttrsin, DEV_STDIN_NUM, path.pathSearch() );
+			assert( f_in != nullptr, "pm: alloc stdin file fail while user init." );
+
+			fs::Path		 pathout( "/dev/stdout" );
+			fs::FileAttrs	 fAttrsout = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0222 ); // only write
+			fs::device_file *f_out =
+				new fs::device_file( fAttrsout, DEV_STDOUT_NUM, pathout.pathSearch() );
+			assert( f_out != nullptr, "pm: alloc stdout file fail while user init." );
+
+			fs::Path		 patherr( "/dev/stderr" );
+			fs::FileAttrs	 fAttrserr = fs::FileAttrs( fs::FileTypes::FT_DEVICE, 0222 ); // only write
+			fs::device_file *f_err =
+				new fs::device_file( fAttrserr, DEV_STDERR_NUM, patherr.pathSearch() );
+			assert( f_err != nullptr, "pm: alloc stderr file fail while user init." );
+
+			// new ( &f->ops ) fs::FileOps( 3 );
+			// f->major = DEV_STDOUT_NUM;
+
+			// f->type = fs::FileTypes::FT_DEVICE;
+			proc->_ofile[0] = f_in;
+			proc->_ofile[1] = f_out;
+			proc->_ofile[2] = f_err;
+			// p->_cwd = fs::fat::k_fatfs.get_root();
+			/// @todo 这里暂时修改进程的工作目录为fat的挂载点
+			proc->_cwd		 = fs::ramfs::k_ramfs.getRoot()->EntrySearch( "mnt" );
+			proc->_cwd_name = "/mnt/";
+		}
 
 		hsai::user_trap_return();
 	}
@@ -665,6 +689,7 @@ namespace pm
 				uint64 sz1;
 				bool   executable = ( ph.flags & 0x1 ); // 段是否可执行？
 				ulong  pva		  = hsai::page_round_down( ph.vaddr );
+				printf( "executable:%d", executable );
 				if ( ( sz1 = mm::k_vmm.vm_alloc( new_pt, pva, ph.vaddr + ph.memsz, executable ) ) ==
 					 0 )
 				{
@@ -701,6 +726,7 @@ namespace pm
 				return -1;
 			}
 		}
+		printf( "cnt:%d\n", new_sec_cnt );
 
 		// 为程序映像转储 elf 程序头
 

@@ -14,15 +14,13 @@
 
 namespace loongarch
 {
-	namespace qemu2k1000
+	namespace qemu
 	{
 
 		/// @brief Uart address
 		enum UartAddr : uint64
 		{
-			// uart0 = 0x1fe2'0000UL,
-			uart0 = 0x1fe001e0UL, 
-			// uart0 = 0x1fe001e0UL | dmwin::win_0,
+			uart0 = 0x1fe001e0UL,
 		};
 
 		enum memory : uint64
@@ -34,65 +32,49 @@ namespace loongarch
 			mem_end	  = mem_start + mem_size
 		};
 
-		/// @brief 2k1000la configure registers base address
-		constexpr uint64 config_reg_base = 0x1fe0'0000UL | dmwin::win_1;
+		/// @brief interrupt configure for LoongArch 3A5000
+		// 寄存器基地址定义
+		#define DISK_IRQ  0x20
+		#define UART0_IRQ 2
 
-		/// @brief interrupt configure
-		enum ItrCfg : uint64
-		{
-			itr_low_bit	   = 0x1420UL + config_reg_base,
-			itr_high_bit   = 0x1460UL + config_reg_base,
-			itr_route_base = 0x1400UL + config_reg_base,
+		/* ============== LS7A registers =============== */
+		constexpr uint64 LS7A_PCH_REG_BASE = 0x10000000UL | loongarch::win_1;
 
-			itr_bit_uart0_s = 0,
-			itr_bit_uart0_m = 0x1UL << itr_bit_uart0_s,
-			itr_bit_sata_s	= 19,
-			itr_bit_sata_m	= 0x1UL << itr_bit_sata_s,
+		#define LS7A_INT_MASK_REG		(LS7A_PCH_REG_BASE + 0x020)
+		#define LS7A_INT_EDGE_REG		(LS7A_PCH_REG_BASE + 0x060)
+		#define LS7A_INT_CLEAR_REG		(LS7A_PCH_REG_BASE + 0x080)
+		#define LS7A_INT_HTMSI_VEC_REG		(LS7A_PCH_REG_BASE + 0x200)
+		#define LS7A_INT_STATUS_REG		(LS7A_PCH_REG_BASE + 0x3a0)
+		#define LS7A_INT_POL_REG		(LS7A_PCH_REG_BASE + 0x3e0)
 
-			itr_route_uart0 = 0x0UL + itr_route_base,
-			itr_route_sata	= 19 + itr_route_base,
+		constexpr uint64  LOONGARCH_IOCSR_EXTIOI_EN_BASE	   = 0x1600 | loongarch::win_1;
+		constexpr uint64  LOONGARCH_IOCSR_EXTIOI_ISR_BASE	   = 0x1800 | loongarch::win_1;
+		constexpr uint64  LOONGARCH_IOCSR_EXTIOI_MAP_BASE	   = 0x14c0 | loongarch::win_1;
+		constexpr uint64  LOONGARCH_IOCSR_EXTIOI_ROUTE_BASE	   = 0x1c00 | loongarch::win_1;
+		constexpr uint64  LOONGARCH_IOCSR_EXRIOI_NODETYPE_BASE = 0x14a0 | loongarch::win_1;
 
-			itr_isr_l = 0x00UL + itr_low_bit,  // 低32位中断状态寄存器
-			itr_isr_h = 0x00UL + itr_high_bit, // 高32位中断状态寄存器
-			itr_esr_l = 0x04UL + itr_low_bit,  // 低32位中断使能状态寄存器
-			itr_esr_h = 0x04UL + itr_high_bit, // 高32位中断使能状态寄存器
-			itr_enr_l = 0x08UL + itr_low_bit,  // 低32位设置使能寄存器
-			itr_enr_h = 0x08UL + itr_high_bit, // 高32位设置使能寄存器
-			itr_clr_l = 0x0cUL + itr_low_bit,  // 低32位清除使能寄存器和脉冲触发中断
-			itr_clr_h = 0x0cUL + itr_high_bit, // 高32位清除使能寄存器和脉冲触发中断
-			itr_pol_l = 0x10UL + itr_low_bit, // 低32位中断极性控制(1:低电平触发,0:高电平触发)
-			itr_pol_h = 0x10UL + itr_high_bit, // 高32位中断极性控制(1:低电平触发,0:高电平触发)
-			itr_edg_l = 0x14UL + itr_low_bit, // 低32位触发方式寄存器(1:脉冲触发,0:电平触发)
-			itr_edg_h = 0x14UL + itr_high_bit, // 高32位触发方式寄存器(1:脉冲触发,0:电平触发)
-			itr_bou_l = 0x18UL + itr_low_bit,
-			itr_bou_h = 0x18UL + itr_high_bit,
-			itr_aut_l = 0x1cUL + itr_low_bit,
-			itr_aut_h = 0x1cUL + itr_high_bit,
-		};
-
-		/// @brief route function
-		/// @param x > core number
-		/// @param y > pin number
-		/// @return
-		inline uchar itr_route_xy( uchar x, uchar y )
-		{
-			return ( ( 0x1U << x ) << 0 ) | ( ( 0x1U << y ) << 4 );
-		}
-
-		inline void write_itr_cfg( ItrCfg itrReg, uint32 data )
+		inline void write_itr_cfg( uint64 itrReg, uint32 data )
 		{
 			*( (volatile uint32 *) itrReg ) = data;
 		}
-		inline uint32 read_itr_cfg( ItrCfg itrReg )
+		inline uint32 read_itr_cfg( uint64 itrReg )
 		{
 			return *( (volatile uint32 *) itrReg );
 		}
+		inline void write_itr_cfg_64b( uint64 itrReg, uint32 data )
+		{
+			*( (volatile uint64 *) itrReg ) = data;
+		}
+		inline uint64 read_itr_cfg_64b( uint64 itrReg )
+		{
+			return *( (volatile uint64 *) itrReg );
+		}
 
-		inline void write_itr_cfg_8b( ItrCfg itr_reg, u8 data )
+		inline void write_itr_cfg_8b( uint64 itr_reg, u8 data )
 		{
 			*(volatile u8 *) itr_reg = data;
 		}
-		inline u8 read_itr_cfg_8b( ItrCfg itr_reg )
+		inline u8 read_itr_cfg_8b( uint64 itr_reg )
 		{
 			return *( (volatile u8 *) itr_reg );
 		}
@@ -154,7 +136,8 @@ namespace loongarch
 			hda_fun = 0x0,
 
 			sata_bus = 0x0,
-			sata_dev = 0x8,
+			// sata_dev = 0x8, ls2k
+			sata_dev = 0x3, //virt
 			sata_fun = 0x0,
 
 			pcie0p0_bus = 0x0,
@@ -299,6 +282,6 @@ namespace loongarch
 		};
 
 
-	} // namespace qemu2k1000
+	} // namespace qemu
 
 } // namespace loongarch

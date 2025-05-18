@@ -1,3 +1,11 @@
+//
+// Created by Li Shuang ( pseudonym ) on 2024-06-24
+// --------------------------------------------------------------
+// | Note: This code file just for study, not for commercial use
+// | Contact Author: lishuang.mk@whu.edu.cn
+// --------------------------------------------------------------
+//
+
 #include "include/qemu.hh"
 
 #include <device_manager.hh>
@@ -7,26 +15,28 @@
 #include <memory_interface.hh>
 #include <process_interface.hh>
 #include <timer_interface.hh>
-#include <kernel/mm/virtual_memory_manager.hh>
+#include <uart/uart_ns16550.hh>
 
 #include "context.hh"
 #include "exception_manager.hh"
 #include "include/interrupt_manager.hh"
-#include "rv_cpu.hh"
-#include "rv_mem.hh"
+#include "la_cpu.hh"
+#include "include/la_mem.hh"
+#include "fs/dev/acpi_controller.hh"
 #include "trap_frame.hh"
-#include "uart.hh"
 
-namespace riscv
+namespace loongarch
 {
 	namespace qemu
 	{
-		UartConsole debug_uart;
+		hsai::UartNs16550 debug_uart;
 
 		DiskDriver disk_driver;
 	} // namespace qemu
 
-} // namespace riscv
+} // namespace loongarch
+
+using namespace loongarch;
 
 extern "C" {
 extern uint64 _start_u_init;
@@ -38,24 +48,21 @@ extern uint64 _u_init_txte;
 extern uint64 _u_init_dats;
 extern uint64 _u_init_date;
 extern int	  init_main( void );
-extern char trampoline[];
-extern char	  __global_pointer$[];
 }
 
 extern "C" {
 extern ulong _bss_start_addr;
 extern ulong _bss_end_addr;
-extern ulong kernel_end;
 }
-using namespace riscv;
-using namespace riscv::qemu;
+
+using namespace loongarch::qemu;
 
 namespace hsai
 {
-	const u64 memory_start = kernel_end;
-	const u64 memory_size  = PHYSTOP - kernel_end;
+	const u64 memory_start = qemu::mem_start;
+	const u64 memory_size  = qemu::mem_size;
 
-	const uint context_size = sizeof( riscv::Context );
+	const uint context_size = sizeof( loongarch::Context );
 
 	constexpr uint64 _1K_dec = 1000UL;
 	constexpr uint64 _1M_dec = _1K_dec * _1K_dec;
@@ -81,16 +88,31 @@ namespace hsai
 	void hardware_abstract_init( void )
 	{
 		// 1. 使用 UART0 作为 debug 输出
-		new ( &qemu::debug_uart ) UartConsole(
-			(void*) ( UART) );
+		new ( &qemu::debug_uart ) UartNs16550(
+			(void*) ( (uint64) qemu::UartAddr::uart0 | (uint64) dmwin::win_1 ) );
 		qemu::debug_uart.init();
 		register_debug_uart( &qemu::debug_uart );
 
 		// 2. 架构初始化
-		riscv_init();
+		loongarch_init();
 
 		// 3. 初始化 Memory
 		qemu::Memory::memory_init();
+
+		// 4. 时钟初始化
+
+		Cpu* lacpu = (Cpu*) get_cpu();
+
+		// >> 自动循环
+		ulong tcfg_data = ( ( (uint64) div_fre ) << csr::tcfg_initval_s ) | ( csr::tcfg_en_m ) |
+						  ( csr::tcfg_periodic_m );
+
+		// >> 非自动循环
+		// _tcfg_data =
+		// 	( ( ( uint64 ) div_fre ) << loongarch::csr::Tcfg::tcfg_initval_s ) |
+		// 	( loongarch::csr::Tcfg::tcfg_en_m );
+
+		lacpu->write_csr( csr::tcfg, tcfg_data );
 	}
 
 	void identify_device()
@@ -103,46 +125,90 @@ namespace hsai
 	void hardware_secondary_init()
 	{
 		// 关闭非对齐访存检查
-		// Cpu*  rvcpu = (Cpu*) hsai::get_cpu();
-		// rvcpu->set_csr( csr::CsrAddr::sstatus, csr::sstatus_aie_m );
+		// Cpu*  lacpu = (Cpu*) hsai::get_cpu();
+
+		// ulong tmp	= lacpu->read_csr( csr::ecfg );
+		// hsai_printf( "ecfg = %p\n", tmp );
+		// tmp	   |= 1 << 10; // 设置ECFG.LS=1 (Local Storage enable)
+		// lacpu->write_csr(csr::ecfg, tmp);
+
+		// // 设置misc bit0
+		// tmp = lacpu->read_csr(csr::misc);
+		// tmp |= 0x1;
+		// lacpu->write_csr(csr::misc, tmp);
+		// tmp	= lacpu->read_csr( csr::crmd );
+		// hsai_printf( "crmd = %p\n", tmp );
+		// tmp &= ~(1 << 4); // CRMD.DA bit4清零
+		// lacpu->write_csr( csr::crmd, tmp );
+		// tmp = lacpu->read_csr( csr::crmd );
+		// hsai_printf( "crmd-no_align_check = %p\n", tmp );
+
+		// int cpucfg_idx;
+
+		// cpucfg_idx = 1;
+		// asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
+		// hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
+		// cpucfg_idx = 2;
+		// asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
+		// hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
+		// cpucfg_idx = 3;
+		// asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
+		// hsai_printf( "cpucfg %d = %#_034b\n", cpucfg_idx, tmp );
+		// cpucfg_idx = 4;
+		// asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
+		// hsai_printf( "cc-freq = %d\n", tmp );
+		// cpucfg_idx = 5;
+		// asm volatile( "cpucfg %0, %1" : "=r"( tmp ) : "r"( cpucfg_idx ) );
+		// hsai_printf( "cc-mul = %d, cc-div = %d\n", (u16) tmp, (u32) tmp >> 16 );
 
 		// 1. 异常管理初始化
-		riscv::k_em.init( "exception manager" );
+		loongarch::k_em.init( "exception manager" );
 
 		// 2. Disk 初始化 (debug)
 		new ( &disk_driver ) DiskDriver( "Disk");
 
 		// 3. 中断管理初始化
-		new ( &riscv::qemu::k_im )
-			riscv::qemu::InterruptManager( "intr manager" );
+		new ( &loongarch::qemu::k_im )
+			loongarch::qemu::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
+
+		dev::acpi::k_acpi_controller.init( "acpi", 0x1fe27000 | loongarch::win_1 );
+
+		// while ( 1 );
+
+
+		// debug
+		// char * buf = ( char * ) alloc_pages( 1 );
+		// AhciPortDriver * ahpd = ( AhciPortDriver * ) k_devm.get_block_device(
+		// "hdb" );
+
+		// BufferDescriptor bd = { .buf_addr = ( u64 ) buf, .buf_size =
+		// page_size }; ahpd->read_blocks_sync( 0, 1, &bd, 1 ); hsai_printf(
+		// BLUE_COLOR_PRINT "buf0\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E
+		// 0F\n" CLEAR_COLOR_PRINT ); for ( uint i = 0; i < 512; ++i )
+		// {
+		// 	if ( i % 0x10 == 0 )
+		// 		hsai_printf( "%B%B\t", i >> 8, i );
+		// 	hsai_printf( "%B ", buf[ i ] );
+		// 	if ( i % 0x10 == 0xF )
+		// 		hsai_printf( "\n" );
+		// }
+
+		// while ( 1 );
 	}
 
 	void user_proc_init( void* proc )
 	{
 		TrapFrame* tf = (TrapFrame*) get_trap_frame_from_proc( proc );
-		tf->epc		  = (uint64) &init_main - (uint64) &_start_u_init;
-		hsai_info( "user init: epc = %p", tf->epc );
-		mm::PageTable *pt = (mm::PageTable*) get_pt_from_proc( proc );
-		mm::k_vmm.map_code_pages(*pt, TRAMPOLINE, 
-			PG_SIZE, (uint64) trampoline, false );
-		tf->gp = (uint64)__global_pointer$;
+		tf->era		  = (uint64) &init_main - (uint64) &_start_u_init;
+		hsai_info( "user init: era = %p", tf->era );
 		// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
 		// hsai_info( "user init: sp  = %p", tf->sp );
 	}
 
-	void proc_init( void * proc )
-	{
-		mm::PageTable& pt = *(mm::PageTable*) get_pt_from_proc( proc );
-		mm::k_vmm.map_code_pages(pt, TRAMPOLINE, 
-			PG_SIZE, (uint64) trampoline, false );
-	}
+	void proc_init( void * proc ){}
 
-	void proc_free( void * proc )
-	{
-		mm::PageTable& pt = *(mm::PageTable*) get_pt_from_proc( proc );
-		mm::k_vmm.vm_unmap( pt, TRAMPOLINE, 1, 0 );
-	}
+	void proc_free( void * proc ){}
 
 	void set_trap_frame_return_value( void* trapframe, ulong v )
 	{
@@ -153,7 +219,7 @@ namespace hsai
 	void set_trap_frame_entry( void* trapframe, void* entry )
 	{
 		TrapFrame* tf = (TrapFrame*) trapframe;
-		tf->epc		  = (u64) entry;
+		tf->era		  = (u64) entry;
 	}
 
 	void set_trap_frame_user_sp( void* trapframe, ulong sp )
@@ -228,7 +294,7 @@ namespace hsai
 
 	ulong get_main_frequence() { return qemu_fre; }
 
-	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->get_time(); }
+	ulong get_hw_time_stamp() { return ( (Cpu*) hsai::get_cpu() )->read_csr( csr::tval ); }
 
 	ulong time_stamp_to_usec( ulong ts ) { return qemu_fre_cal_usec( ts ); }
 

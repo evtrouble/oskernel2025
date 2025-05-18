@@ -208,18 +208,7 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 # endif
 
 run: 
-# ifeq ($(CONF_PLATFORM), qemu_2k1000)
-# 	./start.sh
-# else ifeq ($(CONF_PLATFORM), k210)
-# 	@$(OBJCOPY) $T/kernel --strip-all -O binary $(image)
-# 	@$(OBJCOPY) $(RUSTSBI) --strip-all -O binary $(k210)
-# 	@dd if=$(image) of=$(k210) bs=128k seek=1
-# 	@$(OBJDUMP) -D -b binary -m riscv $(k210) > $T/k210.asm
-# 	@sudo chmod 777 $(k210-serialport)
-# 	@python3 ./tools/kflash.py -p $(k210-serialport) -b 1500000 -t $(k210)
-# else
-	qemu-system-riscv64 $(QEMUOPTS)
-# endif
+	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
 
 dst=/mnt
 # 测试点代码
@@ -239,8 +228,8 @@ fs:
 
 build-la:
 	@echo "######## 编译 LoongArch 架构 ########"
-	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu_2k1000
-	cp "build-loongarch-qemu_2k1000/kernel.elf" ./kernel-la
+	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
+	cp "build-loongarch-qemu/kernel.elf" ./kernel-la
 
 build-rv:
 	cat riscv64-lp64d-glibc.tar.bz2.* > riscv64-lp64d-glibc.tar.bz2
@@ -261,3 +250,6 @@ clean:
 	$(MAKE) clean -C thirdparty/EASTL
 	$(MAKE) clean -C hsai
 	$(MAKE) clean -C hal/$(CONF_ARCH)
+
+# qemu-system-loongarch64 -kernel kernel-la -m 1G -nographic -smp 1 -drive file=sdcard-la.img,if=none,format=raw,id=x0 -device virtio-blk-pci,drive=x0 -no-reboot -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -rtc base=utc 
+# qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc

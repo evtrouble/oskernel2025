@@ -94,6 +94,13 @@ namespace hsai
 		k210::Memory::memory_init();
 	}
 
+	void identify_device()
+	{
+		// Disk 识别设备（需要在中断初始化后进行）
+		DiskDriver* disk = (DiskDriver*) k_devm.get_device( "Disk driver" );
+		disk->identify_device();
+	}
+
 	void hardware_secondary_init()
 	{
 		// 关闭非对齐访存检查
@@ -110,10 +117,6 @@ namespace hsai
 		new ( &riscv::k210::k_im )
 			riscv::k210::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
-
-		// 4. Disk 识别设备（需要在中断初始化后进行）
-		DiskDriver* disk = (DiskDriver*) k_devm.get_device( "Disk driver" );
-		disk->identify_device();
 	}
 
 	void user_proc_init( void* proc )
