@@ -172,7 +172,7 @@ namespace hsai
 			loongarch::qemu::InterruptManager( "intr manager" );
 		hsai_info( "im init" );
 
-		dev::acpi::k_acpi_controller.init( "acpi", 0x1fe27000 | loongarch::win_1 );
+		dev::acpi::k_acpi_controller.init( "acpi", 0x100E001C | loongarch::win_1 );
 
 		// while ( 1 );
 

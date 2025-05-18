@@ -38,7 +38,7 @@ namespace loongarch
 		#define UART0_IRQ 2
 
 		/* ============== LS7A registers =============== */
-		constexpr uint64 LS7A_PCH_REG_BASE = 0x10000000UL | loongarch::win_1;
+		constexpr uint64 LS7A_PCH_REG_BASE = 0x1000'0000UL | loongarch::win_1;
 
 		#define LS7A_INT_MASK_REG		(LS7A_PCH_REG_BASE + 0x020)
 		#define LS7A_INT_EDGE_REG		(LS7A_PCH_REG_BASE + 0x060)
@@ -79,6 +79,9 @@ namespace loongarch
 			return *( (volatile u8 *) itr_reg );
 		}
 
+		constexpr uint64 iodma_win_base = 0x0UL << 60;
+		constexpr uint64 iodma_win_mask = ~( 0x0UL ) << 32;
+/*
 		constexpr uint64 pci_type0_base = 0xFE'0000'0000 | dmwin::win_1;
 		constexpr uint64 pci_type1_base = 0xFE'1000'0000 | dmwin::win_1;
 
@@ -280,7 +283,7 @@ namespace loongarch
 			sec_win_br_m = 0x1UL << sec_win_br_s,
 			sec_win_en_m = 0x1UL << sec_win_en_s,
 		};
-
+*/
 
 	} // namespace qemu
 

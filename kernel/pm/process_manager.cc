@@ -689,7 +689,6 @@ namespace pm
 				uint64 sz1;
 				bool   executable = ( ph.flags & 0x1 ); // 段是否可执行？
 				ulong  pva		  = hsai::page_round_down( ph.vaddr );
-				printf( "executable:%d", executable );
 				if ( ( sz1 = mm::k_vmm.vm_alloc( new_pt, pva, ph.vaddr + ph.memsz, executable ) ) ==
 					 0 )
 				{
@@ -726,7 +725,6 @@ namespace pm
 				return -1;
 			}
 		}
-		printf( "cnt:%d\n", new_sec_cnt );
 
 		// 为程序映像转储 elf 程序头
 

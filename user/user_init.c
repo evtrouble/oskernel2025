@@ -77,19 +77,19 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_mmap[]	  
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_munmap[]	  = "munmap";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_unlinkat[] = "unlink";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_pipe[]	  = "pipe";
-// __attribute__( ( section( ".user.init.data.p" ) ) ) const char *exec_test_basic[] = {
-//   exec_test_echo, exec_test_fork, exec_test_exit, 
-//   exec_test_wait, exec_test_getpid, exec_test_getppid, 
-//   exec_test_dup, exec_test_dup2, exec_test_execve, 
-//   exec_test_getcwd, exec_test_gettimeofday, exec_test_yield, 
-//   exec_test_sleep, exec_test_times, exec_test_clone, 
-//   exec_test_brk, exec_test_uname, exec_test_waitpid, 
-//   exec_test_open, exec_test_fstat, exec_test_openat, 
-//   exec_test_close, exec_test_read, exec_test_getdents, 
-//   exec_test_mkdir, exec_test_chdir, exec_test_mount, 
-//   exec_test_umount, exec_test_mmap, exec_test_munmap, 
-//   exec_test_unlinkat, exec_test_pipe
-// };
+__attribute__( ( section( ".user.init.data.p" ) ) ) const char *exec_test_basic[] = {
+  exec_test_echo, exec_test_fork, exec_test_exit, 
+  exec_test_wait, exec_test_getpid, exec_test_getppid, 
+  exec_test_dup, exec_test_dup2, exec_test_execve, 
+  exec_test_getcwd, exec_test_gettimeofday, exec_test_yield, 
+  exec_test_sleep, exec_test_times, exec_test_clone, 
+  exec_test_brk, exec_test_uname, exec_test_waitpid, 
+  exec_test_open, exec_test_fstat, exec_test_openat, 
+  exec_test_close, exec_test_read, exec_test_getdents, 
+  exec_test_mkdir, exec_test_chdir, exec_test_mount, 
+  exec_test_umount, exec_test_mmap, exec_test_munmap, 
+  exec_test_unlinkat, exec_test_pipe
+};
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_busybox_unstrp[] =
 // 	"busybox_unstrp";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char busybox_name[]	 = "busybox";
@@ -184,6 +184,8 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char digits[] = "0123456
 int init_main( void )
 {
 	__attribute__(( __unused__ )) int pid;
+	// write( 1, errstr, sizeof( errstr ) );
+	// write( 1, exec_test_basic[0], sizeof( exec_test_basic[0] ) );
 
 	// __attribute__( ( __unused__ ) ) const char *bb_sh[8] = { 0 };
 
@@ -208,24 +210,24 @@ int init_main( void )
 	// 	if ( wait( -1, &child_exit_state ) < 0 ) write( 1, wait_fail, sizeof( wait_fail ) );
 	// 	// write( 1, exec_fail_str, 21 );
 	// }
-	// chdir( test_glibc_basic_path );
+	chdir( test_glibc_basic_path );
 	
-	// RUN_TESTS( exec_test_echo );
-	// RUN_TESTS( exec_test_fork );
-	// RUN_TESTS( exec_test_exit );
-	// RUN_TESTS( exec_test_wait );
-	// RUN_TESTS( exec_test_getpid );
-	// RUN_TESTS( exec_test_getppid );
-	// RUN_TESTS( exec_test_dup2 );
-	// RUN_TESTS( exec_test_execve );
-	// RUN_TESTS( exec_test_getcwd );
-	// RUN_TESTS( exec_test_gettimeofday );
-	// RUN_TESTS( exec_test_yield );
+	RUN_TESTS( exec_test_echo );
+	RUN_TESTS( exec_test_fork );
+	RUN_TESTS( exec_test_exit );
+	RUN_TESTS( exec_test_wait );
+	RUN_TESTS( exec_test_getpid );
+	RUN_TESTS( exec_test_getppid );
+	RUN_TESTS( exec_test_dup2 );
+	RUN_TESTS( exec_test_execve );
+	RUN_TESTS( exec_test_getcwd );
+	RUN_TESTS( exec_test_gettimeofday );
+	RUN_TESTS( exec_test_yield );
 	// RUN_TESTS( exec_test_sleep );
 	// RUN_TESTS( exec_test_times );
-	RUN_TESTS( exec_test_clone );
+	// RUN_TESTS( exec_test_clone );
 	// RUN_TESTS( exec_test_brk );
-	RUN_TESTS( exec_test_waitpid );
+	// RUN_TESTS( exec_test_waitpid );
 	// RUN_TESTS( exec_test_fstat );
 	// RUN_TESTS( exec_test_openat );
 	// RUN_TESTS( exec_test_close );

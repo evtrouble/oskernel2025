@@ -32,6 +32,8 @@ namespace loongarch
 				mbr_fat32  = 2,
 				mbr_ext	   = 3
 			};
+			// PCI厂商ID
+    		#define PCI_VENDOR_ID_REDHAT_QUMRANET  0x1AF4   // Red Hat的virtio设备厂商ID
 			int	_check_mbr_partition( u8 *mbr );
 
 		public:

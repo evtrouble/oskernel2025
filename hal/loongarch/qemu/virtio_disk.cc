@@ -17,118 +17,79 @@
 #include "disk_driver.hh"
 #include "include/interrupt_manager.hh"
 
-static void		_handle_intr() { loongarch::qemu::k_im.handle_dev_intr(); }
-
 namespace loongarch
 {
 	namespace qemu
 	{
-    // PCI配置空间基地址 (LoongArch特定)
-	  static constexpr uint64_t LA_PCI_CONFIG_BASE = 0x2000'0000UL | loongarch::win_1;
-
-	  // PCI配置空间访问的底层实现
-    static void pci_config_write(uint64 pdev, int reg, uint32_t value, int size) {
-        uint64 cfg_addr = pdev + (reg & 0xFC);
-        switch(size) {
-            case 1:
-                *(volatile u8*)cfg_addr = value;
-                break;
-            case 2:
-                *(volatile uint16_t*)cfg_addr = value;
-                break;
-            case 4:
-                *(volatile uint32_t*)cfg_addr = value;
-                break;
-        }
-    }
-
-    static uint32_t pci_config_read(uint64 pdev, int reg, int size) {
-        uint64 cfg_addr = pdev + (reg & 0xFC);
-        switch(size) {
-            case 1:
-                return *(volatile u8*)cfg_addr;
-            case 2:
-                return *(volatile uint16_t*)cfg_addr;
-            case 4:
-                return *(volatile uint32_t*)cfg_addr;
-            default:
-                return 0;
-        }
-    }
-
-    // API函数实现
-    void API_PciDevConfigWriteByte(uint64 pdev, int reg, u8 value) {
-        pci_config_write(pdev, reg, value, 1);
-    }
-
-    void API_PciDevConfigWriteWord(uint64 pdev, int reg, uint16_t value) {
-        pci_config_write(pdev, reg, value, 2);
-    }
-
-    void API_PciDevConfigWriteDword(uint64 pdev, int reg, uint32_t value) {
-        pci_config_write(pdev, reg, value, 4);
-    }
-
-    uint8_t API_PciDevConfigReadByte(uint64 pdev, int reg) {
-        return pci_config_read(pdev, reg, 1);
-    }
-
-    uint16_t API_PciDevConfigReadWord(uint64 pdev, int reg) {
-        return pci_config_read(pdev, reg, 2);
-    }
-
-    uint32_t API_PciDevConfigReadDword(uint64 pdev, int reg) {
-        return pci_config_read(pdev, reg, 4);
-    }
-
-    VirtioDriver::VirtioDriver(uint8_t bus, uint8_t device, uint8_t function, int port_id)
+    VirtioDriver::VirtioDriver(pci_device device, int port_id)
     {
-      _pci_dev = LA_PCI_CONFIG_BASE + (( bus << 16 ) | ( device << 11 ) |
-                        ( function << 8 ));
+      _pci_dev = pci_config_address( device.bus, device.device, device.function );
 
-      uint32 status = 0;
+      uint8 status = 0;
       _port_id	  = port_id;
 
       disk.vdisk_lock.init( "virtio_disk" );
+      virtio_pci_read_caps( &virtio_blk_hw, _pci_dev );
 
-      // Check PCI vendor and device ID
+	  // Check PCI vendor and device ID
       // 读取设备ID和厂商ID
-      uint32_t id_reg = API_PciDevConfigReadDword( _pci_dev, PCI_VENDOR_ID );
-      uint16_t vendor_id = id_reg & 0xFFFF;
-      uint16_t device_id = ( id_reg >> 16 ) & 0xFFFF;
-	  hsai_printf( "vendor_id:%d,device_id:%d", vendor_id, device_id );
+      // uint32_t id_reg	   = API_PciDevConfigReadDword( _pci_dev, PCI_VENDOR_ID );
+      // uint16_t vendor_id = id_reg & 0xFFFF;
+      // uint16_t device_id = ( id_reg >> 16 ) & 0xFFFF;
+      // hsai_printf( "vendor_id:%d,device_id:%d", vendor_id, device_id );
 
-	  if ( vendor_id != PCI_VENDOR_ID_REDHAT_QUMRANET || device_id < 0x1000 ||
-        device_id > 0x103f )
-      {
-        hsai_panic( "could not find virtio disk" );
-      }
+      // if ( vendor_id != PCI_VENDOR_ID_REDHAT_QUMRANET || device_id < 0x1000 ||
+      //   device_id > 0x103f )
+      // {
+      //   hsai_panic( "could not find virtio disk" );
+      // }
       
       // Enable PCI bus mastering
       uint16_t cmd = API_PciDevConfigReadWord(_pci_dev, PCI_COMMAND);
       API_PciDevConfigWriteWord(_pci_dev, PCI_COMMAND, cmd | PCI_COMMAND_MASTER | PCI_COMMAND_IO | PCI_COMMAND_MEMORY);
+      volatile uint32 *base = (volatile uint32 *) _pci_dev;
 
-      _reg = API_PciDevConfigReadDword(_pci_dev, PCI_BASE_ADDRESS_0);
-      // 清除低4位（BAR标志位），获取实际基地址
-      _reg &= ~0xF;
-	    _reg |= loongarch::win_1;
+      for(int i = 0; i < 6; i++) {
+          uint32 old = base[4+i];
+          // printf("bar%d origin value: 0x%08x\t", i, old);
+          if(old & 0x1) {
+              // printf("IO space\n");
+              continue;                                      // 未用到 IO 空间, 暂时也不进行分配等
+          } else {                                           // 仅为 Mem 空间进行进一步的处理
+              // printf("Mem space\t");
+          }
+          if(old & 0x4) {
+              // printf("%x %x\n", base[4 + i], base[4 + i + 1]);             // 64bit 系统映射
+              base[4+i] = 0xffffffff;
+              base[4+i+1] = 0xffffffff;
+              __sync_synchronize();
+
+              uint64 sz = ((uint64)base[4+i+1] << 32) | base[4+i];
+              sz = ~(sz & 0xFFFFFFFFFFFFFFF0) + 1;
+              uint64 mem_addr = pci_alloc_mmio(sz);
+              // 写入分配的大小
+              base[4+i] = (uint32)(mem_addr);
+              base[4+i+1] = (uint32)(mem_addr >> 32);
+              __sync_synchronize();
+              i++;                                    // 跳过下一个 BAR
+          }
+      }
 
 	    // Set device status
       // Virtio设备初始化
       // 1 重置设备
-      API_PciDevConfigWriteByte(_reg, VIRTIO_PCI_STATUS, status);
+      virtio_pci_set_status(&virtio_blk_hw, 0);
       // 2 设置状态：已识别设备
       status |= VIRTIO_CONFIG_S_ACKNOWLEDGE;
-      API_PciDevConfigWriteByte(_reg, VIRTIO_PCI_STATUS, status);
+      virtio_pci_set_status(&virtio_blk_hw, status);
 
       // 3 设置状态：驱动已加载
       status |= VIRTIO_CONFIG_S_DRIVER;
-      API_PciDevConfigWriteByte( _reg, VIRTIO_PCI_STATUS, status );
+      virtio_pci_set_status(&virtio_blk_hw, status);
 
       // 特性协商
       // Negotiate features
-      uint32_t features_lo = API_PciDevConfigReadDword( _reg, VIRTIO_PCI_HOST_FEATURES );
-      uint64	 features	 = features_lo;
+      uint64 features = virtio_pci_get_device_features(&virtio_blk_hw);
 
       features &= ~( 1 << VIRTIO_BLK_F_RO );
       features &= ~( 1 << VIRTIO_BLK_F_SCSI );
@@ -138,27 +99,22 @@ namespace loongarch
       features &= ~( 1 << VIRTIO_RING_F_EVENT_IDX );
       features &= ~( 1 << VIRTIO_RING_F_INDIRECT_DESC );
 
-      API_PciDevConfigWriteDword( _reg, VIRTIO_PCI_GUEST_FEATURES, features & 0xffffffff );
+      virtio_pci_set_driver_features(&virtio_blk_hw, features);
 
-      // Complete feature negotiation
+      // 5. tell device that feature negotiation is complete.
       status |= VIRTIO_CONFIG_S_FEATURES_OK;
-      API_PciDevConfigWriteByte( _reg, VIRTIO_PCI_STATUS, status );
+      virtio_pci_set_status(&virtio_blk_hw, status);
 
-      // Verify the FEATURES_OK bit was accepted
-      uint8_t device_status = API_PciDevConfigReadByte( _reg, VIRTIO_PCI_STATUS );
-      if ( !( device_status & VIRTIO_CONFIG_S_FEATURES_OK ) )
+      // 6. re-read status to ensure FEATURES_OK is set.
+      status = virtio_pci_get_status(&virtio_blk_hw);
+      if ( !( status & VIRTIO_CONFIG_S_FEATURES_OK ) )
+      {
         hsai_panic( "Device did not accept features" );
+      }
 
-      // Tell device we're ready
-      status |= VIRTIO_CONFIG_S_DRIVER_OK;
-      API_PciDevConfigWriteByte( _reg, VIRTIO_PCI_STATUS, status );
-
-      // 读取中断引脚和中断线
-	    // init_intr();
-
-      // Initialize queue 0
-      API_PciDevConfigWriteWord( _pci_dev, VIRTIO_PCI_QUEUE_SEL, 0 );
-      uint16_t qsize = API_PciDevConfigReadWord( _pci_dev, VIRTIO_PCI_QUEUE_NUM_MAX );
+	  // Initialize queue 0
+      // check maximum queue size.
+      uint32 qsize = virtio_pci_get_queue_size(&virtio_blk_hw, 0);
 
       if ( qsize == 0 ) hsai_panic( "virtio disk has no queue 0" );
       if ( qsize < NUM ) hsai_panic( "virtio disk max queue too short" );
@@ -166,8 +122,7 @@ namespace loongarch
       memset( disk.pages, 0, sizeof( disk.pages ) );
 
       // Setup the queue
-      uint32_t pfn = ( (uint64) disk.pages ) >> 12;
-      API_PciDevConfigWriteDword( _reg, VIRTIO_PCI_QUEUE_PFN, pfn );
+      virtio_pci_set_queue_size(&virtio_blk_hw, 0, NUM);
 
       // desc = pages -- num * VRingDesc
       // avail = pages + 0x40 -- 2 * uint16, then num * uint16
@@ -179,7 +134,16 @@ namespace loongarch
 
       for ( int i = 0; i < NUM; i++ ) disk.free[i] = 1;
 
-      static char _default_dev_name[] = "hd?";
+      virtio_pci_set_queue_addr(&virtio_blk_hw, 0, disk.desc, disk.avail, disk.used);
+
+      virtio_pci_set_queue_enable(&virtio_blk_hw, 0);
+
+      status |= VIRTIO_CONFIG_S_DRIVER_OK;
+      virtio_pci_set_status(&virtio_blk_hw, status);
+
+      status = virtio_pci_get_status(&virtio_blk_hw);
+
+	    static char _default_dev_name[] = "hd?";
       for ( ulong i = 0; i < sizeof _default_dev_name; ++i ) _dev_name[i] = _default_dev_name[i];
       _dev_name[2] = 'a' + (char) _port_id;
       _dev_name[3] = '\0';
@@ -192,67 +156,6 @@ namespace loongarch
         pname[5] = 0;
       }
       hsai::k_devm.register_block_device( this, _dev_name );
-    }
-
-    void VirtioDriver::init_intr()
-    {
-      uint8_t cap_ptr = API_PciDevConfigReadByte(_pci_dev, PCI_CAPABILITIES_POINTER);
-
-      // 遍历 PCI 能力列表查找 MSI/MSI-X 能力
-      while (cap_ptr != 0) {
-          uint8_t cap_id = API_PciDevConfigReadByte(_pci_dev, cap_ptr);
-          if(cap_id == PCI_CAP_ID_MSI) {
-            deal_msi( cap_ptr );
-            // 解析 MSI 配置...
-            break;
-          }
-          else if(cap_id == PCI_CAP_ID_MSIX)
-          {
-            deal_msix( cap_ptr );
-            break;
-          }
-          cap_ptr = API_PciDevConfigReadByte(_pci_dev, cap_ptr + 1); // 下一个能力指针
-      }
-      if(cap_ptr == 0)
-        hsai_panic( "virtio-blk-pci don't support interruption!\n" );
-    }
-
-    void VirtioDriver::deal_msix(int msix_cap_ptr)
-    {
-      // 获取 MSI-X 表地址
-      uint32_t msix_table_ptr = API_PciDevConfigReadDword(_pci_dev, msix_cap_ptr + MSIX_TABLE_PTR);
-      uint8_t msix_table_bar = msix_table_ptr & 0x7;
-      uint32_t msix_table_offset = (msix_table_ptr >> 3) << 3;
-      uint32_t table_bar_base = API_PciDevConfigReadDword(_pci_dev, PCI_BASE_ADDRESS_0 + (msix_table_bar * 4));
-      uint32_t msix_table_base = (table_bar_base & ~0xF) + msix_table_offset;
-uint32_t entry_addr = msix_table_base;
-	  uint32 tmp = API_PciDevConfigReadDword( _pci_dev, entry_addr + 8 );
-	  hsai_printf( "tmp:%d\n", tmp );
-
-	  // 分配单个中断向量
-      uint32_t irq_vector = DISK_IRQ;
-
-      // 配置队列0的MSI-X表项（假设队列0对应表项0）
-      // uint32_t entry_addr = msix_table_base;
-      uint64 handle_addr = (uint64) &_handle_intr;
-      API_PciDevConfigWriteDword( _pci_dev, entry_addr, handle_addr & 0xffffffff ); // 低32位地址
-      API_PciDevConfigWriteDword(_pci_dev, entry_addr + 4, handle_addr >> 32); // 高32位地址
-      API_PciDevConfigWriteDword(_pci_dev, entry_addr + 8, irq_vector | 
-                                  0x4000); // 数据（中断向量 + 标志）
-
-      // 启用 MSI-X
-      uint16_t msix_control = API_PciDevConfigReadWord(_pci_dev, msix_cap_ptr + MSIX_CONTROL);
-      msix_control &= ~MSIX_CONTROL_MASKALL;
-      msix_control |= MSIX_CONTROL_ENABLE;
-      API_PciDevConfigWriteWord(_pci_dev, msix_cap_ptr + MSIX_CONTROL, msix_control);
-
-      // 注册中断处理函数
-      // register_interrupt_handler(irq_vector, virtio_disk_interrupt_handler, disk);
-    }
-
-    void VirtioDriver::deal_msi(int msi_cap_ptr)
-    {
-      hsai_panic( "msi have not achieved!\n" );
     }
 
     // find a free descriptor, mark it non-free, return its index.
@@ -307,25 +210,6 @@ uint32_t entry_addr = msix_table_base;
     void VirtioDriver::virtio_disk_rw( long start_block, long block_count,
       hsai::BufferDescriptor *buf_list, int buf_count, bool write )
     {
-      // 读取 VirtIO 设备状态寄存器
-    uint8_t status = API_PciDevConfigReadByte(_reg, VIRTIO_PCI_STATUS);
-    hsai_printf("VIRTIO_PCI_STATUS = 0x%02X\n", status);
-    
-    // 验证驱动状态位
-    if (status & VIRTIO_CONFIG_S_DRIVER_OK) {
-        hsai_printf("VirtIO driver is OK\n");
-    } else {
-        hsai_printf("ERROR: VirtIO driver is not initialized properly!\n");
-    }
-    
-    // 读取中断状态寄存器
-    uint8_t isr = API_PciDevConfigReadByte(_reg, VIRTIO_PCI_ISR);
-    hsai_printf("VIRTIO_PCI_ISR = 0x%02X\n", isr);
-    
-    // 验证队列是否就绪
-    API_PciDevConfigWriteWord(_pci_dev, VIRTIO_PCI_QUEUE_SEL, 0);
-    uint16_t qsize = API_PciDevConfigReadWord(_pci_dev, VIRTIO_PCI_QUEUE_NUM_MAX);
-    hsai_printf("Queue 0 size = %d\n", qsize);
       if(buf_count > 1)
         hsai_panic( "buf_count > 1 not implement" );
       disk.vdisk_lock.acquire();
@@ -353,50 +237,69 @@ uint32_t entry_addr = msix_table_base;
       buf0.sector = start_block;
       
       // 设置请求头描述符
-      disk.desc[idx[0]].addr  = (uint64) &buf0 | loongarch::win_1;
+      disk.desc[idx[0]].addr = mm::k_pagetable.kwalk_addr((uint64) &buf0);
+      // disk.desc[idx[0]].addr = (uint64)&buf0;
+      // hsai_printf( "%p %p aa\n", &buf0, disk.desc[idx[0]].addr );
       disk.desc[idx[0]].len	  = sizeof( buf0 );
       disk.desc[idx[0]].flags = VRING_DESC_F_NEXT;
+      // hsai_printf( "%p %p dqqq\n", idx[1], disk.desc[idx[0]].addr );
       disk.desc[idx[0]].next = idx[1];
       
       // 设置数据描述符
-      disk.desc[idx[1]].addr = buf_list[0].buf_addr;
-      disk.desc[idx[1]].len	 = _block_size * block_count;
+      // hsai_printf( "asasa: %d\n", ((uint32 *) (buf_list[0].buf_addr))[0] );
+      disk.desc[idx[1]].addr	   = virt_to_phy_address( buf_list[0].buf_addr );
+      // disk.desc[idx[1]].addr	  = buf_list[0].buf_addr;
+      disk.desc[idx[1]].len		  = _block_size * block_count;
       disk.desc[idx[1]].flags	 = write ? 0 : VRING_DESC_F_WRITE;
       disk.desc[idx[1]].flags |= VRING_DESC_F_NEXT;
       disk.desc[idx[1]].next = idx[2];
       
       // 设置状态描述符
       disk.info[idx[0]].status = 0; // 设置为未完成状态
-      disk.desc[idx[2]].addr = (uint64) &disk.info[idx[0]].status;
-      disk.desc[idx[2]].len = 1;
+      disk.desc[idx[2]].addr   = virt_to_phy_address( (uint64) &disk.info[idx[0]].status );
+      // disk.desc[idx[2]].addr   = (uint64)&disk.info[idx[0]].status;
+      disk.desc[idx[2]].len	   = 1;
       disk.desc[idx[2]].flags = VRING_DESC_F_WRITE;
       disk.desc[idx[2]].next = 0;
       
       // 记录请求信息
       disk.info[idx[0]].b = buf_list;
+      // hsai_printf( "buf_list:%p\n", buf_list );
       disk.info[idx[0]].wait = true;
 
-      // 通知设备
+	    // 通知设备
       disk.avail[2 + (disk.avail[1] % NUM)] = idx[0];
       __sync_synchronize();
       disk.avail[1]++;
       
       // PCI方式通知队列
-      API_PciDevConfigWriteWord(_pci_dev, VIRTIO_PCI_QUEUE_NOTIFY, 0);
+      virtio_pci_set_queue_notify(&virtio_blk_hw, 0);
 
-      // 等待操作完成
-      while(disk.info[idx[0]].wait) {
-        if(hsai::get_cur_proc())
-          hsai::sleep_at(buf_list, disk.vdisk_lock);
-        else {
-          disk.vdisk_lock.release();
-          asm("wait"); // 使用wait指令代替轮询
-          disk.vdisk_lock.acquire();
-        }
-      }
-      disk.info[idx[0]].b = 0;   // disk is done with buf
+	    // 等待操作完成
+      // while(disk.info[idx[0]].wait) {
+      //   if(hsai::get_cur_proc())
+      //     hsai::sleep_at(buf_list, disk.vdisk_lock);
+      // }
+      // hsai_printf("dafafa:%d\n",virtio_pci_clear_isr(&virtio_blk_hw));
+      // volatile uint16 *pt_used_idx = &disk.used_idx;
+      // volatile uint16 *pt_idx = &disk.used->id;
+      // //     wait cmd done
+      // while ( *pt_used_idx == *pt_idx );
+	    while ( !virtio_pci_clear_isr( &virtio_blk_hw ) );
+	    int id = disk.used->elems[disk.used_idx].id;
 
-      free_chain(idx[0]);
+	  if ( disk.info[id].status != 0 ) hsai_panic( "virtio_disk_intr status" );
+      disk.used_idx		   = ( disk.used_idx + 1 ) % NUM;
+      disk.info[idx[0]].wait = false;
+    // 等待操作完成
+      // while(disk.info[idx[0]].wait) {
+      //   if(hsai::get_cur_proc())
+      //     hsai::sleep_at(buf_list, disk.vdisk_lock);
+      // }
+
+      disk.info[idx[0]].b = 0; // disk is done with buf
+
+      free_chain( idx[0] );
       disk.vdisk_lock.release();
     }
 
@@ -427,25 +330,22 @@ uint32_t entry_addr = msix_table_base;
 
     int VirtioDriver::handle_intr()
     {
-      hsai_printf( "333\n" );
       disk.vdisk_lock.acquire();
 
       // Read ISR to acknowledge the interrupt
-      uint8_t isr = API_PciDevConfigReadByte(_reg, VIRTIO_PCI_ISR);
+      virtio_pci_clear_isr(&virtio_blk_hw);
+      __sync_synchronize();
 
-      if(isr & VIRTIO_PCI_ISR_INTR) {
-          while((disk.used_idx % NUM) != (disk.used->id % NUM)){
-              int id = disk.used->elems[disk.used_idx].id;
+      while((disk.used_idx % NUM) != (disk.used->id % NUM)){
+        int id = disk.used->elems[disk.used_idx].id;
 
-              if(disk.info[id].status != 0)
-                  hsai_panic("virtio_disk_intr status");
+        if(disk.info[id].status != 0)
+            hsai_panic("virtio_disk_intr status");
 
-              disk.info[id].wait = false;   // disk is done with buf
-              hsai::wakeup_at(disk.info[id].b);
+        disk.info[id].wait = false;   // disk is done with buf
+        hsai::wakeup_at(disk.info[id].b);
 
-              disk.used_idx = (disk.used_idx + 1) % NUM;
-          }
-          API_PciDevConfigWriteByte(_reg, VIRTIO_PCI_ISR, isr & ~(VIRTIO_PCI_ISR_INTR));
+        disk.used_idx = (disk.used_idx + 1) % NUM;
       }
 
       disk.vdisk_lock.release();

@@ -47,6 +47,8 @@ namespace hsai
 
 	extern __hsai_kernel VirtualPageTable * get_pt_from_proc( void * proc );
 
+	extern __hsai_kernel VirtualPageTable * get_kpt_from_proc( void * proc );
+
 	extern __hsai_kernel void sleep_at( void * chan, SpinLock &lk );
 
 	extern __hsai_kernel void wakeup_at( void * chan );

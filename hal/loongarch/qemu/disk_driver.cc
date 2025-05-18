@@ -8,6 +8,7 @@
 
 #include "include/qemu.hh"
 #include "include/disk_driver.hh"
+#include "include/pci.hh"
 namespace loongarch
 {
 	namespace qemu
@@ -16,8 +17,8 @@ namespace loongarch
 		{
 			_lock.init( lock_name );
 
-			new ( &disk_ )
-					VirtioDriver( 0, 1, 0, 0 );
+			pci_device device = pci_device_probe(PCI_VENDOR_ID_REDHAT_QUMRANET, 0x1001);
+			new ( &disk_ ) VirtioDriver( device, 0 );
 
 			// 注册到 HSAI
 			hsai::k_devm.register_device( this, "Disk driver" );

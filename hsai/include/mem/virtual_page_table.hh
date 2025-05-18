@@ -20,8 +20,7 @@ namespace hsai
 	public:
 		virtual Pte walk( ulong va, bool alloc ) = 0;
 		virtual ulong walk_addr( ulong va ) = 0;
-
-
+		virtual ulong kwalk_addr( uint64 va )	   = 0;
 	};
 
 } // namespace hsai
