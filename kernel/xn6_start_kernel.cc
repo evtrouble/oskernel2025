@@ -38,9 +38,9 @@
 
 void test_sata();
 void test_buffer();
-void test_fat32();
+// void test_fat32();
 
-char tmp_buf[4096];
+// char tmp_buf[4096];
 
 extern uint64 _start_u_init;
 extern uint64 stext;
@@ -752,38 +752,38 @@ void test_buffer()
 	// 	// fs::k_bufm.release_buffer_sync( buf );
 }
 
-void test_fat32()
-{
-	// concept 说明：
-	// entry 指的是一个目录在内存中的实体，它包含一系列相关的操作函数
-	// dir-info 只是一段目录的信息的拷贝
+// void test_fat32()
+// {
+// 	// concept 说明：
+// 	// entry 指的是一个目录在内存中的实体，它包含一系列相关的操作函数
+// 	// dir-info 只是一段目录的信息的拷贝
 
-	// 获取根目录entry
-	fs::fat::Fat32DirEntry* fat32_root = fs::fat::k_testcase_fs.get_root_dir();
-	// 本地使用一个dir-info来保存文件的信息
-	fs::fat::Fat32DirInfo	test_file_finfo;
+// 	// 获取根目录entry
+// 	fs::fat::Fat32DirEntry* fat32_root = fs::fat::k_testcase_fs.get_root_dir();
+// 	// 本地使用一个dir-info来保存文件的信息
+// 	fs::fat::Fat32DirInfo	test_file_finfo;
 
-	eastl::string file_name = "test_echo";
+// 	eastl::string file_name = "test_echo";
 
-	// 通过文件名（目录名）在一个entry中查找子entry，会保存在dir-info中
-	fat32_root->find_sub_dir( file_name, test_file_finfo );
+// 	// 通过文件名（目录名）在一个entry中查找子entry，会保存在dir-info中
+// 	fat32_root->find_sub_dir( file_name, test_file_finfo );
 
-	// 可以将dir-info交由fs来代理获取对应的entry
-	fs::fat::Fat32DirEntry* test_file_entry =
-		fs::fat::k_testcase_fs.get_dir_entry( test_file_finfo );
+// 	// 可以将dir-info交由fs来代理获取对应的entry
+// 	fs::fat::Fat32DirEntry* test_file_entry =
+// 		fs::fat::k_testcase_fs.get_dir_entry( test_file_finfo );
 
-	// entry可以直接读出其中的内容，如果是文件夹会发生警告，因为读出的内容是文件系统的内部数据结构
-	test_file_entry->read_content( (void*) tmp_buf, sizeof( tmp_buf ), 4096 );
+// 	// entry可以直接读出其中的内容，如果是文件夹会发生警告，因为读出的内容是文件系统的内部数据结构
+// 	test_file_entry->read_content( (void*) tmp_buf, sizeof( tmp_buf ), 4096 );
 
-	// 读出来后打印一下内容，这里因为读取的是一个txt，所以可以直接打印
-	tmp_buf[sizeof( tmp_buf ) - 1] = 0;
-	log_trace( "print content of file <%s>", file_name.c_str() );
-	printf( "\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
-	for ( uint i = 0; i < 512; ++i )
-	{
-		if ( i % 0x10 == 0 ) printf( "%B%B\t", i >> 8, i );
-		printf( "%B ", tmp_buf[i] );
-		if ( i % 0x10 == 0xF ) printf( "\n" );
-	}
-	// printf( "%s", tmp_buf );
-}
+// 	// 读出来后打印一下内容，这里因为读取的是一个txt，所以可以直接打印
+// 	tmp_buf[sizeof( tmp_buf ) - 1] = 0;
+// 	log_trace( "print content of file <%s>", file_name.c_str() );
+// 	printf( "\t00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F\n" );
+// 	for ( uint i = 0; i < 512; ++i )
+// 	{
+// 		if ( i % 0x10 == 0 ) printf( "%B%B\t", i >> 8, i );
+// 		printf( "%B ", tmp_buf[i] );
+// 		if ( i % 0x10 == 0xF ) printf( "\n" );
+// 	}
+// 	// printf( "%s", tmp_buf );
+// }

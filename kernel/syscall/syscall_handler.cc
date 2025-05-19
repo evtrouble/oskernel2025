@@ -59,7 +59,7 @@ namespace syscall
 		{
 			func = []() -> uint64
 			{
-				printf( "defualt syscall\n" );
+				printf( "default syscall\n" );
 				return 0;
 			};
 		}
