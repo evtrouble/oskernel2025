@@ -68,7 +68,8 @@ namespace pm
 				{
 					p->_state = pm::ProcState::running;
 					cpu->set_cur_proc( p );
-					cpu->set_mmu( *(p->get_kpagetable()) );
+					// cpu->set_mmu( *(p->get_kpagetable()) );
+					// cpu->set_mmu( mm::k_pagetable );
 					swtch( cpu->get_context(), p->_context );
 					cpu->set_mmu( mm::k_pagetable );
 					cpu->set_cur_proc( nullptr );

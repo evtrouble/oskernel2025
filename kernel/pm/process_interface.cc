@@ -88,10 +88,10 @@ namespace hsai
 		return ( VirtualPageTable * ) ( ( pm::Pcb * ) proc )->get_pagetable();
 	}
 
-	VirtualPageTable * get_kpt_from_proc( void * proc )
-	{
-		return ( VirtualPageTable * ) ( ( pm::Pcb * ) proc )->get_kpagetable();
-	}
+	// VirtualPageTable * get_kpt_from_proc( void * proc )
+	// {
+	// 	return ( VirtualPageTable * ) ( ( pm::Pcb * ) proc )->get_kpagetable();
+	// }
 
 	void sleep_at( void * chan, hsai::SpinLock & lk )
 	{

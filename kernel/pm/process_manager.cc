@@ -143,6 +143,7 @@ namespace pm
 				p->_lock.release();
 
 				_last_alloc_proc_gid = p->_gid;
+				log_trace( "gid is:%d\n", p->_gid );
 
 				return p;
 			}
@@ -199,16 +200,16 @@ namespace pm
 			p->_pt.freewalk();
 		}
 
-		if ( !p->_kpt.is_null() )
-		{
-			ulong stack_page_cnt = default_proc_ustack_pages;
-			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
-			mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 0 );
-			p->_kpt.kfreewalk( stackbase - hsai::page_size );
-		}
+		// if ( !p->_kpt.is_null() )
+		// {
+		// 	ulong stack_page_cnt = default_proc_ustack_pages;
+		// 	ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
+		// 	mm::k_vmm.vm_unmap( p->_kpt, stackbase - hsai::page_size, stack_page_cnt + 1, 0 );
+		// 	p->_kpt.kfreewalk( stackbase - hsai::page_size );
+		// }
 
 		p->_pt.set_base( 0 );
-		p->_kpt.set_base( 0 );
+		// p->_kpt.set_base( 0 );
 		p->_prog_section_cnt = 0;
 		p->_sz				 = 0;
 		p->_heap_ptr		 = 0;
@@ -323,11 +324,6 @@ namespace pm
 									 p->_prog_sections[ps_cnt - 1]._sec_size );
 		}
 
-#ifndef LOONGARCH
-		mm::k_vmm.map_data_pages( p->_kpt, stackbase, sp - stackbase, 
-									  phy_stackbase, false );
-#endif
-
 		// p->_trapframe->era = ( uint64 ) &init_main - ( uint64 )
 		// &_start_u_init; log_info( "user init: era = %p", p->_trapframe->era
 		// ); p->_trapframe->sp = ( uint64 ) &_u_init_stke - ( uint64 )
@@ -419,13 +415,8 @@ namespace pm
 			// 多出的一页是保护页面，防止栈溢出
 			ulong stack_start =
 				mm::vml::vm_ustack_end - ( 1 + default_proc_ustack_pages ) * hsai::page_size;
-#ifdef LOONGARCH
 			if ( mm::k_vmm.vm_copy( *curpt, *newpt, stack_start,
 									( 1 + default_proc_ustack_pages ) * hsai::page_size ) < 0 )
-#else 
-			if ( mm::k_vmm.vm_copy( *curpt, *newpt, *np->get_kpagetable(), stack_start, 
-									( 1 + default_proc_ustack_pages ) * hsai::page_size ) < 0 )	
-#endif
 			{
 				freeproc( np );
 				np->_lock.release();
@@ -1089,26 +1080,26 @@ namespace pm
 		_proc_create_vm( proc, new_pt );
 		hsai::proc_init( proc );
 
-		if(!proc->_kpt.is_null())
-		{
-			mm::PageTable kpt;
-			kpt = mm::k_vmm.vm_create();
-			memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
-					hsai::page_size  );
+		// if(!proc->_kpt.is_null())
+		// {
+		// 	mm::PageTable kpt;
+		// 	kpt = mm::k_vmm.vm_create();
+		// 	memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
+		// 			hsai::page_size  );
 
-			ulong pgs	= default_proc_ustack_pages + 1;
-			ulong start = mm::vm_ustack_end - pgs * hsai::page_size;
-			mm::k_vmm.map_data_pages( kpt, start, pgs * hsai::page_size, 
-				phy_stackbase, false );
+		// 	ulong pgs	= default_proc_ustack_pages + 1;
+		// 	ulong start = mm::vm_ustack_end - pgs * hsai::page_size;
+		// 	mm::k_vmm.map_data_pages( kpt, start, pgs * hsai::page_size, 
+		// 		phy_stackbase, false );
 
-			hsai::VirtualCpu * cpu = hsai::get_cpu();
-			cpu->set_mmu( kpt );
+		// 	hsai::VirtualCpu * cpu = hsai::get_cpu();
+		// 	cpu->set_mmu( kpt );
 
-			mm::k_vmm.vm_unmap( proc->_kpt, start, pgs, 0 );
-			proc->_kpt.kfreewalk( stackbase - hsai::page_size );
+		// 	mm::k_vmm.vm_unmap( proc->_kpt, start, pgs, 0 );
+		// 	proc->_kpt.kfreewalk( stackbase - hsai::page_size );
 
-			proc->_kpt = kpt;
-		}
+		// 	proc->_kpt = kpt;
+		// }
 
 		proc->_heap_ptr = proc->_heap_start;
 
@@ -1713,14 +1704,14 @@ namespace pm
 		if ( pt.get_base() == 0 ) { return; }
 
 		_proc_create_vm( p, pt );
-#ifndef LOONGARCH
-		mm::PageTable kpt;
-		kpt = mm::k_vmm.vm_create();
-		memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
-				hsai::page_size  );
+// #ifndef LOONGARCH
+// 		mm::PageTable kpt;
+// 		kpt = mm::k_vmm.vm_create();
+// 		memcpy( (void *) kpt.get_base(), (void *) mm::k_pagetable.get_base(),
+// 				hsai::page_size  );
 
-		p->_kpt = kpt;
-#endif
+// 		p->_kpt = kpt;
+// #endif
 	}
 
 	// ---------------- test function ----------------

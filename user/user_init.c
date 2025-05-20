@@ -58,7 +58,7 @@ __attribute__(( section( ".user.init.data" ) )) const char	 end_test_basic[] =
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_busybox[] = "busybox";
 
-__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo[]	 = "basic/write";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo[]	 = "write";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_fork[]	 = "fork";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_exit[]	 = "exit";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_wait[]	 = "wait";
