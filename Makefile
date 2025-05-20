@@ -68,7 +68,7 @@ export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
 export CFLAGS += -DOPEN_COLOR_PRINT=1
 # open debug output
-export CFLAGS += -DOS_DEBUG
+# export CFLAGS += -DOS_DEBUG
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif

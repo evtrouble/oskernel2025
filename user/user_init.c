@@ -229,7 +229,7 @@ int init_main( void )
 	// char		path[]	= "/mnt/glibc/busybox";
 	// const char *bb_sh[] = { "/mnt/glibc/busybox", "basic_testcode.sh", 0 };
 	chdir( test_glibc_basic_path );
-	// write( 1, start_test_basic, sizeof( start_test_basic ) );
+	write( 1, start_test_basic, sizeof( start_test_basic ) );
 	// RUN_TESTS( exec_test_echo );
 	// char *bb_sh[] = { "sh", "basic_testcode.sh", 0 };
 	// bb_sh[0] = sh_name;
