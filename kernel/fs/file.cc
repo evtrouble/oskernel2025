@@ -290,4 +290,9 @@ namespace fs
 		return 0;
 	}
 
+	void file_pool::remove( eastl::string path )
+	{
+		_unlink_list.erase_first(path);
+	}
+
 } // namespace fs

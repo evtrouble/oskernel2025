@@ -231,6 +231,8 @@ namespace pm
 		}
 	}
 
+	
+
 
 	void ProcessManager::user_init()
 	{
@@ -1411,6 +1413,20 @@ namespace pm
 		fs::Path path_( path, file );
 		dentry = path_.pathSearch();
 
+		if ( path == "" ) // empty path
+			return -1;
+
+		if ( path[0] == '.' && path[1] == '/' ) path = path.substr( 2 );
+		if(dentry != nullptr && fs::k_file_table.has_unlinked(path))
+		{
+			if(flags & O_CREAT)
+			{
+				fs::k_file_table.remove(path);
+			}else {
+				return -1;
+			}
+		}
+
 		if ( dentry == nullptr && flags & O_CREAT ) 
 		{
 			// @todo: create file
@@ -1511,7 +1527,15 @@ namespace pm
 		out_buf[i] = '\0';
 		return i + 1;
 	}
+	int ProcessManager::munmap(uint64 va, size_t len){
+		Pcb *p = get_cur_pcb();
+		va = hsai::page_round_down( va );  //起始地址对齐
+		len =hsai::page_round_up(len);     //长度向上取整
+		uint64 npages = len / hsai::page_size;
+		mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
+		return 0;
 
+	}
 	int ProcessManager::mmap( int fd, int map_size )
 	{
 		/// TODO: actually, it shall map buffer and pin buffer at memory

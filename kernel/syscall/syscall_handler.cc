@@ -704,7 +704,14 @@ namespace syscall
 		return pm::k_pm.mmap( fd, map_size );
 	}
 
-	uint64 SyscallHandler::_sys_munmap() { return 0; }
+	uint64 SyscallHandler::_sys_munmap() { 
+		u64 start;
+		if ( _arg_addr( 0, start ) < 0 ) return -1;
+
+		size_t len;
+		if ( _arg_addr( 1, len ) < 0 ) return -1;
+		return pm::k_pm.munmap( start, len );
+	}
 
 	uint64 SyscallHandler::_sys_statx()
 	{

@@ -87,6 +87,7 @@ namespace pm
 		int chdir( eastl::string &path );
 		int getcwd( char * out_buf );
 		int mmap( int fd, int map_size );
+		int munmap(uint64 va,size_t len);
 		int unlink( int fd, eastl::string path, int flags );
 		int pipe( int *fd, int );
 		int set_tid_address( int * tidptr );
