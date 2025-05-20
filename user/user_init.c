@@ -32,9 +32,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_basic[] =
-	"#### OS COMP TEST GROUP START basic-musl-glibc ####\n";
+	"#### OS COMP TEST GROUP START basic-glibc ####\n";
 __attribute__(( section( ".user.init.data" ) )) const char	 end_test_basic[] =
-	"#### OS COMP TEST GROUP END basic-musl-glibc ####\n";
+	"#### OS COMP TEST GROUP END basic-glibc ####\n";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua[]	 =
 // "lua_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest[]	 =
@@ -232,53 +232,54 @@ int init_main( void )
 	write( 1, start_test_basic, sizeof( start_test_basic ) );
 	// RUN_TESTS( exec_test_echo );
 	// char *bb_sh[] = { "sh", "basic_testcode.sh", 0 };
-	bb_sh[0] = sh_name;
-	bb_sh[1] = exec_test_basic;
-	bb_sh[2] = 0;
+	// bb_sh[0] = sh_name;
+	// bb_sh[1] = exec_test_basic;
+	// bb_sh[2] = 0;
 
-	pid = fork(); 
-    if(pid < 0) {
-      write(1, errstr, sizeof(errstr)); 
-    } else if(pid == 0) { 
-      if(execve(busybox_path, bb_sh, 0) < 0) { 
-        write(1, exec_fail_str, sizeof(exec_fail_str)); 
-      } 
-      exit(0); 
-    } else { 
-      int child_exit_state = -100; 
-      if(wait(-1, &child_exit_state) < 0) 
-        write(1, wait_fail, sizeof(wait_fail)); 
-    } 
-	write( 1, end_test_basic, sizeof( end_test_basic ) );
+	// pid = fork(); 
+    // if(pid < 0) {
+    //   write(1, errstr, sizeof(errstr)); 
+    // } else if(pid == 0) { 
+    //   if(execve(busybox_path, bb_sh, 0) < 0) { 
+    //     write(1, exec_fail_str, sizeof(exec_fail_str)); 
+    //   } 
+    //   exit(0); 
+    // } else { 
+    //   int child_exit_state = -100; 
+    //   if(wait(-1, &child_exit_state) < 0) 
+    //     write(1, wait_fail, sizeof(wait_fail)); 
+    // } 
 	
-	// RUN_TESTS( exec_test_echo );
-	// RUN_TESTS( exec_test_fork );
-	// RUN_TESTS( exec_test_exit );
-	// RUN_TESTS( exec_test_wait );
-	// RUN_TESTS( exec_test_getpid );
-	// RUN_TESTS( exec_test_getppid );
-	// RUN_TESTS( exec_test_dup2 );
-	// RUN_TESTS( exec_test_execve );
-	// RUN_TESTS( exec_test_getcwd );
-	// RUN_TESTS( exec_test_gettimeofday );
-	// RUN_TESTS( exec_test_yield );
-	// RUN_TESTS( exec_test_sleep );
-	// RUN_TESTS( exec_test_times );
-	// RUN_TESTS( exec_test_clone );
-	// RUN_TESTS( exec_test_brk );
-	// RUN_TESTS( exec_test_waitpid );
-	// RUN_TESTS( exec_test_fstat );
-	// RUN_TESTS( exec_test_openat );
-	// RUN_TESTS( exec_test_close );
-	// RUN_TESTS( exec_test_read );
-	// RUN_TESTS( exec_test_getdents );
-	// RUN_TESTS( exec_test_mkdir );
-	// RUN_TESTS( exec_test_chdir );
-	// RUN_TESTS( exec_test_mount );
-	// RUN_TESTS( exec_test_umount );
+	
+	RUN_TESTS( exec_test_echo );
+	RUN_TESTS( exec_test_fork );
+	RUN_TESTS( exec_test_exit );
+	RUN_TESTS( exec_test_wait );
+	RUN_TESTS( exec_test_getpid );
+	RUN_TESTS( exec_test_getppid );
+	RUN_TESTS( exec_test_dup2 );
+	RUN_TESTS( exec_test_execve );
+	RUN_TESTS( exec_test_getcwd );
+	RUN_TESTS( exec_test_gettimeofday );
+	RUN_TESTS( exec_test_yield );
+	RUN_TESTS( exec_test_sleep );
+	RUN_TESTS( exec_test_times );
+	RUN_TESTS( exec_test_clone );
+	RUN_TESTS( exec_test_brk );
+	RUN_TESTS( exec_test_waitpid );
+	RUN_TESTS( exec_test_fstat );
+	RUN_TESTS( exec_test_openat );
+	RUN_TESTS( exec_test_close );
+	RUN_TESTS( exec_test_read );
+	RUN_TESTS( exec_test_getdents );
+	RUN_TESTS( exec_test_mkdir );
+	RUN_TESTS( exec_test_chdir );
+	RUN_TESTS( exec_test_mount );
+	RUN_TESTS( exec_test_umount );
 	// RUN_TESTS( exec_test_munmap );
-	// RUN_TESTS( exec_test_unlinkat );
+	RUN_TESTS( exec_test_unlinkat );
 	// RUN_TESTS( exec_test_pipe );
+	write( 1, end_test_basic, sizeof( end_test_basic ) );
 	//test_clone
 	//test_waitpid
 	//test_close

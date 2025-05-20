@@ -111,6 +111,7 @@ namespace syscall
 		uint64 _sys_getpgid();
 		uint64 _sys_setpgid();
 		uint64 _sys_geteuid();
+		uint64 _sys_getegid();
 		uint64 _sys_ppoll();
 		uint64 _sys_getgid();
 		uint64 _sys_setgid();
