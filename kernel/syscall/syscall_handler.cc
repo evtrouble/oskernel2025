@@ -110,6 +110,7 @@ namespace syscall
 		BIND_SYSCALL( getpgid );
 		BIND_SYSCALL( setpgid );
 		BIND_SYSCALL( geteuid );
+		BIND_SYSCALL( getegid );
 		BIND_SYSCALL( ppoll );
 		BIND_SYSCALL( getgid );
 		BIND_SYSCALL( setgid );
@@ -1139,6 +1140,8 @@ namespace syscall
 	}
 
 	uint64 SyscallHandler::_sys_geteuid() { return 1; }
+
+	uint64 SyscallHandler::_sys_getegid() { return 1; }
 
 	uint64 SyscallHandler::_sys_ppoll()
 	{
