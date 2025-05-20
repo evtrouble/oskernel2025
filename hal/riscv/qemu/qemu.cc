@@ -127,8 +127,9 @@ namespace hsai
 		mm::k_vmm.map_code_pages(*pt, TRAMPOLINE, 
 			PG_SIZE, (uint64) trampoline, false );
 		tf->gp = (uint64)__global_pointer$;
+		
 		// tf->sp = ( uint64 ) &_u_init_stke - ( uint64 ) &_start_u_init;
-		// hsai_info( "user init: sp  = %p", tf->sp );
+		hsai_info( "user init: gp  = %p", tf->gp );
 	}
 
 	void proc_init( void * proc )

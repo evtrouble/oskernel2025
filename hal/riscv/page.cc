@@ -16,7 +16,7 @@ using namespace riscv;
 
 namespace hsai
 {
-	Pte::Pte( pte_t * addr ) { _data_addr = ( pte_t* ) k_mem->to_vir( ( ulong ) addr ); }
+	Pte::Pte( pte_t * addr ) { _data_addr = addr; }
 
 	bool Pte::is_valid() { return *_data_addr & PteEnum::pte_valid_m; }
 	bool Pte::is_dirty() { return *_data_addr & PteEnum::pte_dirty_m; }

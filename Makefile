@@ -31,7 +31,7 @@ else ifeq ($(CONF_ARCH), riscv)
 # gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
 export TOOLPREFIX = $(WORKPATH)/riscv64-lp64d--glibc--stable-2022.08-1/bin/riscv64-linux-
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany
+export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
 export LDFLAGS = -static
 endif
 
