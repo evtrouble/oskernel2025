@@ -1504,7 +1504,8 @@ namespace pm
 		// dentry = p->_cwd->EntrySearch( path );
 		if ( dentry == nullptr ) return -1;
 		p->_cwd		 = dentry;
-		p->_cwd_name = path;
+		p->_cwd_name = pt.AbsolutePath();
+		if ( p->_cwd_name.back() != '/' ) p->_cwd_name += "/";
 		return 0;
 	}
 
