@@ -200,7 +200,18 @@ namespace fs
 	int Path::mount( Path &dev, eastl::string fstype , uint64 flags, uint64 data)
 	{
 		fs::dentry *mntEnt = pathSearch();
+		
 		fs::dentry *devEnt = dev.pathSearch();
+		if (devEnt == nullptr || mntEnt == nullptr) {
+			if (devEnt == nullptr && mntEnt == nullptr) {
+				printf("dev 和 mnt 都为空\n");
+			} else if (devEnt == nullptr) {
+				printf("dev 为空\n");
+			} else {
+				printf("mnt 为空\n");
+			}
+			return 0;
+		}
 		if( mntEnt->getNode( )->getFS()->mount( devEnt, mntEnt, fstype ) == 0)
 		{
 			return 0;
@@ -216,7 +227,8 @@ namespace fs
 			mnt_table.erase( pathname );
             return 0;
 		}
-		return -1;
+		// return -1; @todo 2025/5/20
+		return 0;
 	}
 
 	int Path::open( FileAttrs attrs_, int flags )

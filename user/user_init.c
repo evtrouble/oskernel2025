@@ -235,8 +235,8 @@ int init_main( void )
 	RUN_TESTS( exec_test_getdents );
 	RUN_TESTS( exec_test_mkdir );
 	RUN_TESTS( exec_test_chdir );
-	// RUN_TESTS( exec_test_mount );
-	// RUN_TESTS( exec_test_umount );
+	RUN_TESTS( exec_test_mount );
+	RUN_TESTS( exec_test_umount );
 	// RUN_TESTS( exec_test_munmap );
 	// RUN_TESTS( exec_test_unlinkat );
 	// RUN_TESTS( exec_test_pipe );

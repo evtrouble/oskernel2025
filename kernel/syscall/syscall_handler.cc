@@ -650,8 +650,8 @@ namespace syscall
 		if ( mm::k_vmm.copy_str_in( *pt, dev, dev_addr, 100 ) < 0 ) return -1;
 		if ( mm::k_vmm.copy_str_in( *pt, mnt, mnt_addr, 100 ) < 0 ) return -1;
 		if ( mm::k_vmm.copy_str_in( *pt, fstype, fstype_addr, 100 ) < 0 )
-			return -1;
-
+			return -1;	
+				
 		if ( _arg_int( 3, flags ) < 0 ) return -1;
 		if ( _arg_addr( 4, data ) < 0 ) return -1;
 
@@ -659,7 +659,7 @@ namespace syscall
 		fs::Path devpath( dev );
 		fs::Path mntpath( mnt );
 
-		return devpath.mount( mntpath, fstype, flags, data );
+		return mntpath.mount( devpath, fstype, flags, data );
 	}
 
 	uint64 SyscallHandler::_sys_umount()
