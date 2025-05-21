@@ -148,13 +148,18 @@ namespace fs
 		file() = delete;
 		file( FileAttrs attrs ) : _attrs( attrs ), refcnt( 0 ), _stat( _attrs.filetype ) {}
 		virtual ~file() = default;
-		virtual void free_file() { refcnt--; if ( refcnt == 0 ) delete this; };
+		virtual void free_file() { 
+			// Todo 一直是true?
+			close(true);
+			refcnt--; if ( refcnt == 0 ) delete this; 
+		};
 		virtual long read( uint64 buf, size_t len, long off, bool upgrade_off ) = 0;
 		virtual long write( uint64 buf, size_t len, long off, bool upgrade_off ) = 0;
 		virtual void dup() { refcnt++; };
 		virtual bool read_ready() = 0;
 		virtual bool write_ready() = 0;
 		virtual off_t lseek( off_t offset, int whence ) = 0;
+		virtual void close(bool is_write){};
 
 		long get_file_offset() { return _file_ptr; }
 
