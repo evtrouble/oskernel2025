@@ -273,8 +273,7 @@ namespace pm
 			return;
 		}
 
-		ulong phy_stackbase = p->_pt.walk_addr( stackbase );
-		log_trace( "user-init set stack-base = %p", phy_stackbase);
+		log_trace( "user-init set stack-base = %p", p->_pt.walk_addr( stackbase ));
 		log_trace( "user-init set page containing sp is %p",
 				   p->_pt.walk_addr( sp - hsai::page_size ) );
 
@@ -797,8 +796,7 @@ namespace pm
 			return -1;
 		}
 
-		ulong phy_stackbase = new_pt.walk_addr( stackbase );
-		log_trace( "execve set stack-base = %p", phy_stackbase );
+		log_trace( "execve set stack-base = %p", new_pt.walk_addr( stackbase ) );
 		log_trace( "execve set page containing sp is %p",
 				   new_pt.walk_addr( sp - hsai::page_size ) );
 

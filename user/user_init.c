@@ -31,10 +31,14 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
-__attribute__(( section( ".user.init.data" ) )) const char	 start_test_basic[] =
+__attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
-__attribute__(( section( ".user.init.data" ) )) const char	 end_test_basic[] =
+__attribute__(( section( ".user.init.data" ) )) const char	 end_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP END basic-glibc ####\n";
+__attribute__(( section( ".user.init.data" ) )) const char	 start_test_musl_basic[] =
+	"#### OS COMP TEST GROUP START basic-musl ####\n";
+__attribute__(( section( ".user.init.data" ) )) const char	 end_test_musl_basic[] =
+	"#### OS COMP TEST GROUP END basic-musl ####\n";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua[]	 =
 // "lua_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest[]	 =
@@ -197,9 +201,44 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char digits[] = "0123456
     } \
 } while(0)
 
-int init_main( void )
+int			basic_test( void ) __attribute__( ( section( ".user.init" ) ) );
+
+int			basic_test( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
+	RUN_TESTS( exec_test_echo );
+	RUN_TESTS( exec_test_fork );
+	RUN_TESTS( exec_test_exit );
+	RUN_TESTS( exec_test_wait );
+	RUN_TESTS( exec_test_getpid );
+	RUN_TESTS( exec_test_getppid );
+	RUN_TESTS( exec_test_dup2 );
+	RUN_TESTS( exec_test_execve );
+	RUN_TESTS( exec_test_getcwd );
+	RUN_TESTS( exec_test_gettimeofday );
+	RUN_TESTS( exec_test_yield );
+	RUN_TESTS( exec_test_sleep );
+	RUN_TESTS( exec_test_times );
+	RUN_TESTS( exec_test_clone );
+	RUN_TESTS( exec_test_brk );
+	RUN_TESTS( exec_test_waitpid );
+	RUN_TESTS( exec_test_fstat );
+	RUN_TESTS( exec_test_openat );
+	RUN_TESTS( exec_test_close );
+	RUN_TESTS( exec_test_read );
+	RUN_TESTS( exec_test_getdents );
+	RUN_TESTS( exec_test_mkdir );
+	RUN_TESTS( exec_test_chdir );
+	RUN_TESTS( exec_test_mount );
+	RUN_TESTS( exec_test_umount );
+	RUN_TESTS( exec_test_munmap );
+	RUN_TESTS( exec_test_unlinkat );
+	RUN_TESTS( exec_test_pipe );
+}
+
+int init_main( void )
+{
+	
 	// write( 1, errstr, sizeof( errstr ) );
 	// write( 1, exec_test_basic[0], sizeof( exec_test_basic[0] ) );
 
@@ -229,7 +268,7 @@ int init_main( void )
 	// char		path[]	= "/mnt/glibc/busybox";
 	// const char *bb_sh[] = { "/mnt/glibc/busybox", "basic_testcode.sh", 0 };
 	chdir( test_glibc_basic_path );
-	write( 1, start_test_basic, sizeof( start_test_basic ) );
+	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	// RUN_TESTS( exec_test_echo );
 	// char *bb_sh[] = { "sh", "basic_testcode.sh", 0 };
 	// bb_sh[0] = sh_name;
@@ -248,42 +287,16 @@ int init_main( void )
     //   int child_exit_state = -100; 
     //   if(wait(-1, &child_exit_state) < 0) 
     //     write(1, wait_fail, sizeof(wait_fail)); 
-    // } 
-	
-	
-	RUN_TESTS( exec_test_echo );
-	RUN_TESTS( exec_test_fork );
-	RUN_TESTS( exec_test_exit );
-	RUN_TESTS( exec_test_wait );
-	RUN_TESTS( exec_test_getpid );
-	RUN_TESTS( exec_test_getppid );
-	RUN_TESTS( exec_test_dup2 );
-	RUN_TESTS( exec_test_execve );
-	RUN_TESTS( exec_test_getcwd );
-	RUN_TESTS( exec_test_gettimeofday );
-	RUN_TESTS( exec_test_yield );
-	RUN_TESTS( exec_test_sleep );
-	RUN_TESTS( exec_test_times );
-	RUN_TESTS( exec_test_clone );
-	RUN_TESTS( exec_test_brk );
-	RUN_TESTS( exec_test_waitpid );
-	RUN_TESTS( exec_test_fstat );
-	RUN_TESTS( exec_test_openat );
-	RUN_TESTS( exec_test_close );
-	RUN_TESTS( exec_test_read );
-	RUN_TESTS( exec_test_getdents );
-	RUN_TESTS( exec_test_mkdir );
-	RUN_TESTS( exec_test_chdir );
-	RUN_TESTS( exec_test_mount );
-	RUN_TESTS( exec_test_umount );
-	// RUN_TESTS( exec_test_munmap );
-	RUN_TESTS( exec_test_unlinkat );
-	// RUN_TESTS( exec_test_pipe );
-	write( 1, end_test_basic, sizeof( end_test_basic ) );
-	//test_clone
-	//test_waitpid
-	//test_close
-	//test_mount
+    // }
+
+	basic_test();
+
+	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+
+	chdir( test_musl_basic_path );
+	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
+	basic_test();
+	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
 
 	// pid = fork();
 	// if ( pid < 0 ) { write( 1, errstr, sizeof( errstr ) ); }
