@@ -10,18 +10,20 @@ namespace fs
 	private:
 		uint64 _off = 0;
 		Pipe *_pipe;
+		bool is_write;
 	public:
-		pipe_file( FileAttrs attrs, Pipe *pipe_ ) : file( attrs ), _pipe( pipe_ ) { new ( &_stat ) Kstat( _pipe ); dup(); }
-		pipe_file( Pipe *pipe_ ) : file( FileAttrs( FileTypes::FT_PIPE, 0777 ) ), _pipe( pipe_ ) { new ( &_stat ) Kstat( _pipe ); dup(); }
-		~pipe_file() = default;
+		pipe_file( FileAttrs attrs, Pipe *pipe_,bool is_write ) : file( attrs ), _pipe( pipe_ ),is_write(is_write) { new ( &_stat ) Kstat( _pipe ); dup(); }
+		pipe_file( Pipe *pipe_,bool is_write ) : file( FileAttrs( FileTypes::FT_PIPE, 0777 ) ), _pipe( pipe_ ),is_write(is_write) { new ( &_stat ) Kstat( _pipe ); dup(); }
+		~pipe_file(){
+			_pipe->close(is_write);
+		};
 
 		/// @note pipe read 没有偏移的概念
 		long read( uint64 buf, size_t len, long off, bool upgrade ) override { return _pipe->read( buf, len ); };
 
 		/// @note pipe write 没有偏移的概念
 		long write( uint64 buf, size_t len, long off, bool upgrade ) override { return _pipe->write_in_kernel( buf, len ); };
-		// pipe关闭，多态实现
-		void close(bool is_write)override{_pipe->close(is_write);};
+		
 
 		int write_in_kernel( uint64 buf, size_t len ) { return _pipe->write_in_kernel( buf, len ); }
 
