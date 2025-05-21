@@ -212,6 +212,7 @@ int			basic_test( void )
 	RUN_TESTS( exec_test_wait );
 	RUN_TESTS( exec_test_getpid );
 	RUN_TESTS( exec_test_getppid );
+	RUN_TESTS( exec_test_dup );
 	RUN_TESTS( exec_test_dup2 );
 	RUN_TESTS( exec_test_execve );
 	RUN_TESTS( exec_test_getcwd );
@@ -222,8 +223,11 @@ int			basic_test( void )
 	RUN_TESTS( exec_test_clone );
 	RUN_TESTS( exec_test_brk );
 	RUN_TESTS( exec_test_waitpid );
+	RUN_TESTS( exec_test_mmap );
 	RUN_TESTS( exec_test_fstat );
+	RUN_TESTS( exec_test_uname );
 	RUN_TESTS( exec_test_openat );
+	RUN_TESTS( exec_test_open );
 	RUN_TESTS( exec_test_close );
 	RUN_TESTS( exec_test_read );
 	RUN_TESTS( exec_test_getdents );

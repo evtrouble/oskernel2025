@@ -203,13 +203,6 @@ namespace fs
 		
 		fs::dentry *devEnt = dev.pathSearch();
 		if (devEnt == nullptr || mntEnt == nullptr) {
-			if (devEnt == nullptr && mntEnt == nullptr) {
-				printf("dev 和 mnt 都为空\n");
-			} else if (devEnt == nullptr) {
-				printf("dev 为空\n");
-			} else {
-				printf("mnt 为空\n");
-			}
 			return 0;
 		}
 		if( mntEnt->getNode( )->getFS()->mount( devEnt, mntEnt, fstype ) == 0)
