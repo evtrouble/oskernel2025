@@ -8,7 +8,7 @@
 
 #pragma once
 #include "loongarch.hh"
-#include <kernel/types.hh>
+#include <types.hh>
 
 namespace loongarch
 {

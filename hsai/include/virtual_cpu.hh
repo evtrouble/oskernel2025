@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "kernel/types.hh"
-#include "kernel/mm/page_table.hh"
+#include "types.hh"
+#include "mm/page_table.hh"
 
 namespace pm
 {

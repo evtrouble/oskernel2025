@@ -49,11 +49,11 @@ extern "C++" {
 #ifdef STDIO
 //#pragma message("klib.h: STDIO")
 //int    printf    (const char *format, ...);
-	int    sprintf( char *str, const char *format, ... );
-	int    snprintf( char *str, size_t size, const char *format, ... );
-	int    vsprintf( char *str, const char *format, va_list ap );
-	int    vsnprintf( char *str, size_t size, const char *format, va_list ap );
-	int    putchar( char c );
+	// int    sprintf( char *str, const char *format, ... );
+	// int    snprintf( char *str, size_t size, const char *format, ... );
+	// int    vsprintf( char *str, const char *format, va_list ap );
+	// int    vsnprintf( char *str, size_t size, const char *format, va_list ap );
+	// int    putchar( char c );
 	// void   _blockingputs(const char *);
 	// void   _nonblockingputs(const char *);
 

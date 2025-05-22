@@ -11,7 +11,7 @@
 #include "console.hh"
 #include "device_manager.hh"
 #include "hsai_log.hh"
-#include "kernel/klib/__cxx_abi.hh"
+#include "klib/__cxx_abi.hh"
 #include "virtual_cpu.hh"
 
 extern "C" {

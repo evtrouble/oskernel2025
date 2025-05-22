@@ -10,7 +10,7 @@
 
 #include "loongarch.hh"
 
-#include <kernel/types.hh>
+#include <types.hh>
 #include <virtual_cpu.hh>
 
 extern "C" {

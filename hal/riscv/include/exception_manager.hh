@@ -1,6 +1,6 @@
 #pragma once 
 
-#include <kernel/klib/function.hh>
+#include <klib/function.hh>
 #include <smp/spin_lock.hh>
 
 namespace riscv

@@ -1,7 +1,7 @@
 CXXFLAGS += -I include -nostdlib
 CXXFLAGS += -I test/packages/EABase/include/Common
-CXXFLAGS += -I ../../kernel/include/
-CXXFLAGS += -I ../../kernel/include/klib
+CXXFLAGS += -I $(WORKPATH)/kernel/include/
+CXXFLAGS += -I .$(WORKPATH)/kernel/include/klib
 CXXFLAGS += -I $(WORKPATH)/hsai/include
 CXXFLAGS += -Wno-deprecated-declarations
 

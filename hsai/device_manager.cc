@@ -10,7 +10,7 @@
 #include "hsai_global.hh"
 #include "virtual_device.hh"
 
-#include <kernel/klib/klib.hh>
+#include <klib/klib.hh>
 
 namespace hsai
 {

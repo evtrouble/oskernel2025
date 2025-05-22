@@ -13,7 +13,7 @@
 
 #pragma once 
 
-#include "kernel/types.hh"
+#include "types.hh"
 #include "uart/virtual_uart.hh"
 #include "smp/spin_lock.hh"
 

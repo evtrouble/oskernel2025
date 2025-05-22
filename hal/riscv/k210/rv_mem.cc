@@ -12,7 +12,7 @@
 #include <hsai_log.hh>
 #include <mem/page.hh>
 #include <memory_interface.hh>
-#include <kernel/mm/virtual_memory_manager.hh>
+#include <mm/virtual_memory_manager.hh>
 
 #include "rv_cpu.hh"
 #include "riscv.hh"

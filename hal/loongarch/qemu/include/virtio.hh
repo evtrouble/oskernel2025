@@ -4,12 +4,12 @@
 #include <disk_partition_device.hh>
 #include <hsai_global.hh>
 #include <hsai_log.hh>
-#include <kernel/klib/function.hh>
+#include <klib/function.hh>
 #include <mem/virtual_memory.hh>
 #include <smp/spin_lock.hh>
 
 #include <mem/page.hh>
-#include <kernel/types.hh>
+#include <types.hh>
 #include "pci.hh"
 
 //

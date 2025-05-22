@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <kernel/klib/function.hh>
+#include <klib/function.hh>
 
 #include "ata/ahci.hh"
 #include "ata/sata.hh"

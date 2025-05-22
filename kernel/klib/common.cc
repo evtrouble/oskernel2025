@@ -8,12 +8,13 @@
 
 #include "klib/common.hh"
 
-void printf( const char *fmt, ... )
+int printf( const char *fmt, ... )
 {
 	va_list ap;
 	va_start( ap, fmt );
 	klib::k_printer.vprintf( fmt, ap );
 	va_end( ap );
+	return 0;
 }
 
 // void *memset( void *dst, int c, uint n )

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "kernel/types.hh"
+#include "types.hh"
 
 #ifndef NUMCPU
 #define NUMCPU 1

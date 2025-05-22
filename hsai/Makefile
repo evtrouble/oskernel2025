@@ -30,7 +30,7 @@ card_dir = $(foreach d, $(filter-out include/, $(wildcard $1*/)), $(call card_di
 
 INCLUDE_FLAGS = -I$(WORKPATH)/thirdparty/EASTL/include \
 				-I$(WORKPATH)/thirdparty/EASTL/test/packages/EABase/include/Common \
-            #    -I$(WORKPATH)/kernel/include
+               -I$(WORKPATH)/kernel/include
 
 CFLAGS += $(INCLUDE_FLAGS)
 CXXFLAGS += $(INCLUDE_FLAGS)

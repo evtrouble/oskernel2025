@@ -5,7 +5,7 @@
 #include "include/trap_wrapper.hh"
 #include "include/trap_frame.hh"
 #include "include/sbi.hh"
-#include <kernel/mm/virtual_memory_manager.hh>
+#include <mm/virtual_memory_manager.hh>
 // #include "kernel/pm/process_manager.hh"
 
 // #include "kernel/mm/memlayout.hh"

@@ -13,7 +13,7 @@ extern "C" {
 #include "la_csr.h"
 }
 
-#include <kernel/types.hh>
+#include <types.hh>
 
 namespace loongarch
 {

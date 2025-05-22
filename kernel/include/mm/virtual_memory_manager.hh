@@ -8,8 +8,8 @@
 
 #pragma once 
 
-#include <kernel/mm/page_table.hh>
-#include "kernel/pm/sharemem.hh"
+#include <mm/page_table.hh>
+#include "pm/sharemem.hh"
 
 #include <smp/spin_lock.hh>
 
