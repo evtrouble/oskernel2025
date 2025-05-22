@@ -25,11 +25,11 @@ namespace loongarch
 {
 	namespace qemu
 	{
-		static Memory k_2k1000_mem;
+		static Memory k_qemu_mem;
 
 		void Memory::memory_init()
 		{
-			register_memory( &k_2k1000_mem );
+			register_memory( &k_qemu_mem );
 
 			// configure page table mapping
 

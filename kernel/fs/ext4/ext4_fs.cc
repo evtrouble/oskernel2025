@@ -92,7 +92,7 @@ namespace fs
 			_bgs					   = new Ext4BlockGroup[_cache_group_count];
 			const int	desc_per_block = _sb.rBlockSize() / sizeof( Ext4GroupDesc );
 			long		blk_gdt_cnt	   = 0;
-			Ext4Buffer* pblk;
+			Ext4Buffer* pblk = nullptr;
 			for ( int i = 0; i < _cache_group_count; ++i )
 			{
 				int blk_gdt_off = i % desc_per_block;

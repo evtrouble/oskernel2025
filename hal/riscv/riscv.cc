@@ -10,7 +10,7 @@
 
 extern "C" {
 // entry.S needs one stack per CPU.
-char  entry_stack[riscv::entry_stack_size * NUMCPU] __attribute__( ( aligned( 16 ) ) );
+__attribute__( ( section( ".bss.stack" ) ) ) char  entry_stack[riscv::entry_stack_size * NUMCPU] __attribute__( ( aligned( 16 ) ) );
 char *entry_stack_end = entry_stack + riscv::entry_stack_size * NUMCPU;
 }
 

@@ -1,7 +1,7 @@
     .section .text.osstartup
     .globl _start
 _start:
-    la sp, boot_stack
+    la sp, entry_stack
     mv tp, a0
     call _cpu_init
 
@@ -11,11 +11,3 @@ _start:
 
 loop:
     j loop
-
-    .section .bss.stack
-    .align 12
-    .globl boot_stack
-boot_stack:
-    .space 4096 * 4 * 2
-    .globl boot_stack_top
-boot_stack_top:

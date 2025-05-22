@@ -30,8 +30,10 @@ export CFLAGS = -march=loongarch64 -mabi=lp64d -DLOONGARCH
 else ifeq ($(CONF_ARCH), riscv)
 # gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
 export TOOLPREFIX = $(WORKPATH)/riscv64-lp64d--glibc--stable-2022.08-1/bin/riscv64-linux-
+# export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
+# export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
 export ASFLAGS = -ggdb -march=rv64gc -mabi=lp64d -O0
-export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax
+export CFLAGS = -march=rv64gc -mabi=lp64d -mcmodel=medany -mno-relax 
 export LDFLAGS = -static
 endif
 
@@ -68,7 +70,7 @@ export CFLAGS += -DARCH=$(CONF_ARCH)
 export CFLAGS += -DPLATFORM=$(CONF_PLATFORM)
 export CFLAGS += -DOPEN_COLOR_PRINT=1
 # open debug output
-# export CFLAGS += -DOS_DEBUG
+export CFLAGS += -DOS_DEBUG
 ifeq ($(HOST_OS),Linux)
 export CFLAGS += -DLINUX_BUILD=1
 endif
@@ -208,7 +210,7 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 # endif
 
 run: 
-	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
+	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc -s -S
 
 dst=/mnt
 # 测试点代码

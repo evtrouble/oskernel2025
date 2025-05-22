@@ -52,8 +52,8 @@ using namespace riscv::qemu;
 
 namespace hsai
 {
-	const u64 memory_start = kernel_end;
-	const u64 memory_size  = PHYSTOP - kernel_end;
+	const u64 memory_start = (u64)&kernel_end;
+	const u64 memory_size  = PHYSTOP - memory_start;
 
 	const uint context_size = sizeof( riscv::Context );
 

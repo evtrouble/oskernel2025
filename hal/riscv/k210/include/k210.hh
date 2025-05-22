@@ -85,7 +85,7 @@ namespace riscv
 		// from physical address 0x80020000 to PHYSTOP.
 		#define KERNBASE                0x80020000L
 
-		#define PHYSTOP                 0x82400000L
+		#define PHYSTOP                 0x88000000L
 
 		// map kernel stacks beneath the trampoline,
 		// each surrounded by invalid guard pages.

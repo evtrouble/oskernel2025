@@ -37,11 +37,12 @@ namespace riscv
 		void Memory::memory_init()
 		{
 			register_memory( &k_qemu_mem );
+			k_tlbm.init( "TLB manager" );
 		}
 
 		ulong Memory::mem_start()
 		{
-			ulong end_addr	= (ulong) &kernel_end;
+			ulong end_addr	= (ulong) kernel_end;
 			end_addr	   += _1M - 1;
 			end_addr	   &= ~( _1M - 1 );
 			return end_addr;
