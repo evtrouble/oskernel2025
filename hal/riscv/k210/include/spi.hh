@@ -1,5 +1,5 @@
 #pragma once
-#include <kernel/types.hh>
+#include <types.hh>
 #include "dmac.hh"
 namespace riscv
 {

@@ -7,7 +7,7 @@
 #include <memory_interface.hh>
 #include <process_interface.hh>
 #include <timer_interface.hh>
-#include <kernel/mm/virtual_memory_manager.hh>
+#include <mm/virtual_memory_manager.hh>
 
 #include "uart.hh"
 #include "context.hh"

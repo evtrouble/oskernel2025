@@ -29,10 +29,4 @@ namespace loongarch
 	};
 
 	Context * proc_context_pool();
-
-	// struct vma{
-	// 	uint64 address; 	//start of mem block
-	// 	int length;			//length of mem block
-	// 	int next;			//next block	
-	// };
 }

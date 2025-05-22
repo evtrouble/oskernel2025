@@ -47,6 +47,9 @@ namespace pm
         } // init sigactions
 		sigmask = 0;
 
+		for (int i = 0; i < max_vma_num; ++i) {
+            vm[i].is_used = false;
+        }
 	}
 
 	void Pcb::map_kstack( mm::PageTable &pt )

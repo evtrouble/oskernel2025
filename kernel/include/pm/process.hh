@@ -23,7 +23,9 @@ namespace fs
 {
 	class dentry;
 	class file;
+	class normal_file;
 } // namespace fs
+
 namespace pm
 {
 	struct TrapFrame;
@@ -60,6 +62,17 @@ namespace pm
 		const char *_debug_name = nullptr;
 	};
 	constexpr int max_program_section_num = 16;
+	constexpr int max_vma_num = 10;
+	struct vma{
+		bool is_used;	// 是否被使用
+		uint64 address; 	//start of mem block
+		int length;			//length of mem block
+		// int next;			//next block	
+		int prot;           // 权限
+		int flags;          // 标志位
+		// int vfd;            // 对应的文件描述符
+		fs::normal_file* vfile; // 对应文件
+	};
 
 	class Pcb
 	{
@@ -118,7 +131,7 @@ namespace pm
 		uint64 _heap_ptr   = 0; // 堆结束指针
 
 		// vm
-		struct vma *vm[10]; // virtual memory area <<<<<<<<<<<<<<<<<< what??? Could ONE process has several vm space?
+		vma vm[max_vma_num]; // virtual memory area <<<<<<<<<<<<<<<<<< what??? Could ONE process has several vm space?
 
 
 		// 线程/futex 相关

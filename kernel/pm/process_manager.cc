@@ -1525,15 +1525,36 @@ namespace pm
 		out_buf[i] = '\0';
 		return i + 1;
 	}
+
 	int ProcessManager::munmap(uint64 va, size_t len){
 		Pcb *p = get_cur_pcb();
 		va = hsai::page_round_down( va );  //起始地址对齐
 		len =hsai::page_round_up(len);     //长度向上取整
 		uint64 npages = len / hsai::page_size;
+
+		int	 i = 0;
+		for (; i < max_vma_num; i++ )
+		{
+			if(va == p->vm[i].address) {
+				p->vm[i].is_used  = false;
+				int offset		  = 0;
+				for ( uint64_t va1 = va; va1 < va + len; va1 += hsai::page_size, offset += hsai::page_size )
+				{
+					ulong pa = p->_pt.kwalk_addr( va1 );
+					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+				}
+				break;
+			} 
+		}
+
+		if(i == max_vma_num) {
+			return -1;
+		}
+
 		mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
 		return 0;
-
 	}
+
 	int ProcessManager::mmap( int fd, int map_size )
 	{
 		/// TODO: actually, it shall map buffer and pin buffer at memory
@@ -1554,6 +1575,29 @@ namespace pm
 
 		uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
 		if ( newsz == 0 ) return -1;
+
+		for(int i=0;i< max_vma_num;i++) {
+			if(!p->vm[i].is_used) {
+				p->vm[i].is_used = true;
+
+				p->vm[i].address = p->_sz;
+				p->vm[i].length = map_size;
+				// p->vma[i].flags = flags;
+				// p->vma[i].prot = prot;
+				p->vm[i].vfile = normal_f;
+				break;
+				// p->vma[i].vfd = fd;
+				// p->vma[i].offset = offset;
+
+				// p->sz += length;
+				// if (f != NULL) {
+				// 	normal_f->dup();
+				// 	break;
+				// }
+
+				// return p->vma[i].addr;
+			}
+		}
 
 		p->_sz = newsz;
 

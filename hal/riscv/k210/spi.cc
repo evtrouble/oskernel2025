@@ -1,6 +1,6 @@
 // SPI Protocol Implementation
 
-#include <kernel/types.hh>
+#include <types.hh>
 #include "riscv.hh"
 #include "include/utils.hh"
 #include "include/dmac.hh"

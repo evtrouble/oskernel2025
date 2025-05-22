@@ -19,7 +19,7 @@
  */
 
 #pragma once
-#include <kernel/types.hh>
+#include <types.hh>
 
 namespace riscv
 {
