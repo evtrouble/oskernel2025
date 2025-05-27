@@ -66,7 +66,7 @@ namespace fs
 					if( dentry->getNode()->rMode().filetype == fs::FileTypes::FT_DEVICE)
 						dev = node->rDev();
 					else 
-						dev = -1;
+						dev = 0x3f3f3f3f;
 					ino = node->rIno();
 					mode = node->rMode().transMode(); // process mode 
 					nlink = 1;

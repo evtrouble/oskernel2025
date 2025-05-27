@@ -1719,10 +1719,14 @@ namespace pm
 
 	int ProcessManager::alloc_fd( Pcb *p, fs::file *f, int fd )
 	{
-		// if ( fd <= 2 || fd >= ( int ) max_open_files )
-		// 	return -1;
-		// if ( p->_ofile[ fd ] != nullptr )
-		// 	return -1;
+		// 越界检查
+		if (fd < 0 || fd >= (int)max_open_files||f==nullptr)  
+        return -1;
+		// 不为空先释放资源
+		if ( p->_ofile[ fd ] != nullptr )
+		{
+			close(fd);
+		}
 		p->_ofile[fd] = f;
 		return fd;
 	}

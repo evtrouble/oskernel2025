@@ -49,7 +49,7 @@ namespace fs
 
 			virtual FileAttrs	rMode() const override { return _attrs; };
 			virtual dev_t		rDev() const override { return -1; };
-			virtual u64			rFileSize() const override { return -1; };
+			virtual u64			rFileSize() const override { return _inode.size_lo + _inode.size_high << 32; };
 			virtual u64			rIno() const override { return 0; };
 			virtual SuperBlock *getSb() const override;
 			virtual FileSystem *getFS() const override { return (FileSystem *) _belong_fs; };

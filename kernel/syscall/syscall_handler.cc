@@ -218,8 +218,8 @@ namespace syscall
 			return -1;
 		}
 
-		if ( fd > 2 )
-			printf( BLUE_COLOR_PRINT "invoke sys_write\n" CLEAR_COLOR_PRINT );
+		// if ( fd > 2 )
+		// 	printf( BLUE_COLOR_PRINT "invoke sys_write\n" CLEAR_COLOR_PRINT );
 
 		pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
 		mm::PageTable *pt	= proc->get_pagetable();
@@ -392,6 +392,7 @@ namespace syscall
 
 		if ( _arg_fd( 0, &oldfd, &f ) < 0 ) return -1;
 		if ( _arg_int( 1, fd ) < 0 ) return -1;
+		if(fd==oldfd)return fd;
 		if ( pm::k_pm.alloc_fd( p, f, fd ) < 0 ) return -1;
 		// fs::k_file_table.dup( f );
 		f->dup();
@@ -784,6 +785,17 @@ namespace syscall
 			pm::k_pm.fstat( fd, &kst );
 			stx.stx_mode	  = kst.mode;
 			stx.stx_size	  = kst.size;
+			stx.stx_dev_minor   =(kst.dev)>>32;
+			stx.stx_dev_major   =(kst.dev)&(0xFFFFFFFF);
+			// dev=(int)(stx_dev_major<<8 | stx_dev_minor&0xff)
+			stx.stx_ino       =kst.ino;
+			stx.stx_nlink     =kst.nlink;
+			stx.stx_atime.tv_sec = kst.st_atime_sec;
+			stx.stx_atime.tv_nsec = kst.st_atime_nsec;
+			stx.stx_mtime.tv_sec = kst.st_mtime_sec;
+			stx.stx_mtime.tv_nsec = kst.st_mtime_nsec;
+			stx.stx_ctime.tv_sec = kst.st_ctime_sec;
+			stx.stx_ctime.tv_nsec = kst.st_ctime_nsec;
 			mm::PageTable *pt = pm::k_pm.get_cur_pcb()->get_pagetable();
 			if ( mm::k_vmm.copyout( *pt, kst_addr, &stx, sizeof( stx ) ) < 0 )
 				return -1;
