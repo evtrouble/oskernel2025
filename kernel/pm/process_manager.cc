@@ -49,7 +49,7 @@
 #include "fs/ramfs/ramfs.hh"
 #include "klib/common.hh"
 #include "fs/dentrycache.hh"
-
+#include "errno-base/h"
 extern "C" {
 extern uint64 _start_u_init;
 extern uint64 _end_u_init;
@@ -1199,7 +1199,7 @@ namespace pm
 			if ( !havekids || p->_killed )
 			{
 				_wait_lock.release();
-				return -1;
+				return -ECHILD; // 没有子进程
 			}
 
 			// wait children to exit
