@@ -49,7 +49,7 @@
 #include "fs/ramfs/ramfs.hh"
 #include "klib/common.hh"
 #include "fs/dentrycache.hh"
-#include "errno-base/h"
+#include "errno-base.h"
 extern "C" {
 extern uint64 _start_u_init;
 extern uint64 _end_u_init;

@@ -31,6 +31,10 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
+// __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox[]	 = "busybox_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox[]	 = "basename";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
+// __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_static[]	 = "run-static.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
 __attribute__(( section( ".user.init.data" ) )) const char	 end_test_glibc_basic[] =
@@ -104,7 +108,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_pipe[]	  
 //   exec_test_brk, exec_test_uname, exec_test_waitpid, 
 //   exec_test_open, exec_test_fstat, exec_test_openat, 
 //   exec_test_close, exec_test_read, exec_test_getdents, 
-//   exec_test_mkdir, exec_test_chdir, exec_test_mount, 
+//   exec_test_mkdir, exec_test_chdir, exec_test_mount, z
 //   exec_test_umount, exec_test_mmap, exec_test_munmap, 
 //   exec_test_unlinkat, exec_test_pipe
 // };
@@ -125,9 +129,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char sh_name[]	 = "sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char lua_test_sh[] =
 // 	"/mnt/sdcard/lua/test.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_basic_path[] = "/mnt/musl/basic/";
-__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/basic/";
+__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/";
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
-__attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "../busybox";
+__attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -242,7 +246,7 @@ int			basic_test( void )
 
 int init_main( void )
 {
-	
+	__attribute__(( __unused__ )) int pid;
 	// write( 1, errstr, sizeof( errstr ) );
 	// write( 1, exec_test_basic[0], sizeof( exec_test_basic[0] ) );
 
@@ -272,35 +276,37 @@ int init_main( void )
 	// char		path[]	= "/mnt/glibc/busybox";
 	// const char *bb_sh[] = { "/mnt/glibc/busybox", "basic_testcode.sh", 0 };
 	chdir( test_glibc_basic_path );
-	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
+
+	// write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	// RUN_TESTS( exec_test_echo );
-	// char *bb_sh[] = { "sh", "basic_testcode.sh", 0 };
+	// char *bb_sh[] = { "sh", "libctest_testcode.sh", 0 };
 	// bb_sh[0] = sh_name;
-	// bb_sh[1] = exec_test_basic;
-	// bb_sh[2] = 0;
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_busybox_path;
+	bb_sh[2] = 0;
 
-	// pid = fork(); 
-    // if(pid < 0) {
-    //   write(1, errstr, sizeof(errstr)); 
-    // } else if(pid == 0) { 
-    //   if(execve(busybox_path, bb_sh, 0) < 0) { 
-    //     write(1, exec_fail_str, sizeof(exec_fail_str)); 
-    //   } 
-    //   exit(0); 
-    // } else { 
-    //   int child_exit_state = -100; 
-    //   if(wait(-1, &child_exit_state) < 0) 
-    //     write(1, wait_fail, sizeof(wait_fail)); 
-    // }
+	pid = fork(); 
+    if(pid < 0) {
+      write(1, errstr, sizeof(errstr)); 
+    } else if(pid == 0) { 
+      if(execve(busybox_path, bb_sh, 0) < 0) { 
+        write(1, exec_fail_str, sizeof(exec_fail_str)); 
+      } 
+      exit(0); 
+    } else { 
+      int child_exit_state = -100; 
+      if(wait(-1, &child_exit_state) < 0) 
+        write(1, wait_fail, sizeof(wait_fail)); 
+    }
 
-	basic_test();
+	// basic_test();
 
-	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+	// write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
 
-	chdir( test_musl_basic_path );
-	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
-	basic_test();
-	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
+	// chdir( test_musl_basic_path );
+	// write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
+	// basic_test();
+	// write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
 
 	// pid = fork();
 	// if ( pid < 0 ) { write( 1, errstr, sizeof( errstr ) ); }
