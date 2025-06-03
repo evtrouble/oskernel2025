@@ -88,7 +88,7 @@ namespace pm
 		{
 			int i;
 			Pcb *pr = k_pm.get_cur_pcb();
-			char ch;
+			// char ch;
 
 			_lock.acquire();
 			while ( _data.empty() && _write_is_open )
@@ -148,13 +148,13 @@ namespace pm
 			{
 				_write_is_open = false;
 				k_pm.wakeup( &_read_sleep );
-				printf("写端关闭，通知读端\n");
+				// printf("写端关闭，通知读端\n");
 			}
 			else
 			{
 				_read_is_open = false;
 				k_pm.wakeup( &_write_sleep );
-				printf("读端关闭\n");
+				// printf("读端关闭\n");
 			}
 
 			if ( !_read_is_open && !_write_is_open )
