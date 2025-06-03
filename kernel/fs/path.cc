@@ -227,7 +227,10 @@ namespace fs
 	int Path::open( FileAttrs attrs_, int flags )
 	{
 		dentry *den = pathSearch();
-
+		// 没找到，返回-1
+		if(den == nullptr) {
+			return -1;
+		}
 		if( !den && flags & O_CREAT ) // @todo 创建文件
 			return -1;
 		FileAttrs attrs = den->getNode()->rMode();
