@@ -31,7 +31,7 @@ namespace pm
 					_lock.release();
 					return -1;
 				}
-				if ( _data.size() >= pipe_size )
+				if ( _data.full() )
 				{ //DOC: pipewrite-full
 					k_pm.wakeup( &_read_sleep );
 					k_pm.sleep( &_write_sleep, &_lock );
@@ -65,7 +65,7 @@ namespace pm
 					_lock.release();
 					return -1;
 				}
-				if ( _data.size() >= pipe_size )
+				if ( _data.full())
 				{ //DOC: pipewrite-full
 					k_pm.wakeup( &_read_sleep );
 					k_pm.sleep( &_write_sleep, &_lock );
@@ -91,7 +91,7 @@ namespace pm
 			char ch;
 
 			_lock.acquire();
-			while ( _data.size() == 0 && _write_is_open )
+			while ( _data.empty() && _write_is_open )
 			{  //DOC: pipe-empty
 				if ( pr->is_killed() )
 				{
@@ -102,9 +102,9 @@ namespace pm
 			}
 			for ( i = 0; i < n; i++ )
 			{  //DOC: piperead-copy
-				if ( _data.size() == 0 )
+				if ( _data.empty() )
 					break;
-				ch = _data.front();
+				unsigned char ch=_data.peek();
 				_data.pop();
 				*( ( ( char * ) addr ) + i ) = ch;
 			}
@@ -122,7 +122,7 @@ namespace pm
 			// init pipe
 			_read_is_open = true;
 			_write_is_open = true;
-			_data = eastl::queue<uint8>();
+			// _data = eastl::queue<uint8>();
 
 			// set file			
 			fs::FileAttrs attrs = fs::FileAttrs( fs::FileTypes::FT_PIPE, 0771 );
@@ -148,11 +148,13 @@ namespace pm
 			{
 				_write_is_open = false;
 				k_pm.wakeup( &_read_sleep );
+				printf("写端关闭，通知读端\n");
 			}
 			else
 			{
 				_read_is_open = false;
 				k_pm.wakeup( &_write_sleep );
+				printf("读端关闭\n");
 			}
 
 			if ( !_read_is_open && !_write_is_open )

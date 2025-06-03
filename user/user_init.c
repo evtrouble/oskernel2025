@@ -33,7 +33,8 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox[]	 = "busybox_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox[]	 = "basename";
-__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "./busybox_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_cmd_path[]	 = "./busybox_cmd.txt";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_static[]	 = "run-static.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
@@ -129,9 +130,10 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char sh_name[]	 = "sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char lua_test_sh[] =
 // 	"/mnt/sdcard/lua/test.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_basic_path[] = "/mnt/musl/basic/";
-__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/";
+__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/basic";
+__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_path[] = "/mnt/glibc";
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
-__attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
+__attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "./busybox";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -275,7 +277,7 @@ int init_main( void )
 	// }
 	// char		path[]	= "/mnt/glibc/busybox";
 	// const char *bb_sh[] = { "/mnt/glibc/busybox", "basic_testcode.sh", 0 };
-	chdir( test_glibc_basic_path );
+	chdir( test_glibc_path );
 
 	// write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	// RUN_TESTS( exec_test_echo );
