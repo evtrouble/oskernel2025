@@ -147,13 +147,15 @@ namespace pm
 			if ( is_write )
 			{
 				_write_is_open = false;
-				k_pm.wakeup( &_read_sleep );
+				if(_data.full())
+					k_pm.wakeup( &_read_sleep );
 				// printf("写端关闭，通知读端\n");
 			}
 			else
 			{
 				_read_is_open = false;
-				k_pm.wakeup( &_write_sleep );
+				if(_data.full())
+					k_pm.wakeup( &_write_sleep );
 				// printf("读端关闭\n");
 			}
 

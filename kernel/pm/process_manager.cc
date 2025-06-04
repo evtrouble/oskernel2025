@@ -220,8 +220,8 @@ namespace pm
 		p->_killed			 = 0;
 		p->_xstate			 = 0;
 		p->_state			 = ProcState::unused;
-		if ( p->_ofile[1]->refcnt > 1 ) p->_ofile[1]->refcnt--;
-		for ( int i = 3; i < (int) max_open_files; ++i )
+		// if ( p->_ofile[1]->refcnt > 1 ) p->_ofile[1]->refcnt--;
+		for ( int i = 0; i < (int) max_open_files; ++i )
 		{
 			if ( p->_ofile[i] != nullptr && p->_ofile[i]->refcnt > 0 )
 			{
@@ -230,9 +230,6 @@ namespace pm
 			}
 		}
 	}
-
-	
-
 
 	void ProcessManager::user_init()
 	{
@@ -1706,7 +1703,7 @@ namespace pm
 	{
 		int fd;
 
-		for ( fd = 3; fd < (int) max_open_files; fd++ )
+		for ( fd = 0; fd < (int) max_open_files; fd++ )
 		{
 			if ( p->_ofile[fd] == nullptr )
 			{
