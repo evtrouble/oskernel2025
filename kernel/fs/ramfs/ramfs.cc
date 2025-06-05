@@ -41,7 +41,7 @@ namespace fs
 			//                     , nullptr, true );
 			FileAttrs attrs = _super_block->rDefaultMod();
 			attrs.filetype = FileTypes::FT_DIRECT;
-			_root = fs::dentrycache::k_dentryCache.alloDentry();
+			_root = fs::dentrycache::k_dentryCache.allocDentry();
 			new ( _root ) dentry( "/", _super_block->allocInode(
 				attrs )
 				, nullptr, true );

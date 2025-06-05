@@ -143,7 +143,7 @@ namespace fs
 
 			// 初始化根dentry
 
-			_root_dir = dentrycache::k_dentryCache.alloDentry();
+			_root_dir = dentrycache::k_dentryCache.allocDentry();
 			if ( _root_dir == nullptr )
 			{
 				log_panic( "ext4-fs : init root dentry fail" );
