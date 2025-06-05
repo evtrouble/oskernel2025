@@ -107,7 +107,9 @@ namespace pm
 				unsigned char ch=_data.peek();
 				_data.pop();
 				*( ( ( char * ) addr ) + i ) = ch;
+				// printf("%c", ch);
 			}
+			// printf("\n");
 			k_pm.wakeup( &_write_sleep ); //DOC: piperead-wakeup
 			_lock.release();
 			return i;
@@ -147,15 +149,13 @@ namespace pm
 			if ( is_write )
 			{
 				_write_is_open = false;
-				if(_data.full())
-					k_pm.wakeup( &_read_sleep );
+				k_pm.wakeup( &_read_sleep );
 				// printf("写端关闭，通知读端\n");
 			}
 			else
 			{
 				_read_is_open = false;
-				if(_data.full())
-					k_pm.wakeup( &_write_sleep );
+				k_pm.wakeup( &_write_sleep );
 				// printf("读端关闭\n");
 			}
 

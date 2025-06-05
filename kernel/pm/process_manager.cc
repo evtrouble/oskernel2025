@@ -1210,6 +1210,15 @@ namespace pm
 			log_panic("init exiting");
 		// log_info( "exit proc %d", p->_pid );
 
+		for ( int i = 0; i < (int) max_open_files; ++i )
+		{
+			if ( p->_ofile[i] != nullptr && p->_ofile[i]->refcnt > 0 )
+			{
+				p->_ofile[i]->free_file();
+				p->_ofile[i] = nullptr;
+			}
+		}
+
 		_wait_lock.acquire();
 		reparent( p );
 
@@ -1301,15 +1310,15 @@ namespace pm
 		Pcb *p;
 		for ( p = k_proc_pool; p < &k_proc_pool[num_process]; p++ )
 		{
-			if ( p != get_cur_pcb() )
-			{
+			// if ( p != get_cur_pcb() )
+			// {
 				p->_lock.acquire();
 				if ( p->_state == ProcState::sleeping && p->_chan == chan )
 				{
 					p->_state = ProcState::runnable;
 				}
 				p->_lock.release();
-			}
+			// }
 		}
 	}
 
@@ -1318,8 +1327,10 @@ namespace pm
 		Pcb *proc = k_pm.get_cur_pcb();
 
 		// get the lock to release and change it's state to scheduler
-		proc->_lock.acquire();
-		lock->release();
+		if(&proc->_lock != lock) {
+			proc->_lock.acquire();
+			lock->release();
+		}
 
 		proc->_chan	 = chan;
 		proc->_state = ProcState::sleeping;
@@ -1327,8 +1338,10 @@ namespace pm
 		k_scheduler.call_sched();
 		proc->_chan = 0;
 
-		proc->_lock.release();
-		lock->acquire();
+		if(&proc->_lock != lock) {
+			proc->_lock.release();
+			lock->acquire();
+		}
 	}
 
 	long ProcessManager::brk( long n )
