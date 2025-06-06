@@ -1137,6 +1137,8 @@ namespace syscall
 				}
 				p->get_open_file( retfd )->_fl_cloexec = true;
 				return retfd;
+			case F_GETFL:
+				return f->_attrs.transMode();
 
 			default: break;
 		}
