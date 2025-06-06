@@ -1,3 +1,4 @@
+#pragma once
 #include <EASTL/list.h>
 #include <EASTL/string.h>
 #include <EASTL/tuple.h>
@@ -20,27 +21,25 @@ namespace fs
 	class dentry;
 	namespace dentrycache
 	{
-
-
 		constexpr uint MAX_DENTRY_NUM = 1000;
 		/**
 		 * @brief Dentry cache
 		 * @test dentryCacheTest
 		 */
 
-		struct dentryCacheElement
-		{
-			fs::dentry dentry;
-			bool	   pin_;
-			dentryCacheElement() { pin_ = false; };
-			dentryCacheElement( fs::dentry den, bool pin_ ) : dentry( den ), pin_( pin_ ) {}
-		};
+		// struct dentryCacheElement
+		// {
+		// 	fs::dentry dentry;
+		// 	bool	   pin_;
+		// 	dentryCacheElement() { pin_ = false; };
+		// 	dentryCacheElement( fs::dentry den, bool pin_ ) : dentry( den ), pin_( pin_ ) {}
+		// };
 
 		class dentryCache
 		{
 			hsai::SpinLock			   _lock;
-			list<dentryCacheElement *> freeList_; // leaf list
-			dentryCacheElement		   dentryCacheElementPool_[MAX_DENTRY_NUM];
+			list<fs::dentry *> freeList_; // leaf list
+			fs::dentry		   dentryCacheElementPool_[MAX_DENTRY_NUM];
 
 		public:
 

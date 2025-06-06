@@ -52,6 +52,7 @@ namespace fs
 		uint Did; // dentry id
 		bool isroot;
 
+
 	public:
 		dentry() = default; //{ name.clear(); children.clear(); node = nullptr;  parent = nullptr; isroot = false; };
 		dentry( const dentry& ) = default;
@@ -76,6 +77,9 @@ namespace fs
 		void unlink();
 		void setNode( Inode * node_ ) { _node = node_; };
 		int readDir( Dstat *dst, size_t off, size_t len );
+		void dup() { refcnt++; }
+		void release();
+				int refcnt = 0; // reference count
 
 	public:
 

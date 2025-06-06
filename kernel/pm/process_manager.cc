@@ -461,6 +461,7 @@ namespace pm
 				np->_ofile[i] = p->_ofile[i];
 			}
 		np->_cwd	  = p->_cwd;
+		np->_cwd->dup();
 		np->_cwd_name = p->_cwd_name;
 
 		/// TODO: >> cwd inode ref-up
@@ -542,6 +543,8 @@ namespace pm
 			// p->_cwd = fs::fat::k_fatfs.get_root();
 			/// @todo 这里暂时修改进程的工作目录为fat的挂载点
 			proc->_cwd		 = fs::ramfs::k_ramfs.getRoot()->EntrySearch( "mnt" );
+			proc->_cwd->dup();
+			proc->_cwd->dup();
 			proc->_cwd_name = "/mnt/";
 		}
 
@@ -1459,7 +1462,7 @@ namespace pm
 		int			  dev	= dentry->getNode()->rDev();
 		fs::FileAttrs attrs = dentry->getNode()->rMode();
 
-		if ( dev >= 0 ) // dentry is a device
+		if ( dev >= 0 && dev < 1024 ) // dentry is a device
 		{
 			fs::device_file *f = new fs::device_file( attrs, dev, dentry );
 			return alloc_fd( p, f );
@@ -1468,6 +1471,10 @@ namespace pm
 		else // normal file
 		{
 			fs::normal_file *f = new fs::normal_file( attrs, dentry );
+			if ( dentry->rName() == "test.txt" ) {
+				// printf( "dup success\n" );
+				dentry->dup();
+			}
 			// log_info( "test normal file read" );
 			// {
 			// 	fs::file *ff = ( fs::file * ) f;
@@ -1493,6 +1500,7 @@ namespace pm
 		// fs::k_file_table.free_file( p->_ofile[ fd ] );
 		p->_ofile[fd]->free_file();
 		p->_ofile[fd] = nullptr;
+		printf( "close success!!!\n" );
 		return 0;
 	}
 
@@ -1518,7 +1526,9 @@ namespace pm
 		dentry = pt.pathSearch();
 		// dentry = p->_cwd->EntrySearch( path );
 		if ( dentry == nullptr ) return -1;
-		p->_cwd		 = dentry;
+		dentry->dup(); // release the dentry, because we will use it later
+		p->_cwd->release(); // release the old cwd
+		p->_cwd		   = dentry;
 		p->_cwd_name = pt.AbsolutePath();
 		if ( p->_cwd_name.back() != '/' ) p->_cwd_name += "/";
 		return 0;

@@ -20,7 +20,7 @@ namespace fs
 			uint _index = 0;
 			for ( ; _index < MAX_DENTRY_NUM; ++_index )
 			{
-				dentryCacheElementPool_[_index].pin_ = false;
+				// dentryCacheElementPool_[_index].pin_ = false;
 				freeList_.push_back( &dentryCacheElementPool_[_index] );
 			}
 		}
@@ -28,37 +28,30 @@ namespace fs
 		dentry* dentryCache::allocDentry()
 		{
 			_lock.acquire();
-			dentry* dentry = nullptr;
-			for ( auto it = freeList_.begin(); it != freeList_.end(); ++it )
+			if( freeList_.empty() )
 			{
-				// 还未分配
-				if ( !( *it )->pin_ )
-				{
-					dentry		  = &( ( *it )->dentry );
-					( *it )->pin_ = true;
-					break;
-				}
+				log_panic( "孩子，内存真不够用了，dentryCache::alloDentry()分配失败\n" );
 			}
+			dentry* de = freeList_.front();
+			freeList_.pop_front();
 			_lock.release();
-			if ( !dentry ) log_panic( "孩子，内存真不够用了，dentryCache::alloDentry()分配失败\n" );
-			return dentry;
+			return de;
 		}
 
 		void dentryCache::releaseDentryCache( dentry* de )
 		{
-
-			_lock.acquire();
-			for ( auto it = freeList_.end(); it != freeList_.begin(); --it )
-			{
-				if ( ( &( *it )->dentry ) == de && ( *it )->pin_ )
-				{
-					( *it )->pin_  = false;
-					dentry* parent = de->getParent();
-					if ( parent ) { parent->children.erase( de->rName() ); }
-					break;
+			if(de != nullptr) {
+				if ( de->isRoot() || de->isMntPoint() ) return;
+				dentry* parent = de->getParent();
+				if ( parent ) { 
+					parent->children.erase( de->rName() ); 
+					if(parent->children.empty() && parent->refcnt <= 0)
+						releaseDentryCache( parent );
 				}
+				_lock.acquire();
+				freeList_.push_back( de );
+				_lock.release();
 			}
-			_lock.release();
 		}
 
 

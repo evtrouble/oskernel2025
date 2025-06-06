@@ -45,21 +45,28 @@ namespace fs
 			new ( _root ) dentry( "/", _super_block->allocInode(
 				attrs )
 				, nullptr, true );
+			_root->dup();
 			_isroot = true;
 			_mnt = nullptr;
 
 			_root->EntryCreate( "dev", attrs ); // 暂时把第二个参数为正数认为是目录， 还要创建 /dev/sda1, 用来初始化ext4
 			_root->EntryCreate( "proc", attrs );
-			_root->EntryCreate( "sys", attrs );
-			_root->EntryCreate( "tmp", attrs );
+			// _root->EntryCreate( "sys", attrs );
+			// _root->EntryCreate( "tmp", attrs );
 			_root->EntryCreate( "mnt", attrs );
 			_root->EntryCreate( "bin", attrs );
 
 			dentry * etc_dent = _root->EntryCreate( "etc", attrs );
-			dentry * conf_dent = etc_dent->EntryCreate( "busybox.conf", attrs );
+			etc_dent->dup();
+			dentry *conf_dent = etc_dent->EntryCreate( "busybox.conf", attrs );
 			( ( RamInode * ) conf_dent->getNode() )->readable = true;
+			conf_dent->dup();
 
-			_root->printChildrenInfo();
+			dentry *localtime = etc_dent->EntryCreate( "localtime", attrs );
+			( ( RamInode * ) localtime->getNode() )->readable = true;
+			localtime->dup();
+
+			// _root->printChildrenInfo();
 
 			// init fat
 			dentry* dev = _root->EntrySearch( "dev" );
@@ -68,6 +75,7 @@ namespace fs
 				log_error( "RamFS::initfd: mnt is nullptr" );
 				return;
 			}
+			dev->dup();
 
 			char ** dev_table = new char*[ DEV_TBL_LEN ];
 
@@ -83,22 +91,26 @@ namespace fs
 				dentry *device_ = dev->EntryCreate( dev_table[ i ], _super_block->rDefaultMod(), dev_table[ i ] );
 				Device *dev_ = new Device( static_cast<RamFS*>(dev->getNode()->getFS()), alloc_ino(), FileAttrs( FT_DEVICE, 0666), i );
 				device_->setNode( dev_ );
+				device_->dup();
 			}
 			
 			// init /dev/rtc
 			dentry *rtc = dev->EntryCreate( "rtc", FileAttrs( FileTypes::FT_DEVICE, 0444 ) ); //rw
 			RTC *rtc_ = new RTC( static_cast<RamFS*>(rtc->getNode()->getFS()), alloc_ino(), FileAttrs( FT_DEVICE, 0666), 100);
 			rtc->setNode( rtc_ );
+			rtc->dup();
 
 			// init /dev/zero
 			dentry *zero = dev->EntryCreate( "zero", FileAttrs( FileTypes::FT_DEVICE, 0444 ) ); //rw
 			Zero *zero_ = new Zero( static_cast<RamFS*>(zero->getNode()->getFS()), alloc_ino(),FileAttrs( FT_DEVICE, 0666), 101 );
 			zero->setNode( zero_ );
+			zero->dup();
 
 			// init /dev/null
 			dentry *null = dev->EntryCreate( "null", FileAttrs( FileTypes::FT_DEVICE, 0444 ) );  // rw,但是read直接返回-1
 			Null *null_ = new Null( static_cast<RamFS*>(null->getNode()->getFS()), alloc_ino(), FileAttrs( FT_DEVICE, 0666), 102 );
 			null->setNode( null_ );
+			null->dup();
 
 			// init /proc
 			dentry *proc = _root->EntrySearch( "proc" );
@@ -107,6 +119,7 @@ namespace fs
 				log_error( "RamFS::initfd: proc is nullptr" );
                 return;
 			}
+			proc->dup();
 			
 			proc->EntryCreate( "self", FileAttrs( FileTypes::FT_DIRECT, 0444) );
 			
@@ -114,20 +127,21 @@ namespace fs
 			dentry *meminfo = proc->EntryCreate( "meminfo", FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
 			MemInfo *meminfo_ = new MemInfo( static_cast<RamFS*>(meminfo->getNode()->getFS()), alloc_ino() );
 			meminfo->setNode( meminfo_ );
-
+			meminfo->dup();
 
 			dentry *self = proc->EntrySearch( "self" );
+			self->dup();
 			// init /proc/exe
 			dentry *exe = self->EntryCreate( "exe", FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
 			Exe *exe_ = new Exe( static_cast<RamFS*>(self->getNode()->getFS()), alloc_ino() );
 			exe->setNode( exe_ );
-
+			exe->dup();
 
 			//init /proc/mount
 			dentry *mounts = proc->EntryCreate( "mounts", FileAttrs( FileTypes::FT_DIRECT, 0444 ) );
 			Mount *mnt_ = new Mount( static_cast<RamFS*>(mounts->getNode()->getFS()), alloc_ino(), FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
 			mounts->setNode( mnt_ );
-
+			mounts->dup();
 
 			// init /bin
 			dentry *bin = _root->EntrySearch( "bin" );
@@ -136,6 +150,7 @@ namespace fs
                 log_error( "RamFS::initfd: bin is nullptr" );
                 return;
             }
+			bin->dup();
 
 			// init /bin/ls
             dentry *ls = bin->EntryCreate( "ls", attrs ); // 创建ls
@@ -143,8 +158,8 @@ namespace fs
 													alloc_ino(),
 													FileAttrs( FileTypes::FT_NORMAL, 0777 ),  // 这里应该是一个SYMBLE_LINK
                                                     "/mnt/sdcard/busybox" );
+			ls->dup();
 			ls->setNode( ls_link_ );
-
 
 			_root->printChildrenInfo();
 			return;

@@ -133,4 +133,12 @@ namespace fs
         /// @todo : readDir
         return 0; 
     }
+
+    void dentry::release() { 
+        refcnt--;
+        if ( refcnt <= 0 ) { 
+            // printf("dentry::release: refcnt <= 0, releasing dentry %s\n", name.c_str());
+            dentrycache::k_dentryCache.releaseDentryCache( this ); 
+        }
+    }
 }// namespace fs

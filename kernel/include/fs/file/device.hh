@@ -30,5 +30,13 @@ namespace fs
 		virtual bool write_ready() override;
 		virtual off_t lseek( off_t offset, int whence ) override { log_error( "streamdevice not support lseek currently!" );return -EINVAL; };
 		int tcgetattr( termios * ts );
+
+		virtual void free_file() override { 
+			refcnt--;
+			if(_dentry) _dentry->release();
+			if ( refcnt == 0 ) delete this;
+		}
+
+		virtual void dup() override { refcnt++; if(_dentry) _dentry->dup(); }
 	};
 }

@@ -26,6 +26,13 @@ namespace fs
 		virtual bool read_ready() override;
 		virtual bool write_ready() override;
 		virtual off_t lseek( off_t offset, int whence ) override;
+		virtual void free_file() override { 
+			refcnt--;
+			if(_den) _den->release();
+			if ( refcnt == 0 ) delete this;
+		}
+
+		virtual void dup() override { refcnt++; if(_den) _den->dup(); }
 
 		using ubuf = mm::UserspaceStream;
 		size_t read_sub_dir( ubuf &dst );
