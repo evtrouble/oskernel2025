@@ -127,6 +127,7 @@ namespace syscall
 		BIND_SYSCALL( lseek );
 		BIND_SYSCALL( splice );
 		BIND_SYSCALL( sigprocmask );
+		BIND_SYSCALL( kill );
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -138,8 +139,7 @@ namespace syscall
 				printf( YELLOW_COLOR_PRINT "syscall %16s",
 						_syscall_name[sys_num] );
 			else
-				printf( BRIGHT_YELLOW_COLOR_PRINT "unknown sycall %d\t",
-						sys_num );
+				log_panic( "unknown syscall %d\n", sys_num );
 			auto [usg, rst] = mm::k_pmm.mem_desc();
 			printf( "mem-usage: %_-10ld mem-rest: %_-10ld\n" CLEAR_COLOR_PRINT,
 					usg, rst );
@@ -302,6 +302,16 @@ namespace syscall
 		ulong n;
 		if ( _arg_addr( 0, n ) < 0 ) return -1;
 		return pm::k_pm.brk( n );
+	}
+
+	uint64 SyscallHandler::_sys_kill()
+	{
+		int pid,sig;
+		if ( _arg_int( 0, pid ) < 0 ) return -1;
+		if ( _arg_int( 1, sig ) < 0 ) return -2;
+		if ( sig < 0 || sig > 64 ) return -3; // invalid signal number
+		return pm::k_pm.kill( pid, sig );
+
 	}
 
 	uint64 SyscallHandler::_sys_execve()

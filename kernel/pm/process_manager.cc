@@ -578,6 +578,20 @@ namespace pm
 		pt.freewalk_mapped();
 	}
 
+	int ProcessManager::kill(int pid,int sig)
+	{
+		Pcb *p =&k_proc_pool[pid];
+		if (sig == 0)return 0;
+		 switch (sig) {
+			case 15:
+				p->kill();
+				break;
+			default:
+				break;
+    	}
+		return 0;
+	}
+
 	static int _free_pt_with_sec( mm::PageTable &pt, program_section_desc *dsc_v, int dsc_c )
 	{
 		using psd = program_section_desc;
@@ -1500,7 +1514,6 @@ namespace pm
 		// fs::k_file_table.free_file( p->_ofile[ fd ] );
 		p->_ofile[fd]->free_file();
 		p->_ofile[fd] = nullptr;
-		printf( "close success!!!\n" );
 		return 0;
 	}
 

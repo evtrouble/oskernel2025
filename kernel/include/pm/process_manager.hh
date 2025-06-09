@@ -76,6 +76,7 @@ namespace pm
 		void wakeup( void *chan );
 		void exit_proc( Pcb * p, int state );
 		void exit( int state );
+		int kill(int pid, int sig);
 		int fork( uint64 usp );
 		int fork();
 		void fork_ret();
