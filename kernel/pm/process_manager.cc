@@ -1236,6 +1236,24 @@ namespace pm
 			}
 		}
 
+		for(int i=0;i< max_vma_num;i++) {
+			if(p->vm[i].address) {
+				p->vm[i].is_used  = false;
+				int offset		  = 0;
+				uint64_t va		  = p->vm[i].address;
+				uint64_t len	  = p->vm[i].length;
+				for ( uint64_t va1 = va; va1 < va + len; va1 += hsai::page_size, offset += hsai::page_size )
+				{
+					ulong pa = p->_pt.kwalk_addr( va1 );
+					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+				}
+				uint64 npages = len / hsai::page_size;
+				mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
+				p->vm[i].address = 0;
+				p->vm[i].vfile->free_file();
+			} 
+      	}
+
 		_wait_lock.acquire();
 		reparent( p );
 
@@ -1244,6 +1262,11 @@ namespace pm
 		p->_lock.acquire();
 		p->_xstate = state << 8;
 		p->_state  = ProcState::zombie;
+		if (p->_clear_child_tid) {
+			int clear = 0;
+			memcpy(p->_clear_child_tid, (char*)&clear, sizeof(clear));
+			p->_clear_child_tid = 0;
+		}
 
 		_wait_lock.release();
 
@@ -1576,6 +1599,8 @@ namespace pm
 					ulong pa = p->_pt.kwalk_addr( va1 );
 					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
 				}
+				p->vm[i].vfile->free_file();
+				p->vm[i].address = 0;
 				break;
 			} 
 		}
@@ -1618,6 +1643,7 @@ namespace pm
 				// p->vma[i].flags = flags;
 				// p->vma[i].prot = prot;
 				p->vm[i].vfile = normal_f;
+				normal_f->dup(); // 增加引用计数
 				break;
 				// p->vma[i].vfd = fd;
 				// p->vma[i].offset = offset;

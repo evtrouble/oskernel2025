@@ -554,6 +554,7 @@ namespace syscall
 		mm::PageTable *pt = p->get_pagetable();
 		eastl::string  path;
 		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 100 ) < 0 ) return -1;
+		printf( "openat path %s\n", path.c_str() );
 		int res = pm::k_pm.open( dir_fd, path, flags );
 		log_trace( "openat return fd is %d", res );
 		return res;
