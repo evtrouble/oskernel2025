@@ -1128,6 +1128,18 @@ namespace syscall
 			return 0;
 		}
 
+		if( ( cmd & 0XFFFF ) == TIOCGWINSZ )
+      	{
+			winsize ws;
+			ws.ws_col = 80;
+			ws.ws_row = 24;
+			mm::PageTable *pt = pm::k_pm.get_cur_pcb()->get_pagetable();
+			uint64 p_pgrp = hsai::k_mem->to_vir( pt->walk_addr( arg ) );
+			if (mm::k_vmm.copyout(*pt, p_pgrp, (char*)&ws, sizeof(ws)) < 0)
+				return -1;
+			return 0;
+		}
+
 		return 0;
 	}
 
