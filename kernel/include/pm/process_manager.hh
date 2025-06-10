@@ -96,6 +96,8 @@ namespace pm
 		int prlimit64( int pid, int resource, rlimit64 * new_limit, rlimit64 * old_limit );
 		void exit_group( int status );
 		void reparent( Pcb *p );
+		int	set_gid( int gid );
+		int	set_uid( int uid );
 
 		void user_init();
 

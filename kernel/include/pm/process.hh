@@ -38,6 +38,10 @@ namespace pm
 
 	constexpr int default_proc_kstack_pages = 31; // 默认进程内核栈大小（按页面数计算）
 	constexpr int default_proc_ustack_pages = 32; // 默认进程用户栈大小（按页面数计算）
+	#define ROOT_UID      0    // 超级用户
+	#define DEFAULT_UID   0    // 普通用户默认UID
+	#define ROOT_GID      0
+	#define DEFAULT_GID   1000
 
 	enum ProcState
 	{
@@ -146,6 +150,9 @@ namespace pm
 		
 		pm::ipc::signal::sigaction  _sigactions[SIGRTMAX];
 		uint64 sigmask;
+
+		int uid;  // 用户ID
+  		int gid;  // 组ID
 
 	public:
 

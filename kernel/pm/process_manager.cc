@@ -111,6 +111,8 @@ namespace pm
 				p->_state	 = ProcState::used;
 				p->_slot	 = default_proc_slot;
 				p->_priority = default_proc_prio;
+				p->uid 	 = 0; // 默认用户ID
+				p->gid 	 = 0; // 默认组ID
 
 				// p->_shm = mm::vml::vm_trap_frame - 64 * 2 * hsai::page_size;
 				// p->_shmkeymask = 0;
@@ -1732,6 +1734,27 @@ namespace pm
 
 		Pcb *p			= get_cur_pcb();
 		p->_robust_list = head;
+
+		return 0;
+	}
+
+	int ProcessManager::set_gid( int gid )
+	{
+		Pcb *p = get_cur_pcb();
+		if(p->uid != ROOT_UID && gid != p->gid)
+			return -1;
+
+		p->gid = gid;
+		return 0;
+	}
+
+	int ProcessManager::set_uid( int uid )
+	{
+		Pcb *p = get_cur_pcb();
+		if(p->uid != ROOT_UID && uid != p->uid)
+			return -1;
+
+		p->uid = uid;
 
 		return 0;
 	}

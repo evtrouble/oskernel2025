@@ -947,7 +947,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_mprotect() { return 0; }
 
-	uint64 SyscallHandler::_sys_getuid() { return 1; }
+	uint64 SyscallHandler::_sys_getuid() { return 0; }
 
 	uint64 SyscallHandler::_sys_readlinkat()
 	{
@@ -1287,11 +1287,19 @@ namespace syscall
 		return ret;
 	}
 
-	uint64 SyscallHandler::_sys_getgid() { return 1; }
+	uint64 SyscallHandler::_sys_getgid() { return 0; }
 
-	uint64 SyscallHandler::_sys_setgid() { return 1; }
+	uint64 SyscallHandler::_sys_setgid() { 
+		int gid;
+		_arg_int(0, gid);
+		return pm::k_pm.set_gid(gid);
+	}
 
-	uint64 SyscallHandler::_sys_setuid() { return 1; }
+	uint64 SyscallHandler::_sys_setuid() { 
+		int uid;
+		_arg_int(0, uid);
+		return pm::k_pm.set_uid(uid);
+	}
 
 	uint64 SyscallHandler::_sys_sendfile()
 	{
