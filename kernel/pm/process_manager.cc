@@ -1554,6 +1554,43 @@ namespace pm
 		return 0;
 	}
 
+	int ProcessManager::fstatat( int dir_fd, eastl::string path, fs::Kstat *st )
+	{
+		Pcb *p = get_cur_pcb();
+		fs::file   *file = nullptr;
+		fs::dentry *dentry;
+
+		if ( dir_fd != AT_FDCWD ) { file = p->get_open_file( dir_fd ); }
+
+		fs::Path path_( path, file );
+		dentry = path_.pathSearch();
+
+		if ( path == "" ) // empty path
+			return -1;
+
+		if ( path[0] == '.' && path[1] == '/' ) path = path.substr( 2 );
+		if ( dentry == nullptr ) return -1; // file is not found
+
+		int			  dev	= dentry->getNode()->rDev();
+		fs::FileAttrs attrs = dentry->getNode()->rMode();
+
+		if ( dev >= 0 && dev < 1024 ) // dentry is a device
+		{
+			fs::device_file *f = new fs::device_file( attrs, dev, dentry );
+			*st			= f->_stat;
+			f->free_file();
+		} // else if( attrs.filetype == fs::FileTypes::FT_DIRECT)
+		// 	fs::directory *f = new fs::directory( attrs, dentry );
+		else // normal file
+		{
+			fs::normal_file *f = new fs::normal_file( attrs, dentry );
+			*st			= f->_stat;
+			f->free_file();
+		} 
+
+		return 0;
+	}
+
 	int ProcessManager::chdir( eastl::string &path )
 	{
 		Pcb *p = get_cur_pcb();

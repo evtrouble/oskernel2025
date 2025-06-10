@@ -40,6 +40,7 @@ namespace syscall
 		_build_sysnum_enum_(ppoll, 73),
 		_build_sysnum_enum_(splice, 76),
 		_build_sysnum_enum_(readlinkat, 78),
+		_build_sysnum_enum_(fstatat, 79),
 		_build_sysnum_enum_(fstat, 80),
 		_build_sysnum_enum_( utimensat, 88),
 		_build_sysnum_enum_(exit, 93),

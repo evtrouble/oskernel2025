@@ -85,7 +85,8 @@ namespace pm
 		int mkdir( int dir_fd, eastl::string path, uint flags );
 		int close( int fd );
 		int fstat( int fd, struct fs::Kstat *buf );
-		int chdir( eastl::string &path );
+		int	 fstatat( int dir_fd, eastl::string path, fs::Kstat *st );
+		int	 chdir( eastl::string &path );
 		int getcwd( char * out_buf );
 		int mmap( int fd, int map_size );
 		int munmap(uint64 va,size_t len);
