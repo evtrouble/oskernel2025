@@ -124,6 +124,8 @@ namespace syscall
 		uint64 _sys_statfs();
 		uint64 _sys_syslog();
 		uint64 _sys_faccessat();
+		uint64 _sys_madvise();
+		uint64 _sys_mremap();
 		uint64 _sys_sysinfo();
 		uint64 _sys_nanosleep();
 		uint64 _sys_getrusage();

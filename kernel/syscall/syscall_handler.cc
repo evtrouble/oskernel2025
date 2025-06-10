@@ -122,6 +122,8 @@ namespace syscall
 		BIND_SYSCALL( statfs );
 		BIND_SYSCALL( syslog );
 		BIND_SYSCALL( faccessat );
+		BIND_SYSCALL( madvise );
+		BIND_SYSCALL( mremap );
 		BIND_SYSCALL( sysinfo );
 		BIND_SYSCALL( nanosleep );
 		BIND_SYSCALL( getrusage );
@@ -742,6 +744,24 @@ namespace syscall
 		return pm::k_pm.mmap( fd, map_size );
 	}
 
+	//unmap + mmap
+	uint64 SyscallHandler::_sys_mremap()
+	{
+		uint64 oldaddr;
+		int oldsize;
+		int newsize;
+		int flags;
+		if ( _arg_addr( 0, oldaddr ) < 0 ) return -1;
+
+		if ( _arg_int( 1, oldsize ) < 0 ) return -1;
+
+		if ( _arg_int( 2, newsize ) < 0 ) return -1;
+
+		if ( _arg_int( 3, flags ) < 0 ) return -1;
+
+		return pm::k_pm.mremap( oldaddr, oldsize, newsize );
+	}
+
 	uint64 SyscallHandler::_sys_munmap() { 
 		u64 start;
 		if ( _arg_addr( 0, start ) < 0 ) return -1;
@@ -1187,7 +1207,16 @@ namespace syscall
 				return retfd;
 			case F_GETFL:
 				return f->_attrs.transMode();
-
+			case F_GETFD: return 0;
+			case F_SETFL:
+				if ((((arg & O_NONBLOCK) == O_NONBLOCK) || ((arg & O_APPEND) == O_APPEND))) {
+					if ( f->_attrs.filetype == fs::FileTypes::FT_NORMAL )
+					{
+						fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
+						normal_f->setAppend();
+					}
+				}
+				return 0;
 			default: break;
 		}
 
@@ -1499,10 +1528,12 @@ namespace syscall
 
 		if ( fd < 0 )
 			return -1;
-
+		pm::k_pm.close( fd ); // 只检查权限，不需要打开文件
 
 		return 0;
 	}
+
+	uint64 SyscallHandler::_sys_madvise() { return 0; }
 
 	uint64 SyscallHandler::_sys_sysinfo()
 	{

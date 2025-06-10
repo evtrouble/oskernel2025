@@ -1713,6 +1713,52 @@ namespace pm
 		return fst;
 	}
 
+	int ProcessManager::mremap( uint64 oldaddr, uint64 oldsize, uint64 newsize)
+	{
+		Pcb *p = get_cur_pcb();
+		int i=0;
+		uint64 fst = p->_sz;
+		uint64 fsz	 = newsize;
+		uint64 newsz = 0;
+		for ( ; i < max_vma_num; i++ )
+		{
+			if(p->vm[i].address == oldaddr) {
+				int offset		  = 0;
+				for ( uint64_t va1 = oldaddr; va1 < oldaddr + oldsize; va1 += hsai::page_size, offset += hsai::page_size )
+				{
+					ulong pa = p->_pt.kwalk_addr( va1 );
+					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+				}
+				p->vm[i].address = p->_sz;
+				p->vm[i].length = newsize;
+
+				p->_sz += newsize;
+				break;
+			}
+		}
+		if(i == max_vma_num) {
+			return 0;
+		}
+		newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+		if ( newsz == 0 ) return -1;
+		fs::file *f = p->vm[i].vfile;
+		if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
+
+		fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
+		char *buf = new char[fsz + 1];
+		fs::dentry *dent = p->vm[i].vfile->getDentry();
+		dent->getNode()->nodeRead( (uint64) buf, 0, fsz );
+
+		if ( mm::k_vmm.copyout( p->_pt, fst, (const void *) buf, fsz ) < 0 )
+		{
+			delete[] buf;
+			return -1;
+		}
+
+		delete[] buf;
+		return fst;
+	}
+
 	int ProcessManager::unlink( int fd, eastl::string path, int flags )
 	{
 
