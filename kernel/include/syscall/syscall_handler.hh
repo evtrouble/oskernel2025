@@ -88,6 +88,7 @@ namespace syscall
 		uint64 _sys_close();
 		uint64 _sys_fstat();
 		uint64 _sys_fstatat();
+		uint64 _sys_writev();
 		uint64 _sys_getdents();
 		uint64 _sys_mkdir();
 		uint64 _sys_chdir();
@@ -117,6 +118,7 @@ namespace syscall
 		uint64 _sys_getgid();
 		uint64 _sys_setgid();
 		uint64 _sys_setuid();
+		uint64 _sys_gettid();
 		uint64 _sys_sendfile();
 		uint64 _sys_exit_group();
 		uint64 _sys_statfs();

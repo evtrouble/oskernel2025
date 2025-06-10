@@ -115,6 +115,8 @@ namespace syscall
 		BIND_SYSCALL( getgid );
 		BIND_SYSCALL( setgid );
 		BIND_SYSCALL( setuid );
+		BIND_SYSCALL( gettid );
+		BIND_SYSCALL( fstatat );
 		BIND_SYSCALL( sendfile );
 		BIND_SYSCALL( exit_group );
 		BIND_SYSCALL( statfs );
@@ -1323,6 +1325,8 @@ namespace syscall
 		_arg_int(0, uid);
 		return pm::k_pm.set_uid(uid);
 	}
+
+	uint64 SyscallHandler::_sys_gettid() { return pm::k_pm.get_cur_pcb()->_pid; }
 
 	uint64 SyscallHandler::_sys_sendfile()
 	{
