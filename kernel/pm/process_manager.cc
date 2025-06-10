@@ -1667,14 +1667,16 @@ namespace pm
 		fs::dentry		*dent	  = normal_f->getDentry();
 		if ( dent == nullptr ) return -1;
 
-		uint64 fsz = (uint64) map_size;
+		int i=0;
 		uint64 fst = p->_sz;
-
-		uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
-		if ( newsz == 0 ) return -1;
-
-		for(int i=0;i< max_vma_num;i++) {
+		uint64 fsz = (uint64) map_size;
+		uint64 newsz = 0;
+		for ( ; i < max_vma_num; i++ )
+		{
 			if(!p->vm[i].is_used) {
+
+				newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+				if ( newsz == 0 ) return -1;
 				p->vm[i].is_used = true;
 
 				p->vm[i].address = p->_sz;
@@ -1688,13 +1690,12 @@ namespace pm
 				// p->vma[i].offset = offset;
 
 				// p->sz += length;
-				// if (f != NULL) {
-				// 	normal_f->dup();
-				// 	break;
-				// }
 
 				// return p->vma[i].addr;
 			}
+		}
+		if(i==max_vma_num) {
+			return -1;
 		}
 
 		p->_sz = newsz;

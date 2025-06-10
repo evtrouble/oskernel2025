@@ -387,7 +387,10 @@ namespace loongarch
 			// hsai_printf( BLUE_COLOR_PRINT "read data(u64) from badv %p =
 			// %#lx\n" CLEAR_COLOR_PRINT, 	badv, iofbadv );
 
-			hsai_panic(
+			void	  *p  = hsai::get_cur_proc();
+			if(p==nullptr)
+			{
+				hsai_panic(
 				"handle exception PIL :\n"
 				"    badv : %p\n"
 				"    badi : %#010x\n"
@@ -403,6 +406,26 @@ namespace loongarch
 				usp
 				// pte.get_data()
 			);
+			}
+			// hsai_panic(
+			hsai_error(
+				"handle exception PIL :\n"
+				"    badv : %p\n"
+				"    badi : %#010x\n"
+				"    crmd : %#010x\n"
+				"    era  : %p\n"
+				"    tick : %d\n"
+				"    sp   : %p\n",
+				badv,
+				cpu->read_csr( csr::badi ),
+				cpu->read_csr( csr::crmd ),
+				cpu->read_csr( csr::era ),
+				hsai::get_ticks(),
+				usp
+				// pte.get_data()
+			);
+
+			hsai::exit_proc( p, -1 );
 		};
 
 		_exception_handlers[csr::ecode_pis] = [this]( uint32 estat ) -> void

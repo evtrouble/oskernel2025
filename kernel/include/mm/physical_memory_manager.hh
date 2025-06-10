@@ -18,8 +18,10 @@ namespace mm
 
 	enum MemJunk : uint64
 	{
-		freed_junk = 0x0101'0101'0101'0101UL,
-		alloc_junk = 0x0A11'0CA1'10CA'110CUL,
+		// freed_junk = 0x0101'0101'0101'0101UL,
+		// alloc_junk = 0x0A11'0CA1'10CA'110CUL,
+		freed_junk = 0x0UL,
+		alloc_junk = 0x0UL,
 		null_junk  = 0x0UL
 	};
 
