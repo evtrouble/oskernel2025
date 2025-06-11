@@ -823,6 +823,29 @@ namespace syscall
 			__u32 stx_dio_mem_align;
 			__u32 stx_dio_offset_align;
 		};
+// 		  uint32 stx_mask;
+//   uint32 stx_blksize;
+//   uint64 stx_attributes;
+//   uint32 stx_nlink;
+//   uint32 stx_uid;
+//   uint32 stx_gid;
+//   uint16 stx_mode;
+//   uint16 pad1;
+//   uint64 stx_ino;
+//   uint64 stx_size;
+//   uint64 stx_blocks;
+//   uint64 stx_attributes_mask;
+//   struct
+//   {
+//     int64 tv_sec;
+//     uint32 tv_nsec;
+//     int pad;
+//   } stx_atime, stx_btime, stx_ctime, stx_mtime;
+//   uint32 stx_rdev_major;
+//   uint32 stx_rdev_minor;
+//   uint32 stx_dev_major;
+//   uint32 stx_dev_minor;
+//   uint64 spare[14];
 
 		int			  fd;
 		eastl::string path_name;
@@ -857,20 +880,8 @@ namespace syscall
 				return -1;
 			return 0;
 		}
-		else
-		{
-			int ffd;
-			ffd = pm::k_pm.open( fd, path_name, 2 );
-			if ( ffd < 0 ) return -1;
-			pm::k_pm.fstat( ffd, &kst );
-			pm::k_pm.close( ffd );
-			stx.stx_size	  = kst.size;
-			stx.stx_mode	  = kst.mode;
-			mm::PageTable *pt = pm::k_pm.get_cur_pcb()->get_pagetable();
-			if ( mm::k_vmm.copyout( *pt, kst_addr, &stx, sizeof( stx ) ) < 0 )
-				return -1;
-			return 0;
-		}
+		//
+		return -1;
 	}
 
 	uint64 SyscallHandler::_sys_unlinkat()
@@ -1227,19 +1238,19 @@ namespace syscall
 	{
 		int pid;
 		if ( _arg_int( 0, pid ) < 0 ) return -1;
-		return 1;
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_setpgid()
 	{
 		int pid, pgid;
 		if ( _arg_int( 0, pid ) < 0 || _arg_int( 1, pgid ) < 0 ) return -1;
-		return 1;
+		return 0;
 	}
 
-	uint64 SyscallHandler::_sys_geteuid() { return 1; }
+	uint64 SyscallHandler::_sys_geteuid() { return 0; }
 
-	uint64 SyscallHandler::_sys_getegid() { return 1; }
+	uint64 SyscallHandler::_sys_getegid() { return 0; }
 
 	uint64 SyscallHandler::_sys_ppoll()
 	{
