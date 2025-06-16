@@ -132,6 +132,8 @@ namespace syscall
 		BIND_SYSCALL( splice );
 		BIND_SYSCALL( sigprocmask );
 		BIND_SYSCALL( kill );
+		BIND_SYSCALL( writev );
+		BIND_SYSCALL( tgkill );
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -249,6 +251,36 @@ namespace syscall
 		return rc;
 	}
 
+	uint64 SyscallHandler::_sys_writev()
+	{
+		fs::file			*f;
+		fs::iovec           iov;
+		int fd;
+  		int iovcnt;
+  		uint64 iov_ptr;
+		if(_arg_fd( 0, &fd, &f ) < 0 || _arg_addr(1,iov_ptr) <0 || _arg_int(2,iovcnt) <0){
+			return -1;
+		}
+		pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt	= proc->get_pagetable();
+		uint64 writebytes = 0;
+		uint64 expected=0;
+		for(int i=0;i<iovcnt;i++){
+			if(mm::k_vmm.copy_in(*pt, (void*)&iov, (uint64)(iov_ptr+ i * sizeof(fs::iovec)),sizeof(fs::iovec))<0)return -1;
+			int tempLength=iov.iov_len;
+			expected+=tempLength;
+			char*buf=new char[tempLength+10];
+			if(mm::k_vmm.copy_in(*pt,(void*)buf,(uint64)iov.iov_base,tempLength)<0){
+				delete buf;
+				return -1;
+			}
+			writebytes+= f->write( (ulong) buf, tempLength, f->get_file_offset(), true );
+			delete buf;
+		}
+		printf("写入字节数量为：%d, 预期长度是%d\n",writebytes,expected);
+		return writebytes;
+	}
+
 	uint64 SyscallHandler::_sys_read()
 	{
 		fs::file			*f;
@@ -315,6 +347,13 @@ namespace syscall
 		if ( _arg_int( 1, sig ) < 0 ) return -2;
 		if ( sig < 0 || sig > 64 ) return -3; // invalid signal number
 		return pm::k_pm.kill( pid, sig );
+
+	}
+
+	uint64 SyscallHandler::_sys_tgkill()
+	{
+		printf("调用tgkill\n");
+		return 0;
 
 	}
 
@@ -740,7 +779,6 @@ namespace syscall
 
 		size_t length;
 		if ( _arg_addr( 5, length ) < 0 ) return -1;
-
 		return pm::k_pm.mmap( fd, map_size );
 	}
 
@@ -1138,10 +1176,8 @@ namespace syscall
 
 		ulong arg;
 		if ( _arg_addr( 2, arg ) < 0 ) return -3;
-		arg = arg;
 
 		/// @todo not implement
-
 		if ( ( cmd & 0xFFFF ) == TCGETS )
 		{
 			fs::device_file *df = (fs::device_file *) f;
@@ -1991,7 +2027,9 @@ namespace syscall
 			if( mm::k_vmm.copy_in( *pt, &old_set, oldsetaddr, sizeof( signal::sigset_t) ) < 0 )
 				return -1;
 		
-		return signal::sigprocmask( how, &set, &old_set, sigsize );
+		int ans=signal::sigprocmask( how, &set, &old_set, sigsize );
+		printf("正常返回%d\n",ans);
+		return ans;
 
 	}
 } // namespace syscall

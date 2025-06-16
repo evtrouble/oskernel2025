@@ -86,6 +86,7 @@ namespace syscall
 		_build_sysnum_enum_(getrandom, 278),
 		_build_sysnum_enum_(statx, 291),
 		_build_sysnum_enum_(poweroff, 2024),
+		_build_sysnum_enum_(tgkill, 131),
 	};
 
 #undef _build_sysnum_enum_

@@ -33,3 +33,4 @@ build-loongarch-qemu/*
 riscv64-linux-gnu/*
 riscv64-lp64d--glibc--stable-2022.08-1/*
 riscv64-lp64d-glibc.tar.bz2
+temp/*

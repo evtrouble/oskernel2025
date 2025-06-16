@@ -407,6 +407,9 @@ namespace pm
 				np->_lock.release();
 				return -2;
 			}
+			np->_sz			= p->_sz;
+			np->_heap_start = p->_heap_start;
+			np->_heap_ptr	= p->_heap_ptr;
 		}
 
 		// vm copy : 3. 拷贝用户栈
@@ -424,11 +427,31 @@ namespace pm
 			}
 		}
 
+		// vma copy : 4. 虚拟地址空间
+		{
+			for ( int i = 0; i < max_vma_num; i++ )
+			{
+				if ( p->vm[i].is_used )
+				{
+					if ( mm::k_vmm.vm_copy( *curpt, *newpt, p->vm[i].address, p->vm[i].length ) <
+						 0 )
+					{
+						freeproc( np );
+						np->_lock.release();
+						return -3;
+					}
+					np->vm[i].is_used = true;
+					np->vm[i].address = p->vm[i].address;
+					np->vm[i].length  = p->vm[i].length;
+					if ( p->vm[i].vfile ) { p->vm[i].vfile->dup(); }
+					np->vm[i].vfile = p->vm[i].vfile;
+				}
+			}
+		}
+
 		hsai::proc_init( (void *) np );
 
-		np->_sz			= p->_sz;
-		np->_heap_start = p->_heap_start;
-		np->_heap_ptr	= p->_heap_ptr;
+		
 
 		/// TODO: >> Share Memory Copy
 		// shmaddcount( p->shmkeymask );
@@ -724,6 +747,11 @@ namespace pm
 				new_sec_desc[new_sec_cnt]._sec_start  = (void *) ph.vaddr;
 				new_sec_desc[new_sec_cnt]._sec_size	  = ph.memsz;
 				new_sec_desc[new_sec_cnt]._debug_name = "LOAD";
+				// printf( "开始地址是%p,结束地址是%p，是否可写%d\n",
+				// 		new_sec_desc[new_sec_cnt]._sec_start,
+				// 		(void *) ( new_sec_desc[new_sec_cnt]._sec_size +
+				// 				   new_sec_desc[new_sec_cnt]._sec_start ),
+				// 		executable );
 				new_sec_cnt++;
 			}
 
@@ -1070,6 +1098,26 @@ namespace pm
 			sec_end	  = hsai::page_round_up( (ulong) osc._sec_start + osc._sec_size );
 			mm::k_vmm.vm_unmap( proc->_pt, sec_start, ( sec_end - sec_start ) / hsai::page_size,
 								1 );
+		}
+		// umap 虚拟内存区域
+		{
+			for ( int i = 0; i < max_vma_num; i++ )
+			{
+				if ( proc->vm[i].is_used )
+				{
+					ulong start = hsai::page_round_down( (ulong) proc->vm[i].address );
+					ulong end = hsai::page_round_up( (ulong) proc->vm[i].address + proc->vm[i].length );
+					mm::k_vmm.vm_unmap( proc->_pt, start, ( end - start ) / hsai::page_size,
+								1 );
+					proc->vm[i].is_used = false;
+					proc->vm[i].address = 0;
+					proc->vm[i].length  = 0;
+					if ( proc->vm[i].vfile ) { 
+						proc->vm[i].vfile->free_file(); 
+					}
+					proc->vm[i].vfile = nullptr;
+				}
+			}
 		}
 		{ // unmap heap
 			ulong start = hsai::page_round_down( proc->_heap_start );
@@ -1627,21 +1675,24 @@ namespace pm
 		len =hsai::page_round_up(len);     //长度向上取整
 		uint64 npages = len / hsai::page_size;
 
-		int	 i = 0;
-		for (; i < max_vma_num; i++ )
+		int i = 0;
+		for ( ; i < max_vma_num; i++ )
 		{
-			if(va == p->vm[i].address) {
-				p->vm[i].is_used  = false;
-				int offset		  = 0;
-				for ( uint64_t va1 = va; va1 < va + len; va1 += hsai::page_size, offset += hsai::page_size )
+			if ( va == p->vm[i].address )
+			{
+				p->vm[i].is_used = false;
+				int offset		 = 0;
+				for ( uint64_t va1	= va; va1 < va + len;
+					  va1 += hsai::page_size, offset += hsai::page_size )
 				{
 					ulong pa = p->_pt.kwalk_addr( va1 );
-					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+					if ( p->vm[i].vfile != nullptr )
+						p->vm[i].vfile->write( hsai::k_mem->to_vir( pa ), hsai::page_size, offset );
 				}
-				p->vm[i].vfile->free_file();
+				if ( p->vm[i].vfile != nullptr ) p->vm[i].vfile->free_file();
 				p->vm[i].address = 0;
 				break;
-			} 
+			}
 		}
 
 		if(i == max_vma_num) {
@@ -1657,60 +1708,84 @@ namespace pm
 		/// TODO: actually, it shall map buffer and pin buffer at memory
 
 		Pcb *p = get_cur_pcb();
-
-		if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) return -1;
-
-		fs::file *f = p->_ofile[fd];
-		if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
-
-		fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
-		fs::dentry		*dent	  = normal_f->getDentry();
-		if ( dent == nullptr ) return -1;
-
-		int i=0;
-		uint64 fst = p->_sz;
-		uint64 fsz = (uint64) map_size;
-		uint64 newsz = 0;
-		for ( ; i < max_vma_num; i++ )
+		fs::file *f;
+		if ( fd == -1 )
 		{
-			if(!p->vm[i].is_used) {
-
-				newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
-				if ( newsz == 0 ) return -1;
-				p->vm[i].is_used = true;
-
-				p->vm[i].address = p->_sz;
-				p->vm[i].length = map_size;
-				// p->vma[i].flags = flags;
-				// p->vma[i].prot = prot;
-				p->vm[i].vfile = normal_f;
-				normal_f->dup(); // 增加引用计数
-				break;
-				// p->vma[i].vfd = fd;
-				// p->vma[i].offset = offset;
-
-				// p->sz += length;
-
-				// return p->vma[i].addr;
+			f			 = nullptr;
+			// 匿名映射
+			uint64 fst	 = p->_sz;
+			uint64 fsz	 = (uint64) map_size;
+			uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+			if ( newsz == 0 ) return -1;
+			for ( int i = 0; i < max_vma_num; i++ )
+			{
+				if ( !p->vm[i].is_used )
+				{
+					p->vm[i].is_used = true;
+					p->vm[i].address = fst;
+					p->vm[i].length	 = fsz;
+					p->vm[i].vfile	 = nullptr; // 没有文件
+					break;
+				}
 			}
+			p->_sz = newsz;
+			printf( "分配地址范围是%p,结尾%p\n", fst, fst + fsz );
+			return fst;
 		}
-		if(i==max_vma_num) {
-			return -1;
-		}
-
-		p->_sz = newsz;
-
-		char *buf = new char[fsz + 1];
-		dent->getNode()->nodeRead( (uint64) buf, 0, fsz );
-
-		if ( mm::k_vmm.copyout( p->_pt, fst, (const void *) buf, fsz ) < 0 )
+		else if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) { return -1; }
+		else
 		{
-			delete[] buf;
-			return -1;
-		}
+			f = p->_ofile[fd];
+			if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
 
-		delete[] buf;
-		return fst;
+			fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
+			fs::dentry		*dent	  = normal_f->getDentry();
+			if ( dent == nullptr ) return -1;
+
+			int	   i	 = 0;
+			uint64 fst	 = p->_sz;
+			uint64 fsz	 = (uint64) map_size;
+			uint64 newsz = 0;
+			for ( ; i < max_vma_num; i++ )
+			{
+				if ( !p->vm[i].is_used )
+				{
+
+					newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+					if ( newsz == 0 ) return -1;
+					p->vm[i].is_used = true;
+
+					p->vm[i].address = p->_sz;
+					p->vm[i].length	 = map_size;
+					// p->vma[i].flags = flags;
+					// p->vma[i].prot = prot;
+					p->vm[i].vfile	 = normal_f;
+					normal_f->dup(); // 增加引用计数
+					break;
+					// p->vma[i].vfd = fd;
+					// p->vma[i].offset = offset;
+
+					// p->sz += length;
+
+					// return p->vma[i].addr;
+				}
+			}
+			if ( i == max_vma_num ) { return -1; }
+
+			p->_sz = newsz;
+
+			char *buf = new char[fsz + 1];
+			dent->getNode()->nodeRead( (uint64) buf, 0, fsz );
+
+			if ( mm::k_vmm.copyout( p->_pt, fst, (const void *) buf, fsz ) < 0 )
+			{
+				delete[] buf;
+				return -1;
+			}
+
+			delete[] buf;
+			return fst;
+		}
 	}
 
 	int ProcessManager::mremap( uint64 oldaddr, uint64 oldsize, uint64 newsize)

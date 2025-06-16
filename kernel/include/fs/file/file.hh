@@ -165,5 +165,10 @@ namespace fs
 		int utimeset( const struct timespec *times );
 		//virtual int readlink( uint64 buf, size_t len ) = 0;
 	};
+	// for writev
+	struct iovec {
+		void *iov_base;
+		int iov_len;
+	};
 
 } // namespace fs
