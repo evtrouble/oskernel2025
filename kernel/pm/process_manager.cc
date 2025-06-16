@@ -1292,15 +1292,19 @@ namespace pm
 				int offset		  = 0;
 				uint64_t va		  = p->vm[i].address;
 				uint64_t len	  = p->vm[i].length;
-				for ( uint64_t va1 = va; va1 < va + len; va1 += hsai::page_size, offset += hsai::page_size )
-				{
-					ulong pa = p->_pt.kwalk_addr( va1 );
-					p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+				if(p->vm[i].vfile != nullptr && p->vm[i].flags == MAP_SHARED && 
+					(p->vm[i].prot & PROT_WRITE) != 0) {
+					for ( uint64_t va1 = va; va1 < va + len; va1 += hsai::page_size, offset += hsai::page_size )
+					{
+						ulong pa = p->_pt.kwalk_addr( va1 );
+						p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
+					}
 				}
 				uint64 npages = len / hsai::page_size;
 				mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
 				p->vm[i].address = 0;
-				p->vm[i].vfile->free_file();
+				if(p->vm[i].vfile)p->vm[i].vfile->free_file();
+				p->vm[i].vfile = nullptr;
 			} 
       	}
 
@@ -1682,13 +1686,16 @@ namespace pm
 			{
 				p->vm[i].is_used = false;
 				int offset		 = 0;
-				for ( uint64_t va1	= va; va1 < va + len;
+				if(p->vm[i].vfile != nullptr && p->vm[i].flags == MAP_SHARED && 
+					(p->vm[i].prot & PROT_WRITE) != 0) {
+					for ( uint64_t va1	= va; va1 < va + len;
 					  va1 += hsai::page_size, offset += hsai::page_size )
-				{
-					ulong pa = p->_pt.kwalk_addr( va1 );
-					if ( p->vm[i].vfile != nullptr )
+					{
+						ulong pa = p->_pt.kwalk_addr( va1 );
 						p->vm[i].vfile->write( hsai::k_mem->to_vir( pa ), hsai::page_size, offset );
-				}
+					}
+    			}
+				
 				if ( p->vm[i].vfile != nullptr ) p->vm[i].vfile->free_file();
 				p->vm[i].address = 0;
 				break;
@@ -1703,7 +1710,7 @@ namespace pm
 		return 0;
 	}
 
-	int ProcessManager::mmap( int fd, int map_size )
+	int ProcessManager::mmap( int fd, int prot, int flags, int map_size )
 	{
 		/// TODO: actually, it shall map buffer and pin buffer at memory
 
@@ -1729,7 +1736,6 @@ namespace pm
 				}
 			}
 			p->_sz = newsz;
-			printf( "分配地址范围是%p,结尾%p\n", fst, fst + fsz );
 			return fst;
 		}
 		else if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) { return -1; }
@@ -1757,8 +1763,8 @@ namespace pm
 
 					p->vm[i].address = p->_sz;
 					p->vm[i].length	 = map_size;
-					// p->vma[i].flags = flags;
-					// p->vma[i].prot = prot;
+					p->vm[i].flags = flags;
+					p->vm[i].prot = prot;
 					p->vm[i].vfile	 = normal_f;
 					normal_f->dup(); // 增加引用计数
 					break;

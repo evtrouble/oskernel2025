@@ -277,7 +277,6 @@ namespace syscall
 			writebytes+= f->write( (ulong) buf, tempLength, f->get_file_offset(), true );
 			delete buf;
 		}
-		printf("写入字节数量为：%d, 预期长度是%d\n",writebytes,expected);
 		return writebytes;
 	}
 
@@ -779,7 +778,7 @@ namespace syscall
 
 		size_t length;
 		if ( _arg_addr( 5, length ) < 0 ) return -1;
-		return pm::k_pm.mmap( fd, map_size );
+		return pm::k_pm.mmap( fd, prot, flags, map_size );
 	}
 
 	//unmap + mmap
@@ -1178,6 +1177,7 @@ namespace syscall
 		if ( _arg_addr( 2, arg ) < 0 ) return -3;
 
 		/// @todo not implement
+		printf("ioctl cmd is %x\n", cmd);
 		if ( ( cmd & 0xFFFF ) == TCGETS )
 		{
 			fs::device_file *df = (fs::device_file *) f;
@@ -1201,8 +1201,7 @@ namespace syscall
 			ws.ws_col = 80;
 			ws.ws_row = 24;
 			mm::PageTable *pt = pm::k_pm.get_cur_pcb()->get_pagetable();
-			uint64 p_pgrp = hsai::k_mem->to_vir( pt->walk_addr( arg ) );
-			if (mm::k_vmm.copyout(*pt, p_pgrp, (char*)&ws, sizeof(ws)) < 0)
+			if (mm::k_vmm.copyout(*pt, arg, (char*)&ws, sizeof(ws)) < 0)
 				return -1;
 			return 0;
 		}
@@ -2028,7 +2027,6 @@ namespace syscall
 				return -1;
 		
 		int ans=signal::sigprocmask( how, &set, &old_set, sigsize );
-		printf("正常返回%d\n",ans);
 		return ans;
 
 	}
