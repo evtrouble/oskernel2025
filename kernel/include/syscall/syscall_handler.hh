@@ -135,6 +135,7 @@ namespace syscall
 		uint64 _sys_sigprocmask();
 		uint64 _sys_kill();
 		uint64 _sys_tgkill();
+		uint64 _sys_renameat2();
 	};
 
 	extern SyscallHandler k_syscall_handler;

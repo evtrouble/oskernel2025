@@ -39,7 +39,7 @@ namespace fs
 								   
 
 			virtual size_t nodeRead( u64 dst, size_t off, size_t len ) override;
-			virtual size_t nodeWrite( u64 src, size_t off, size_t len ) override { return 0; };
+			virtual size_t nodeWrite( u64 src, size_t off, size_t len ) override { return len; };
 			virtual int	   readlinkat( char *buf, size_t len ) override { return 0; };
 
 			virtual size_t readSubDir( ubuf &dst, size_t off ) override;

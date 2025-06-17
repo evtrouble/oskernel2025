@@ -134,6 +134,7 @@ namespace syscall
 		BIND_SYSCALL( kill );
 		BIND_SYSCALL( writev );
 		BIND_SYSCALL( tgkill );
+		BIND_SYSCALL( renameat2 );
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -444,7 +445,10 @@ namespace syscall
 
 		if ( _arg_fd( 0, &oldfd, &f ) < 0 ) return -1;
 		if ( _arg_int( 1, fd ) < 0 ) return -1;
-		if(fd==oldfd)return fd;
+		if ( fd == oldfd ) return fd;
+		if(p->_ofile[fd]!=nullptr){
+			pm::k_pm.close(fd);
+		}
 		if ( pm::k_pm.alloc_fd( p, f, fd ) < 0 ) return -1;
 		// fs::k_file_table.dup( f );
 		f->dup();
@@ -1249,7 +1253,7 @@ namespace syscall
 						break;
 					}
 				}
-				p->get_open_file( retfd )->_fl_cloexec = true;
+				if(fd!=0&&fd!=1&&fd!=2)p->get_open_file( retfd )->_fl_cloexec = true;
 				return retfd;
 			case F_GETFL:
 				return f->_attrs.transMode();
@@ -2028,6 +2032,20 @@ namespace syscall
 		
 		int ans=signal::sigprocmask( how, &set, &old_set, sigsize );
 		return ans;
+	}
 
+	uint64 SyscallHandler::_sys_renameat2()
+	{
+		int		  flags;
+		int		  old_fd, new_fd;
+		fs::file *old_file, *new_file;
+		uint64	  old_path_addr, new_path_addr;
+		if ( _arg_int( 0, old_fd ) < 0 || _arg_addr( 1, old_path_addr ) < 0 ||
+			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, old_path_addr ) < 0 ||
+			 _arg_int( 4, flags ) )
+		{
+			// 参数不对
+			return -1;
+		}
 	}
 } // namespace syscall

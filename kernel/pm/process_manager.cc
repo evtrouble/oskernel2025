@@ -1972,7 +1972,7 @@ namespace pm
 		// 不为空先释放资源
 		if ( p->_ofile[ fd ] != nullptr )
 		{
-			close(fd);
+			return -1;
 		}
 		p->_ofile[fd] = f;
 		return fd;

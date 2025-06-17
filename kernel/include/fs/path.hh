@@ -13,6 +13,7 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <EASTL/unordered_map.h>
+#define MAX_PATH 256
 namespace fs
 {
 	class File;
