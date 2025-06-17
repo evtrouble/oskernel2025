@@ -536,10 +536,10 @@ namespace syscall
 		char machine[65];
 		char domainname[65];
 	};
-	static const char _SYSINFO_sysname[]	= "XN6";
+	static const char _SYSINFO_sysname[]	= "Linux";
 	static const char _SYSINFO_nodename[]	= "(none-node)";
-	static const char _SYSINFO_release[]	= "V1.0";
-	static const char _SYSINFO_version[]	= "V1.0";
+	static const char _SYSINFO_release[]	= "5.15.0";
+	static const char _SYSINFO_version[]	= "#1 SMP Mon Jan 1 12:00:00 UTC 2024";
 	static const char _SYSINFO_machine[]	= "LoongArch-2k1000";
 	static const char _SYSINFO_domainname[] = "(none-domain)";
 
