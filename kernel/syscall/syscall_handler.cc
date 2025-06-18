@@ -1221,7 +1221,7 @@ namespace syscall
 		ulong	  arg;
 		int		  retfd = -1;
 
-		if ( _arg_fd( 0, nullptr, &f ) < 0 ) return -1;
+		if ( _arg_fd( 0, &fd, &f ) < 0 ) return -1;
 		if ( _arg_int( 1, op ) < 0 ) return -2;
 
 		switch ( op )
@@ -2047,5 +2047,6 @@ namespace syscall
 			// 参数不对
 			return -1;
 		}
+		return 0;
 	}
 } // namespace syscall
