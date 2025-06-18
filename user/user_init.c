@@ -250,9 +250,8 @@ int init_main( void )
 	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	basic_test();
 	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
-#ifdef LOONGARCH
 	test_all();
-#endif
+
 
 	chdir( test_musl_basic_path );
 	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
