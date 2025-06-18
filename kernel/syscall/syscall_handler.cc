@@ -1220,6 +1220,7 @@ namespace syscall
 		int		  op;
 		ulong	  arg;
 		int		  retfd = -1;
+		int fd;
 
 		if ( _arg_fd( 0, &fd, &f ) < 0 ) return -1;
 		if ( _arg_int( 1, op ) < 0 ) return -2;
