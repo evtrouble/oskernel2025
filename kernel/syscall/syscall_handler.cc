@@ -135,6 +135,7 @@ namespace syscall
 		BIND_SYSCALL( writev );
 		BIND_SYSCALL( tgkill );
 		BIND_SYSCALL( renameat2 );
+		BIND_SYSCALL( readv );
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -305,6 +306,44 @@ namespace syscall
 
 		delete[] k_buf;
 		return ret;
+	}
+
+	uint64 SyscallHandler::_sys_readv()
+	{
+		fs::file			*f;
+		fs::iovec           iov;
+		int fd;
+  		int iovcnt;
+  		uint64 iov_ptr;
+		if(_arg_fd( 0, &fd, &f ) < 0 || _arg_addr(1, iov_ptr) < 0 || _arg_int(2, iovcnt) < 0){
+			return -1;
+		}
+		pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt	= proc->get_pagetable();
+		uint64 readbytes = 0;
+		uint64 expected = 0;
+		for(int i = 0; i < iovcnt; i++){
+			if(mm::k_vmm.copy_in(*pt, (void*)&iov, (uint64)(iov_ptr + i * sizeof(fs::iovec)), sizeof(fs::iovec)) < 0) return -1;
+			int tempLength = iov.iov_len;
+			expected += tempLength;
+			char *buf = new char[tempLength + 1];
+			// 从文件读取数据到内核缓冲区
+			int ret = f->read((uint64)buf, tempLength, f->get_file_offset(), true);
+			if(ret < 0) {
+				delete[] buf;
+				return -1;
+			}
+			// 将内核缓冲区数据复制到用户空间
+			if(mm::k_vmm.copyout(*pt, (uint64)iov.iov_base, buf, ret) < 0) {
+				delete[] buf;
+				return -1;
+			}
+			readbytes += ret;
+			delete[] buf;
+			// 如果读取的字节数小于请求的字节数，说明已到达文件末尾，停止读取
+			if(ret < tempLength) break;
+		}
+		return readbytes;
 	}
 
 	uint64 SyscallHandler::_sys_exit()
@@ -679,6 +718,9 @@ namespace syscall
 		normal_f->read_sub_dir( us );
 		rlen -= us.rest_space();
 		us.close();
+		// printf("正常返回，长度是%d，用户空间起始地址%p，结束地址%p\n",rlen,us._start_addr,us._end_addr);
+		// pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
+		// printf("当前栈指针%p,内核栈指针%p\n",p->getsp(),p->getksp());
 
 		return rlen;
 	}

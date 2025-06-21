@@ -95,7 +95,7 @@ UserspaceStream &UserspaceStream::operator>>( UsRangeDesc &rd )
 		else
 		{
 			u64 l = _cache_end - _cache_ptr;
-			memcpy( (void *) buf, (void *) _cache_ptr, len );
+			memcpy( (void *) buf, (void *) _cache_ptr, l );
 			_cache_ptr += l;
 			_ptr	   += l;
 			buf		   += l;

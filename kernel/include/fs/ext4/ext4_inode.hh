@@ -10,7 +10,7 @@
 
 #include "fs/ext4/ext4.hh"
 #include "fs/inode.hh"
-
+#include <EASTL/vector.h>
 namespace fs
 {
 	namespace ext4
@@ -83,7 +83,12 @@ namespace fs
 			Inode *_htree_lookup( eastl::string &dir_name );
 			Inode *_linear_lookup( eastl::string &dir_name, void *block );
 
-		public: // debug
+			// htree目录读取相关函数
+			size_t readLinerSubDir( ubuf &dst, size_t off );
+			size_t readHtreeSubDir( ubuf &dst, size_t off );
+			void _collect_htree_leaf_blocks( Ext4DxRoot *dxroot, int ind_lvl, eastl::vector<u32> &leaf_blocks );
+			void _collect_htree_node_leaf_blocks( Ext4DxNode *node, int ind_lvl, eastl::vector<u32> &leaf_blocks );
+public: // debug
 
 			void debug_hash( eastl::string dir_name );
 		};

@@ -854,6 +854,8 @@ namespace pm
 		mm::k_vmm.vm_set( new_pt, (void *) stackbase, 0, stack_page_cnt );
 
 		new_sz += ( stack_page_cnt + 1 ) * hsai::page_size;
+		// printf("用户栈范围：栈底（低地址） = %p，栈顶（高地址） = %p", stackbase, sp);
+
 
 		// >>>> 此后的代码用于支持 glibc，包括将 auxv, envp, argv, argc
 		// 压到用户栈中由glibc解析
