@@ -821,11 +821,11 @@ namespace fs
 
 			// 搜索 Hash Tree
 
-			int ind_lvl = dxroot->info.indirect_levels; // 间接搜索等级（树深度）
+			int			 ind_lvl = dxroot->info.indirect_levels; // 间接搜索等级（树深度）
 			Ext4DxEntry *st, *ed;
 			Ext4DxNode	*nd;
 			st = dxroot->entries;
-			ed = st + dxroot->count - 2; // count 比实际上的数组长度多一，因为包含 header
+			ed = st + dxroot->count - 1; // count 比实际上的数组长度多一，因为包含 header
 
 			// 二分查找比较函数
 			auto comp = [&]( Ext4DxEntry *mid, u32 *tar ) -> int
@@ -865,10 +865,10 @@ namespace fs
 				long target_block = target_ent->block;
 				block_buf->unpin();
 
-				block_buf = _belong_fs->read_block( target_block, true );
+				block_buf = read_logical_block( target_block, true );
 				nd		  = (Ext4DxNode *) block_buf->get_data_ptr();
 				st		  = nd->entries;
-				ed		  = st + nd->count - 2;
+				ed		  = st + nd->count - 1;
 			}
 
 			// 达到叶子节点（数据节点），采用 linear 搜索
