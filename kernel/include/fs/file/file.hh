@@ -144,6 +144,7 @@ namespace fs
 		Kstat _stat;
 		bool _fl_cloexec = false;		// close when execve
 		long _file_ptr = 0;				// file read header's offset correponding to the start of the file
+		bool always_on = false;
 	public:
 		file() = delete;
 		file( FileAttrs attrs ) : _attrs( attrs ), refcnt( 0 ), _stat( _attrs.filetype ) {}

@@ -21,7 +21,7 @@ namespace fs
 	class dentry;
 	namespace dentrycache
 	{
-		constexpr uint MAX_DENTRY_NUM = 1000;
+		constexpr uint MAX_DENTRY_NUM =4096 ;
 		/**
 		 * @brief Dentry cache
 		 * @test dentryCacheTest

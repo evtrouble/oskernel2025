@@ -9,10 +9,11 @@
 #include "fs/ext4/ext4_inode.hh"
 
 #include "fs/ext4/ext4_fs.hh"
+#include "fs/ramfs/ramfs.hh"
+#include "fs/ramfs/ramfsInode.hh"
 #include "klib/klib.hh"
 #include "klib/template_algorithmn.hh"
-#include "fs/ramfs/ramfsInode.hh"
-#include "fs/ramfs/ramfs.hh"
+#include <EASTL/vector.h>
 
 // <<<<<<<< hash tree 相关
 namespace fs
@@ -485,9 +486,7 @@ namespace fs
 
 			return read_len;
 		}
-
-		size_t Ext4IndexNode::readSubDir( ubuf &dst, size_t off )
-		{
+		size_t Ext4IndexNode::readLinerSubDir ( ubuf &dst, size_t off ){
 			linux_dirent64 lxdir;
 
 			ulong  bufrest = dst.rest_space();
@@ -535,6 +534,12 @@ namespace fs
 
 				if ( dentsz > bufrest ) break; // 用户空间大小不足
 
+				// // 输出子项名字用于调试
+				// char name_buf[256];
+				// memcpy(name_buf, p_dir->name, p_dir->name_len);
+				// name_buf[p_dir->name_len] = '\0';
+				// printf("线性子目录: found entry '%s' (inode=%u, type=%u)\n", name_buf, p_dir->inode, p_dir->file_type);
+
 				lxdir.d_ino	   = p_dir->inode;
 				lxdir.d_off	   = 0;
 				lxdir.d_reclen = dentsz;
@@ -558,6 +563,117 @@ namespace fs
 			}
 
 			return off - off_bk;
+		}
+
+		size_t Ext4IndexNode::readHtreeSubDir ( ubuf &dst, size_t off )
+		{
+			linux_dirent64 lxdir;
+
+			ulong  bufrest = dst.rest_space();
+			ulong  blk_sz  = _belong_fs->rBlockSize();
+			size_t off_bk  = off;
+			size_t current_off = 0; // 全局偏移量计数器
+
+			// 读取htree根节点
+			Ext4Buffer *root_buf = read_logical_block( 0, true );
+			if ( root_buf == nullptr )
+			{
+				log_error( "ext4-inode : read htree root block fail" );
+				return 0;
+			}
+
+			Ext4DxRoot *dxroot = (Ext4DxRoot *) root_buf->get_data_ptr();
+			int ind_lvl = dxroot->info.indirect_levels;
+
+			// 收集所有叶子节点的块号
+			eastl::vector<u32> leaf_blocks;
+			_collect_htree_leaf_blocks( dxroot, ind_lvl, leaf_blocks );
+			root_buf->unpin();
+
+			// 遍历所有叶子节点，使用与linear相同的逻辑
+			for ( u32 leaf_block_no : leaf_blocks )
+			{
+				if ( bufrest == 0 ) break;
+
+				Ext4Buffer *blk_buf = read_logical_block( leaf_block_no, true );
+				if ( blk_buf == nullptr )
+				{
+					log_warn( "ext4-inode : read htree leaf block %u fail", leaf_block_no );
+					continue;
+				}
+
+				u8 *blk_ptr = (u8 *) blk_buf->get_data_ptr();
+				u8 *blk_end = blk_ptr + blk_sz;
+
+				Ext4DirEntry2 *p_dir = nullptr;
+				while ( blk_ptr < blk_end && bufrest > 0 )
+				{
+					// 跳过已经读取的偏移量
+					if ( current_off < off )
+					{
+						p_dir = (Ext4DirEntry2 *) blk_ptr;
+						if ( p_dir->rec_len == 0 ) break; // 防止死循环
+						current_off += p_dir->rec_len;
+						blk_ptr += p_dir->rec_len;
+						continue;
+					}
+
+					p_dir = (Ext4DirEntry2 *) blk_ptr;
+					if ( p_dir->rec_len == 0 ) break; // 防止死循环
+
+					if ( p_dir->inode == 0 ) // 遇到无效目录项
+					{
+						if ( p_dir->file_type == 0xde ) // 这是块内最后一个目录项，保存的内容是checksum
+						{
+							break; // 跳出当前块
+						}
+						else // 这是一个普通的无效目录项
+						{
+							current_off += p_dir->rec_len;
+							blk_ptr += p_dir->rec_len;
+						}
+						continue;
+					}
+
+					ulong dentsz = p_dir->name_len + 1 + sizeof( lxdir );
+
+					if ( dentsz > bufrest ) break; // 用户空间大小不足
+
+					// 输出子项名字用于调试
+					// char name_buf[256];
+					// memcpy(name_buf, p_dir->name, p_dir->name_len);
+					// name_buf[p_dir->name_len] = '\0';
+					// printf("阅读子目录(htree): found entry '%s' (inode=%u, type=%u)\n", name_buf, p_dir->inode, p_dir->file_type);
+
+					lxdir.d_ino	   = p_dir->inode;
+					lxdir.d_off	   = 0;
+					lxdir.d_reclen = dentsz;
+					lxdir.d_type   = p_dir->file_type;
+					dst << lxdir;
+					mm::UsRangeDesc rd =
+						std::make_tuple( (mm::UsBufPtr) p_dir->name, (mm::UsBufLen) p_dir->name_len );
+					char null_term = 0;
+					dst << rd << null_term;
+
+					blk_ptr += p_dir->rec_len;
+					current_off += p_dir->rec_len;
+					bufrest	 = dst.rest_space();
+				}
+
+				blk_buf->unpin();
+			}
+
+			return current_off - off;
+		}
+
+		size_t Ext4IndexNode::readSubDir( ubuf &dst, size_t off )
+		{
+			if ( _inode.flags.fl.index ) // 当前目录使用 hash tree
+			{
+				return readHtreeSubDir(dst,off);
+			}else{
+				return readLinerSubDir(dst,off);
+			}
 		}
 
 		Ext4Buffer *Ext4IndexNode::read_logical_block( long block, bool pin )
@@ -784,6 +900,68 @@ namespace fs
 			return ( target_block - start_block ) / unit;
 		}
 
+		void Ext4IndexNode::_collect_htree_leaf_blocks( Ext4DxRoot *dxroot, int ind_lvl, eastl::vector<u32> &leaf_blocks )
+		{
+			if ( ind_lvl == 0 )
+			{
+				// 当前就是叶子节点，收集所有entry的block
+				Ext4DxEntry *st = dxroot->entries;
+				Ext4DxEntry *ed = st + dxroot->count - 1;
+				for ( Ext4DxEntry *entry = st; entry <= ed; entry++ )
+				{
+					leaf_blocks.push_back( entry->block );
+				}
+			}
+			else
+			{
+				// 需要递归遍历中间节点
+				Ext4DxEntry *st = dxroot->entries;
+				Ext4DxEntry *ed = st + dxroot->count - 1;
+				for ( Ext4DxEntry *entry = st; entry <= ed; entry++ )
+				{
+					Ext4Buffer *node_buf = read_logical_block( entry->block, true );
+					if ( node_buf != nullptr )
+					{
+						Ext4DxNode *node = (Ext4DxNode *) node_buf->get_data_ptr();
+						_collect_htree_node_leaf_blocks( node, ind_lvl - 1, leaf_blocks );
+						node_buf->unpin();
+					}
+				}
+			}
+		}
+
+		void Ext4IndexNode::_collect_htree_node_leaf_blocks( Ext4DxNode *node, int ind_lvl, eastl::vector<u32> &leaf_blocks )
+		{
+			if ( ind_lvl == 0 )
+			{
+				// 当前就是叶子节点，收集所有entry的block
+				Ext4DxEntry *st = node->entries;
+				Ext4DxEntry *ed = st + node->count - 1;
+				for ( Ext4DxEntry *entry = st; entry <= ed; entry++ )
+				{
+					leaf_blocks.push_back( entry->block );
+				}
+			}
+			else
+			{
+				// 需要递归遍历中间节点
+				Ext4DxEntry *st = node->entries;
+				Ext4DxEntry *ed = st + node->count - 1;
+				for ( Ext4DxEntry *entry = st; entry <= ed; entry++ )
+				{
+					Ext4Buffer *child_buf = read_logical_block( entry->block, true );
+					if ( child_buf != nullptr )
+					{
+						Ext4DxNode *child_node = (Ext4DxNode *) child_buf->get_data_ptr();
+						_collect_htree_node_leaf_blocks( child_node, ind_lvl - 1, leaf_blocks );
+						child_buf->unpin();
+					}
+				}
+			}
+		}
+
+
+
 		Inode *Ext4IndexNode::_htree_lookup( eastl::string &dir_name )
 		{
 			if ( dir_name == ".." )
@@ -818,6 +996,9 @@ namespace fs
 				block_buf->unpin();
 				return nullptr;
 			}
+			
+			log_trace( "htree lookup: %s, hash_major=0x%x, hash_minor=0x%x", 
+					   dir_name.c_str(), hash_major, hahs_minor );
 
 			// 搜索 Hash Tree
 
@@ -825,27 +1006,24 @@ namespace fs
 			Ext4DxEntry *st, *ed;
 			Ext4DxNode	*nd;
 			st = dxroot->entries;
-			ed = st + dxroot->count - 1; // count 比实际上的数组长度多一，因为包含 header
+			ed = st + dxroot->count - 2; // count 比实际上的数组长度多一，因为包含 header
 
 			// 二分查找比较函数
 			auto comp = [&]( Ext4DxEntry *mid, u32 *tar ) -> int
 			{
 				u32 hash = *tar;
+				
+				// 如果目标哈希值小于当前条目的哈希值
 				if ( hash < mid->hash ) return -1;
-				if ( mid == ed )
-					return 0;
-				else if ( mid < ed )
-				{
-					if ( hash >= ( mid + 1 )->hash )
-						return 1;
-					else
-						return 0;
-				}
-				else
-				{
-					log_panic( "binary search : bad mid beyond the end of array" );
-					return 0;
-				}
+				
+				// 如果是最后一个条目，直接匹配
+				if ( mid == ed ) return 0;
+				
+				// 如果目标哈希值在当前范围内（小于下一个条目的哈希值）
+				if ( hash < (mid + 1)->hash ) return 0;
+				
+				// 目标哈希值大于等于下一个条目的哈希值，继续在右半部分查找
+				return 1;
 			};
 
 			for ( ; ind_lvl >= 0; ind_lvl-- )
@@ -868,7 +1046,7 @@ namespace fs
 				block_buf = read_logical_block( target_block, true );
 				nd		  = (Ext4DxNode *) block_buf->get_data_ptr();
 				st		  = nd->entries;
-				ed		  = st + nd->count - 1;
+				ed		  = st + nd->count - 2; // count 包含了 header，需要减2
 			}
 
 			// 达到叶子节点（数据节点），采用 linear 搜索

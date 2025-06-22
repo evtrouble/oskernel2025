@@ -59,7 +59,6 @@ namespace syscall
 		{
 			func = []() -> uint64
 			{
-				printf( "default syscall\n" );
 				return 0;
 			};
 		}
@@ -141,8 +140,8 @@ namespace syscall
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
 	{
 #ifdef OS_DEBUG
-		if ( sys_num != SYS_write )
-		{
+		// if ( sys_num != SYS_write )
+		// {
 			if ( _syscall_name[sys_num] != nullptr )
 				printf( YELLOW_COLOR_PRINT "syscall %16s",
 						_syscall_name[sys_num] );
@@ -151,7 +150,7 @@ namespace syscall
 			auto [usg, rst] = mm::k_pmm.mem_desc();
 			printf( "mem-usage: %_-10ld mem-rest: %_-10ld\n" CLEAR_COLOR_PRINT,
 					usg, rst );
-		}
+		// }
 #endif
 		return _syscall_funcs[sys_num]();
 	}
@@ -217,10 +216,10 @@ namespace syscall
 	{
 		fs::file			*f;
 		int					 n;
-		uint64				 p;
+		uint64				 buf_addr;
 		[[maybe_unused]] int fd = 0;
 
-		if ( _arg_fd( 0, &fd, &f ) < 0 || _arg_addr( 1, p ) < 0 ||
+		if ( _arg_fd( 0, &fd, &f ) < 0 || _arg_addr( 1, buf_addr ) < 0 ||
 			 _arg_int( 2, n ) < 0 )
 		{
 			return -1;
@@ -234,7 +233,7 @@ namespace syscall
 
 		char *buf = new char[n + 10];
 		{
-			mm::UserspaceStream uspace( (void *) p, n + 1, pt );
+			mm::UserspaceStream uspace( (void *) buf_addr, n + 1, pt );
 			uspace.open();
 			mm::UsRangeDesc urd = std::make_tuple( (u8 *) buf, (ulong) n + 1 );
 			uspace >> urd;
@@ -718,9 +717,6 @@ namespace syscall
 		normal_f->read_sub_dir( us );
 		rlen -= us.rest_space();
 		us.close();
-		// printf("正常返回，长度是%d，用户空间起始地址%p，结束地址%p\n",rlen,us._start_addr,us._end_addr);
-		// pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
-		// printf("当前栈指针%p,内核栈指针%p\n",p->getsp(),p->getksp());
 
 		return rlen;
 	}
@@ -1296,7 +1292,7 @@ namespace syscall
 						break;
 					}
 				}
-				if(fd!=0&&fd!=1&&fd!=2)p->get_open_file( retfd )->_fl_cloexec = true;
+				p->get_open_file( retfd )->_fl_cloexec = true;
 				return retfd;
 			case F_GETFL:
 				return f->_attrs.transMode();

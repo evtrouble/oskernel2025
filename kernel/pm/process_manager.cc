@@ -563,8 +563,11 @@ namespace pm
 
 			// f->type = fs::FileTypes::FT_DEVICE;
 			proc->_ofile[0] = f_in;
+			f_in->always_on=true;
 			proc->_ofile[1] = f_out;
+			f_out->always_on=true;
 			proc->_ofile[2] = f_err;
+			f_err->always_on=true;
 			// p->_cwd = fs::fat::k_fatfs.get_root();
 			/// @todo 这里暂时修改进程的工作目录为fat的挂载点
 			proc->_cwd		 = fs::ramfs::k_ramfs.getRoot()->EntrySearch( "mnt" );
@@ -1070,12 +1073,11 @@ namespace pm
 			proc->_rlim_vec[ResourceLimitId::RLIMIT_STACK].rlim_max = ustack.sp() - stackbase;
 
 		// 处理 F_DUPFD_CLOEXEC 标志位
-		for ( auto &f : proc->_ofile )
-		{
-			if ( f != nullptr && f->_fl_cloexec )
+		for(int i=0;i<max_open_files;i++){
+			fs::file * temp = proc->_ofile[i];
+			if ( temp != nullptr && temp->_fl_cloexec && !temp->always_on)
 			{
-				f->free_file();
-				f = nullptr;
+				close(i);
 			}
 		}
 

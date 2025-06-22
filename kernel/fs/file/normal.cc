@@ -32,6 +32,11 @@ namespace fs
 			log_error( "normal_file:: not allowed to write! " );
 			return -1;
 		}
+		if ( _attrs.filetype == FileTypes::FT_DIRECT ) {
+			log_error("写目录文件\n");
+			return -1;
+		}
+		if ( _attrs.filetype == FileTypes::FT_NONE ) return -1;
 		Inode *node = _den->getNode();
 		if ( node == nullptr )
 		{

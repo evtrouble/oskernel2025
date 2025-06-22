@@ -34,7 +34,7 @@ namespace pm
 	constexpr int  default_proc_prio = 10;
 	constexpr int  lowest_proc_prio	 = 19;
 	constexpr int  highest_proc_prio = 0;
-	constexpr uint max_open_files	 = 512;
+	constexpr uint max_open_files	 =1024 ;
 
 	constexpr int default_proc_kstack_pages = 31; // 默认进程内核栈大小（按页面数计算）
 	constexpr int default_proc_ustack_pages = 32; // 默认进程用户栈大小（按页面数计算）

@@ -56,7 +56,6 @@ namespace mm
 	{
 		uint64	  a, last;
 		hsai::Pte pte;
-
 		if ( size == 0 ) log_panic( "mappages: size" );
 
 		a	 = hsai::page_round_down( va );
@@ -70,7 +69,10 @@ namespace mm
 				log_warn( "walk failed" );
 				return false;
 			}
-			if ( pte.is_valid() ) log_panic( "mappages: remap" );
+			if ( pte.is_valid() ) {
+				log_warn("mappages: attempt to remap va=0x%lx", a);
+    			return false; 
+			}
 
 			pte.set_data( hsai::page_round_down( hsai::k_mem->to_phy( pa ) ) |
 						  flags );

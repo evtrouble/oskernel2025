@@ -32,6 +32,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua_path[]	 = "lua_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_static[]	 = "run-static.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
@@ -195,6 +196,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char digits[] = "0123456
 
 int			basic_test( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_all( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_lua( void ) __attribute__( ( section( ".user.init" ) ) );
 
 int			test_all( void ) 
 {
@@ -204,6 +206,17 @@ int			test_all( void )
 	bb_sh[1] = exec_test_busybox_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
+}
+
+int           test_lua(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	chdir( back_path );
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_lua_path;
+	bb_sh[2] = 0;
+	RUN_TESTS( busybox_path, bb_sh );
+
 }
 
 int			basic_test( void ) 
@@ -246,7 +259,7 @@ int			basic_test( void )
 int init_main( void )
 {
 	chdir( test_glibc_basic_path );
-
+	// test_lua();
 	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	basic_test();
 	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
@@ -257,9 +270,10 @@ int init_main( void )
 	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
 	basic_test();
 	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
-#ifdef LOONGARCH
 	test_all();
-#endif
+// #ifdef LOONGARCH
+	// test_lua();
+// #endif
 	// char dents[512];
 
 	// int fd = openat( -1, rootpath, 02, 0 );
