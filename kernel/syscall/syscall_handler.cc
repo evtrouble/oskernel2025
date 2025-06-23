@@ -442,6 +442,15 @@ namespace syscall
 			}
 		}
 
+		// 检查是否为 .sh 文件，如果是则使用 busybox sh 执行
+		if (path.size() >= 3 && path.substr(path.size() - 3) == ".sh") {
+			// 在 argv 前面插入 "./busybox" 和 "sh"
+			argv.insert(argv.begin(), "sh");
+			argv.insert(argv.begin(), "./busybox");
+			// 修改 path 为 busybox 路径
+			path = "./busybox";
+		}
+
 		return pm::k_pm.execve( path, argv, envp );
 	}
 

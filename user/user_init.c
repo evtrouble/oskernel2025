@@ -201,7 +201,6 @@ int			test_lua( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_all( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
-	chdir( back_path );
 	bb_sh[0] = sh_name;
 	bb_sh[1] = exec_test_busybox_path;
 	bb_sh[2] = 0;
@@ -211,7 +210,6 @@ int			test_all( void )
 int           test_lua(void)
 {	
 	__attribute__(( __unused__ )) int pid;
-	chdir( back_path );
 	bb_sh[0] = sh_name;
 	bb_sh[1] = exec_test_lua_path;
 	bb_sh[2] = 0;
@@ -259,36 +257,29 @@ int			basic_test( void )
 int init_main( void )
 {
 	chdir( test_glibc_basic_path );
-	// test_lua();
+	// basic测试
 	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
 	basic_test();
 	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+	//回到 glibc目录
+	chdir( back_path );
+	//lua测试
+	test_lua();
+	// busybox测试
 	test_all();
 
 
 	chdir( test_musl_basic_path );
+	//basic测试
 	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
 	basic_test();
 	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
+	//回到musl目录
+	chdir( back_path );
+	//lua测试
+	test_lua();
+	//busybox测试
 	test_all();
-// #ifdef LOONGARCH
-	// test_lua();
-// #endif
-	// char dents[512];
-
-	// int fd = openat( -1, rootpath, 02, 0 );
-	// int					   r;
-	// struct linux_dirent64 *de;
-	// // 读取目录项
-	// while((r = getdents(fd, dents, 512)) != 0) {
-	// 	if ( r < 0 ) 
-	// 		break;
-	// 	for(int i = 0; i < r; i += ((struct linux_dirent64 *)&dents[i])->d_reclen) {
-    //         de = (struct linux_dirent64 *)&dents[i];
-	// 		write( 1, de->d_name, strlen( de->d_name ) );
-	// 		write( 1, nextline, sizeof( nextline ) - 1 );
-	// 	}
-	// }
 
 	poweroff();
 

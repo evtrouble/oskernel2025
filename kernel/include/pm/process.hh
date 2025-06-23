@@ -82,7 +82,7 @@ namespace pm
 		const char *_debug_name = nullptr;
 	};
 	constexpr int max_program_section_num = 16;
-	constexpr int max_vma_num = 10;
+	constexpr int max_vma_num = 64;
 	struct vma{
 		bool is_used;	// 是否被使用
 		uint64 address; 	//start of mem block

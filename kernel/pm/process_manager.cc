@@ -1728,7 +1728,8 @@ namespace pm
 			uint64 fsz	 = (uint64) map_size;
 			uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
 			if ( newsz == 0 ) return -1;
-			for ( int i = 0; i < max_vma_num; i++ )
+			int i=0;
+			for (; i < max_vma_num; i++ )
 			{
 				if ( !p->vm[i].is_used )
 				{
@@ -1738,6 +1739,10 @@ namespace pm
 					p->vm[i].vfile	 = nullptr; // 没有文件
 					break;
 				}
+			}
+			if ( i == max_vma_num ) {
+				log_error("vma区域不够用了\n");
+				return -1;
 			}
 			p->_sz = newsz;
 			return fst;
@@ -1780,7 +1785,10 @@ namespace pm
 					// return p->vma[i].addr;
 				}
 			}
-			if ( i == max_vma_num ) { return -1; }
+			if ( i == max_vma_num ) {
+				log_error("vma区域不够用了\n");
+				return -1;
+			}
 
 			p->_sz = newsz;
 
