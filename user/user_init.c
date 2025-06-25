@@ -33,6 +33,10 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua_path[]	 = "lua_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_path[]	 = "libctest_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_static_path[]	 = "run-static.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_dynamic_path[]	 = "run-dynamic.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lmbench_path[]	 = "libcbench_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_static[]	 = "run-static.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
@@ -197,6 +201,8 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char digits[] = "0123456
 int			basic_test( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_all( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_lua( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_libctest( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_lmbench( void ) __attribute__( ( section( ".user.init" ) ) );
 
 int			test_all( void ) 
 {
@@ -212,6 +218,26 @@ int           test_lua(void)
 	__attribute__(( __unused__ )) int pid;
 	bb_sh[0] = sh_name;
 	bb_sh[1] = exec_test_lua_path;
+	bb_sh[2] = 0;
+	RUN_TESTS( busybox_path, bb_sh );
+
+}
+
+int           test_libctest(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_libctest_path;
+	bb_sh[2] = 0;
+	RUN_TESTS( busybox_path, bb_sh );
+
+}
+
+int           test_lmbench(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_lmbench_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
 
@@ -256,17 +282,6 @@ int			basic_test( void )
 
 int init_main( void )
 {
-	chdir( test_glibc_basic_path );
-	// basic测试
-	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
-	basic_test();
-	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
-	//回到 glibc目录
-	chdir( back_path );
-	//lua测试
-	test_lua();
-	// busybox测试
-	test_all();
 
 
 	chdir( test_musl_basic_path );
@@ -281,6 +296,24 @@ int init_main( void )
 	//busybox测试
 	test_all();
 
+
+	chdir( test_glibc_basic_path );
+	//basic测试
+	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
+	basic_test();
+	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+	//回到 glibc目录
+	chdir( back_path );
+	//lua测试
+	test_lua();
+	// busybox测试
+	test_all();
+#ifdef __riscv
+	//libtest
+	test_libctest();
+	//lmbench
+	test_lmbench();
+#endif
 	poweroff();
 
 

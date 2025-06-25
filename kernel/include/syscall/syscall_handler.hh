@@ -68,7 +68,9 @@ namespace syscall
 	private:	// ================ syscall functions ================
 		uint64 _sys_write();
 		uint64 _sys_read();
+		uint64 _sys_clone();
 		uint64 _sys_fork();
+		uint64 _sys_clone3();
 		uint64 _sys_exit();
 		uint64 _sys_getpid();
 		uint64 _sys_getppid();
@@ -89,6 +91,7 @@ namespace syscall
 		uint64 _sys_fstat();
 		uint64 _sys_fstatat();
 		uint64 _sys_writev();
+		uint64 _sys_pread64();
 		uint64 _sys_getdents();
 		uint64 _sys_mkdir();
 		uint64 _sys_chdir();
@@ -137,6 +140,17 @@ namespace syscall
 		uint64 _sys_tgkill();
 		uint64 _sys_renameat2();
 		uint64 _sys_readv();
+		uint64 _sys_rt_sigtimedwait();
+		uint64 _sys_futex();
+		uint64 _sys_socket();
+		uint64 _sys_bind();
+		uint64 _sys_listen();
+		uint64 _sys_accept();
+		uint64 _sys_connect();
+		uint64 _sys_getsockname();
+		uint64 _sys_sendto();
+		uint64 _sys_recvfrom();
+		uint64 _sys_setsockopt();
 	};
 
 	extern SyscallHandler k_syscall_handler;

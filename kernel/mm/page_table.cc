@@ -137,17 +137,17 @@ namespace mm
 			else if ( pte_valid )
 			{
 				log_trace( "freewalk trace pt data:" );
-				hsai_printf( BLUE_COLOR_PRINT
-							 "pt\t----++++----+++0 ----++++----+++1 ----++++----+++2 "
-							 "----++++----+++3\n" CLEAR_COLOR_PRINT );
-				u64 *buf = (u64 *) _base_addr;
-				for ( uint i = 0; i < hsai::page_size / sizeof( u64 ); ++i )
-				{
-					if ( i % 4 == 0 ) hsai_printf( "\t", i >> 8, i );
-					hsai_printf( "%016lx ", buf[i] );
-					if ( i % 4 == 3 ) hsai_printf( "\n" );
-				}
-				log_panic( "freewalk: leaf. pte no. = %d", i );
+				// hsai_printf( BLUE_COLOR_PRINT
+				// 			 "pt\t----++++----+++0 ----++++----+++1 ----++++----+++2 "
+				// 			 "----++++----+++3\n" CLEAR_COLOR_PRINT );
+				// u64 *buf = (u64 *) _base_addr;
+				// for ( uint i = 0; i < hsai::page_size / sizeof( u64 ); ++i )
+				// {
+				// 	if ( i % 4 == 0 ) hsai_printf( "\t", i >> 8, i );
+				// 	hsai_printf( "%016lx ", buf[i] );
+				// 	if ( i % 4 == 3 ) hsai_printf( "\n" );
+				// }
+				log_warn( "freewalk: leaf. pte no. = %d", i );
 			}
 		}
 		k_pmm.free_pages( (void *) _base_addr );

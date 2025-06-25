@@ -37,6 +37,7 @@ namespace syscall
 		_build_sysnum_enum_(read, 63),
 		_build_sysnum_enum_(write, 64),
 		_build_sysnum_enum_(writev, 66),
+		_build_sysnum_enum_(pread64, 67),
 		_build_sysnum_enum_(sendfile, 71),
 		_build_sysnum_enum_(ppoll, 73),
 		_build_sysnum_enum_(splice, 76),
@@ -75,6 +76,7 @@ namespace syscall
 		_build_sysnum_enum_(brk, 214),
 		_build_sysnum_enum_(munmap, 215),
 		_build_sysnum_enum_(mremap, 216),
+		_build_sysnum_enum_(clone, 220),
 		_build_sysnum_enum_(fork, 220),
 		_build_sysnum_enum_(execve, 221),
 		_build_sysnum_enum_(mmap, 222),
@@ -88,6 +90,19 @@ namespace syscall
 		_build_sysnum_enum_(poweroff, 2024),
 		_build_sysnum_enum_(tgkill, 131),
 		_build_sysnum_enum_(readv, 65),
+		_build_sysnum_enum_(rt_sigtimedwait, 137),
+		_build_sysnum_enum_(futex, 98),
+		_build_sysnum_enum_(socket, 198),
+		_build_sysnum_enum_(bind, 200),
+		_build_sysnum_enum_(listen, 201),
+		_build_sysnum_enum_(accept, 202),
+		_build_sysnum_enum_(connect, 203),
+		_build_sysnum_enum_(getsockname, 204),
+		_build_sysnum_enum_(sendto, 206),
+		_build_sysnum_enum_(recvfrom, 207),
+		_build_sysnum_enum_(setsockopt, 208),
+		_build_sysnum_enum_(clone3, 435),
+		
 	};
 
 #undef _build_sysnum_enum_

@@ -67,7 +67,9 @@ namespace syscall
 		BIND_SYSCALL( write );
 		BIND_SYSCALL( read );
 		BIND_SYSCALL( exit );
+		BIND_SYSCALL( clone );
 		BIND_SYSCALL( fork );
+		BIND_SYSCALL( clone3 );
 		BIND_SYSCALL( getpid );
 		BIND_SYSCALL( getppid );
 		BIND_SYSCALL( brk );
@@ -132,16 +134,28 @@ namespace syscall
 		BIND_SYSCALL( sigprocmask );
 		BIND_SYSCALL( kill );
 		BIND_SYSCALL( writev );
+		BIND_SYSCALL( pread64 );
 		BIND_SYSCALL( tgkill );
 		BIND_SYSCALL( renameat2 );
 		BIND_SYSCALL( readv );
+		BIND_SYSCALL(rt_sigtimedwait);
+		BIND_SYSCALL(futex);
+		BIND_SYSCALL(socket);
+		BIND_SYSCALL(bind);
+		BIND_SYSCALL(listen);
+		BIND_SYSCALL(accept);
+		BIND_SYSCALL(connect);
+		BIND_SYSCALL(getsockname);
+		BIND_SYSCALL(sendto);
+		BIND_SYSCALL(recvfrom);
+		BIND_SYSCALL(setsockopt);
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
 	{
 #ifdef OS_DEBUG
-		// if ( sys_num != SYS_write )
-		// {
+		if ( sys_num != SYS_write )
+		{
 			if ( _syscall_name[sys_num] != nullptr )
 				printf( YELLOW_COLOR_PRINT "syscall %16s",
 						_syscall_name[sys_num] );
@@ -150,7 +164,7 @@ namespace syscall
 			auto [usg, rst] = mm::k_pmm.mem_desc();
 			printf( "mem-usage: %_-10ld mem-rest: %_-10ld\n" CLEAR_COLOR_PRINT,
 					usg, rst );
-		// }
+		}
 #endif
 		return _syscall_funcs[sys_num]();
 	}
@@ -345,6 +359,48 @@ namespace syscall
 		return readbytes;
 	}
 
+	uint64 SyscallHandler::_sys_pread64()
+	{
+		// pread64系统调用实现 - 从指定偏移量读取文件
+		// 参数: fd, buf, count, offset
+		fs::file *f;
+		uint64 buf;
+		int count;
+		uint64 offset;
+		int fd = -1;
+		
+		// 获取参数
+		if ( _arg_fd( 0, &fd, &f ) < 0 ) return -1;
+		if ( _arg_addr( 1, buf ) < 0 ) return -2;
+		if ( _arg_int( 2, count ) < 0 ) return -3;
+		if ( _arg_addr( 3, offset ) < 0 ) return -4;
+		
+		if ( f == nullptr ) return -5;
+		if ( count <= 0 ) return -6;
+		
+		pm::Pcb *p = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		
+		// 分配内核缓冲区
+		char *k_buf = new char[count + 1];
+		
+		// 从指定偏移量读取文件，不改变文件当前偏移量
+		int ret = f->read( (uint64) k_buf, count, offset, false );
+		if ( ret < 0 ) {
+			delete[] k_buf;
+			return -7;
+		}
+		
+		// 将数据复制到用户空间
+		if ( mm::k_vmm.copyout( *pt, buf, k_buf, ret ) < 0 ) {
+			delete[] k_buf;
+			return -8;
+		}
+		
+		delete[] k_buf;
+		return ret;
+	}
+
 	uint64 SyscallHandler::_sys_exit()
 	{
 		int n;
@@ -353,12 +409,35 @@ namespace syscall
 		return 0; // not reached
 	}
 
+	uint64 SyscallHandler::_sys_clone()
+	{
+		// clone系统调用用于创建线程，但内核不支持线程
+		// 返回EPERM错误让pthread_create知道操作不被允许
+		printf("clone系统调用: 内核不支持线程，返回EPERM\n");
+		return -1; // -EPERM
+	}
+
 	uint64 SyscallHandler::_sys_fork()
 	{
 		uint64 u_sp;
 		if ( _arg_addr( 1, u_sp ) < 0 ) return -1;
 
 		return pm::k_pm.fork( u_sp );
+	}
+
+	uint64 SyscallHandler::_sys_clone3()
+	{
+		// clone3系统调用是clone的扩展版本，用于创建进程/线程
+		// 参数: struct clone_args *cl_args, size_t size
+		uint64 cl_args_addr, size;
+		if ( _arg_addr( 0, cl_args_addr ) < 0 ) return -1;
+		if ( _arg_addr( 1, size ) < 0 ) return -2;
+		
+		printf("clone3系统调用: cl_args=0x%lx, size=%lu\n", cl_args_addr, size);
+		
+		// 内核不支持线程，返回ENOSYS错误
+		printf("clone3系统调用: 内核不支持此功能，返回ENOSYS\n");
+		return -38; // -ENOSYS
 	}
 
 	uint64 SyscallHandler::_sys_getpid()
@@ -2068,17 +2147,26 @@ namespace syscall
 		if( _arg_int( 3, sigsize ) < 0 )
 			return -1;
 		
- 		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
+		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
 		mm::PageTable *pt = cur_proc->get_pagetable();
 
-		if( setaddr != 0 )
+		// 只有当setaddr不为0时才从用户空间读取新的信号掩码
+		signal::sigset_t *newset_ptr = nullptr;
+		if( setaddr != 0 ) {
 			if( mm::k_vmm.copy_in( *pt, &set, setaddr, sizeof( signal::sigset_t) ) < 0 )
 				return -1;
-		if( oldsetaddr != 0 )
-			if( mm::k_vmm.copy_in( *pt, &old_set, oldsetaddr, sizeof( signal::sigset_t) ) < 0 )
-				return -1;
+			newset_ptr = &set;
+		}
 		
-		int ans=signal::sigprocmask( how, &set, &old_set, sigsize );
+		// 调用内核的sigprocmask函数
+		int ans = signal::sigprocmask( how, newset_ptr, &old_set, sigsize );
+		
+		// 如果调用成功且oldsetaddr不为0，将旧的信号掩码写回用户空间
+		if( ans >= 0 && oldsetaddr != 0 ) {
+			if( mm::k_vmm.copyout( *pt, oldsetaddr, &old_set, sizeof( signal::sigset_t) ) < 0 )
+				return -1;
+		}
+		
 		return ans;
 	}
 
@@ -2096,5 +2184,308 @@ namespace syscall
 			return -1;
 		}
 		return 0;
+	}
+	uint64 SyscallHandler::_sys_rt_sigtimedwait(){
+		printf("系统调用rt_sigtimedwait\n");
+		return 0;
+	}
+	uint64 SyscallHandler::_sys_futex(){
+		// futex系统调用的伪实现 - 由于内核不支持线程，暂时返回成功
+		// 参数: uaddr, op, val, timeout, uaddr2, val3
+		uint64 uaddr;
+		int op;
+		int val;
+		uint64 timeout_addr;
+		uint64 uaddr2;
+		int val3;
+		
+		// 获取参数
+		if (_arg_addr(0, uaddr) < 0) return -1;
+		if (_arg_int(1, op) < 0) return -1;
+		if (_arg_int(2, val) < 0) return -1;
+		if (_arg_addr(3, timeout_addr) < 0) return -1;
+		if (_arg_addr(4, uaddr2) < 0) return -1;
+		if (_arg_int(5, val3) < 0) return -1;
+		
+		// 提取基本操作码（忽略标志位）
+		int base_op = op & 0x7F;
+		
+		// 打印调试信息（减少输出频率以避免日志刷屏）
+		static int futex_call_count = 0;
+		if (++futex_call_count <= 5 || (futex_call_count % 100) == 0) {
+			printf("futex[%d]: uaddr=0x%lx, op=%d(base=%d), val=%d, timeout=0x%lx, uaddr2=0x%lx, val3=%d\n",
+				   futex_call_count, uaddr, op, base_op, val, timeout_addr, uaddr2, val3);
+		}
+		
+		// 由于内核不支持线程，对于所有futex操作都返回成功
+		// 标准futex操作码定义：
+		// FUTEX_WAIT = 0, FUTEX_WAKE = 1, FUTEX_FD = 2, FUTEX_REQUEUE = 3,
+		// FUTEX_CMP_REQUEUE = 4, FUTEX_WAKE_OP = 5, FUTEX_LOCK_PI = 6, etc.
+		switch (base_op) {
+			case 0: // FUTEX_WAIT
+			case 9: // FUTEX_WAIT_BITSET
+			case 11: // FUTEX_WAIT_REQUEUE_PI
+				// 对于WAIT类操作，由于内核不支持线程，返回ENOSYS让程序知道不支持
+				// 这样可以避免程序无限循环等待
+				return -38; // -ENOSYS
+			case 1: // FUTEX_WAKE
+			case 10: // FUTEX_WAKE_BITSET
+				// 返回唤醒的线程数（这里总是0，因为没有线程在等待）
+				return 0;
+			case 2: // FUTEX_FD
+			case 3: // FUTEX_REQUEUE
+			case 4: // FUTEX_CMP_REQUEUE
+			case 5: // FUTEX_WAKE_OP
+			case 6: // FUTEX_LOCK_PI
+			case 7: // FUTEX_UNLOCK_PI
+			case 8: // FUTEX_TRYLOCK_PI
+			case 12: // FUTEX_CMP_REQUEUE_PI
+				// 对于其他已知操作，返回成功
+				return 0;
+			default:
+				// 对于未知操作码，返回错误
+				printf("futex: unknown operation %d (base=%d), returning ENOSYS\n", op, base_op);
+				return -38; // -ENOSYS
+		}
+	}
+
+	uint64 SyscallHandler::_sys_socket()
+	{
+		// socket系统调用的伪实现 - 内核不支持网络功能
+		// 参数: domain, type, protocol
+		int domain;
+		int type;
+		int protocol;
+		
+		// 获取参数
+		if( _arg_int( 0, domain ) < 0 )
+			return -1;
+		if( _arg_int( 1, type ) < 0 )
+			return -1;
+		if( _arg_int( 2, protocol ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("socket系统调用: domain=%d, type=%d, protocol=%d\n", domain, type, protocol);
+		
+		// 返回错误码 -EAFNOSUPPORT (地址族不支持)
+		// 或者返回 -ENOSYS (功能未实现)
+		return -97; // -EAFNOSUPPORT
+	}
+
+	uint64 SyscallHandler::_sys_bind()
+	{
+		// bind系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, addr, addrlen
+		int sockfd;
+		uint64 addr;
+		int addrlen;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, addr ) < 0 )
+			return -1;
+		if( _arg_int( 2, addrlen ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("bind系统调用: sockfd=%d, addr=0x%lx, addrlen=%d\n", sockfd, addr, addrlen);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_listen()
+	{
+		// listen系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, backlog
+		int sockfd;
+		int backlog;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_int( 1, backlog ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("listen系统调用: sockfd=%d, backlog=%d\n", sockfd, backlog);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_accept()
+	{
+		// accept系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, addr, addrlen
+		int sockfd;
+		uint64 addr;
+		uint64 addrlen_ptr;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, addr ) < 0 )
+			return -1;
+		if( _arg_addr( 2, addrlen_ptr ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("accept系统调用: sockfd=%d, addr=0x%lx, addrlen_ptr=0x%lx\n", sockfd, addr, addrlen_ptr);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_connect()
+	{
+		// connect系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, addr, addrlen
+		int sockfd;
+		uint64 addr;
+		int addrlen;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, addr ) < 0 )
+			return -1;
+		if( _arg_int( 2, addrlen ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("connect系统调用: sockfd=%d, addr=0x%lx, addrlen=%d\n", sockfd, addr, addrlen);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_getsockname()
+	{
+		// getsockname系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, addr, addrlen
+		int sockfd;
+		uint64 addr;
+		uint64 addrlen_ptr;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, addr ) < 0 )
+			return -1;
+		if( _arg_addr( 2, addrlen_ptr ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("getsockname系统调用: sockfd=%d, addr=0x%lx, addrlen_ptr=0x%lx\n", sockfd, addr, addrlen_ptr);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_sendto()
+	{
+		// sendto系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, buf, len, flags, dest_addr, addrlen
+		int sockfd;
+		uint64 buf;
+		int len;
+		int flags;
+		uint64 dest_addr;
+		int addrlen;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, buf ) < 0 )
+			return -1;
+		if( _arg_int( 2, len ) < 0 )
+			return -1;
+		if( _arg_int( 3, flags ) < 0 )
+			return -1;
+		if( _arg_addr( 4, dest_addr ) < 0 )
+			return -1;
+		if( _arg_int( 5, addrlen ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("sendto系统调用: sockfd=%d, buf=0x%lx, len=%d, flags=%d, dest_addr=0x%lx, addrlen=%d\n", 
+			   sockfd, buf, len, flags, dest_addr, addrlen);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_recvfrom()
+	{
+		// recvfrom系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, buf, len, flags, src_addr, addrlen_ptr
+		int sockfd;
+		uint64 buf;
+		int len;
+		int flags;
+		uint64 src_addr;
+		uint64 addrlen_ptr;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_addr( 1, buf ) < 0 )
+			return -1;
+		if( _arg_int( 2, len ) < 0 )
+			return -1;
+		if( _arg_int( 3, flags ) < 0 )
+			return -1;
+		if( _arg_addr( 4, src_addr ) < 0 )
+			return -1;
+		if( _arg_addr( 5, addrlen_ptr ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("recvfrom系统调用: sockfd=%d, buf=0x%lx, len=%d, flags=%d, src_addr=0x%lx, addrlen_ptr=0x%lx\n", 
+			   sockfd, buf, len, flags, src_addr, addrlen_ptr);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
+	}
+
+	uint64 SyscallHandler::_sys_setsockopt()
+	{
+		// setsockopt系统调用的伪实现 - 内核不支持网络功能
+		// 参数: sockfd, level, optname, optval, optlen
+		int sockfd;
+		int level;
+		int optname;
+		uint64 optval;
+		int optlen;
+		
+		// 获取参数
+		if( _arg_int( 0, sockfd ) < 0 )
+			return -1;
+		if( _arg_int( 1, level ) < 0 )
+			return -1;
+		if( _arg_int( 2, optname ) < 0 )
+			return -1;
+		if( _arg_addr( 3, optval ) < 0 )
+			return -1;
+		if( _arg_int( 4, optlen ) < 0 )
+			return -1;
+		
+		// 打印调试信息
+		printf("setsockopt系统调用: sockfd=%d, level=%d, optname=%d, optval=0x%lx, optlen=%d\n", 
+			   sockfd, level, optname, optval, optlen);
+		
+		// 返回错误码 -EBADF (无效的文件描述符)
+		// 因为socket()已经返回错误，所以sockfd无效
+		return -9; // -EBADF
 	}
 } // namespace syscall
