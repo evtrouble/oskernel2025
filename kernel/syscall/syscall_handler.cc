@@ -2050,6 +2050,7 @@ namespace syscall
 		
 		if( _arg_int( 2, whence ) < 0 )
 			return -1;
+		if( fd < 0 || fd >= pm::max_open_files )return -1;
 		
 		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
 		fs::file *f = cur_proc->_ofile[ fd ];

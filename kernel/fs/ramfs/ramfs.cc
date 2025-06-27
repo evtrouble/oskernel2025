@@ -55,6 +55,7 @@ namespace fs
 			// _root->EntryCreate( "tmp", attrs );
 			_root->EntryCreate( "mnt", attrs );
 			_root->EntryCreate( "bin", attrs );
+			_root->EntryCreate( "tmp", attrs );
 
 			dentry * etc_dent = _root->EntryCreate( "etc", attrs );
 			etc_dent->dup();
