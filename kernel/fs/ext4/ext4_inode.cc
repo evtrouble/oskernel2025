@@ -436,14 +436,6 @@ namespace fs
 		}
 		size_t Ext4IndexNode::nodeRead( u64 dst, size_t off, size_t len )
 		{
-			// if ( !( _inode.mode & ext4_imode_freg ) )
-			// {
-			// 	log_warn(
-			// 		"ext4-inode:\n"
-			// 		"\ttry to read inode that's not regular file\n"
-			// 		"\tnone to read out" );
-			// 	return 0;
-			// }
 			if ( off >= (size_t) _has_size ) return 0;
 
 			long   b_siz	= _belong_fs->rBlockSize(); // 块大小
@@ -452,32 +444,35 @@ namespace fs
 
 			u8	*d		  = (u8 *) dst;	 // 目标地址
 			long block_no = off / b_siz; // 起始数据块
-			long b_idx	  = 0;			 // 数据块索引
+			long current_block = block_no; // 当前正在读取的块号
 			u8	*f;						 // 数据源地址
 			long b_off;					 // 块内偏移
 
-			Ext4Buffer *blk_buf = read_logical_block( block_no, true );
+			Ext4Buffer *blk_buf = read_logical_block( current_block, true );
 			if ( blk_buf == nullptr )
 			{
-				log_warn( "ext4-inode : read logical block %d fail", block_no );
+				log_warn( "ext4-inode : read logical block %d fail", current_block );
 				return 0;
 			}
 			f = (u8 *) blk_buf->get_data_ptr();
+			
 			for ( size_t i = 0; i < read_len; i++ )
 			{
 				b_off = ( off + i ) % b_siz;
-				if ( b_off == 0 )
+				long needed_block = ( off + i ) / b_siz;
+				
+				// 如果需要读取的块与当前块不同，切换到新块
+				if ( needed_block != current_block )
 				{
 					if ( blk_buf != nullptr ) blk_buf->unpin(); // unpin the buffer last read
-					blk_buf = read_logical_block( block_no + b_idx,
-												  true ); // pin the buffer
+					current_block = needed_block;
+					blk_buf = read_logical_block( current_block, true ); // pin the buffer
 					if ( blk_buf == nullptr )
 					{
-						log_warn( "ext4-inode : read logical block %d fail", block_no + b_idx );
-						return 0;
+						log_warn( "ext4-inode : read logical block %d fail", current_block );
+						return i; // 返回已读取的字节数
 					}
 					f = (u8 *) blk_buf->get_data_ptr();
-					b_idx++;
 				}
 				d[i] = f[b_off];
 			}
