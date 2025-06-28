@@ -1,8 +1,8 @@
 <font face="Liberation Mono">
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队
+###### OS大赛 - 内核设计 - RuOK队
 
--------------------------------------------------------------
+---
 
 [`<= 回到目录`](../README.md)
 
@@ -43,105 +43,100 @@ cd $RUNENV_PREFIX
 
 1. 主机安装 nbd 模块：
 
-		sudo modprobe nbd
+    sudo modprobe nbd
 
-2. 挂载 2kfs.img 硬盘映像到nbd:
+   2. 挂载 2kfs.img 硬盘映像到nbd:
 
-		sudo qemu-nbd -c /dev/nbd0 2kfs.img
+       sudo qemu-nbd -c /dev/nbd0 2kfs.img
 
-3. 将硬盘的 ext4 分区挂载到主机文件系统上:
+      3. 将硬盘的 ext4 分区挂载到主机文件系统上:
 
-		sudo mount /dev/nbd0p1 mnt
+          sudo mount /dev/nbd0p1 mnt
 
-4. 拷贝 kernel.bin 到 2kfs 中:
+         4. 拷贝 kernel.bin 到 2kfs 中:
 
-		sudo cp kernel.bin mnt/kernel.bin
+             sudo cp kernel.bin mnt/kernel.bin
 
-5. 取消挂载:
+            5. 取消挂载:
 
-		sudo umount mnt
-		sudo qemu-nbd -d /dev/nbd0
+                sudo umount mnt
+                sudo qemu-nbd -d /dev/nbd0
+            可以将以上命令做成shell脚本:
 
-可以将以上命令做成shell脚本:
-
-```sh
-RUNENV_PREFIX="your_qemu_path"
-KERNEL_PREFIX="2k1000la_xv6_path"
-
-
-cd $RUNENV_PREFIX
-
-sudo modprobe nbd
-sudo qemu-nbd -c /dev/nbd0 ./2kfs.img
-sudo mount /dev/nbd0p1 ./mnt/
-sudo cp ${KERNEL_PREFIX}/kernel.bin ./mnt/kernel.bin
-sudo umount ./mnt/
-sudo qemu-nbd -d /dev/nbd0
-```
-
-拷贝完后启动qemu，进入uboot界面
-
-uboot 启动后及时按 c 进入控制台，或者按 m 进入菜单，菜单内有跳转到控制台的选项。
-
-此时执行 `scsi reset`，检测SCSI设备
-
-然后执行 `ext4load scsi 0 ${loadaddr} /kernel.bin` 可以加载内核到内存
-
-使用 `md ${loadaddr}` 可以查看内核是否被正确加载
-
-最后使用 `go ${loadaddr}` 跳转到内核执行
+            ```sh
+            RUNENV_PREFIX="your_qemu_path"
+            KERNEL_PREFIX="2k1000la_xv6_path"
 
 
-### II. 如何调试uboot启动的内核
+            cd $RUNENV_PREFIX
 
-vscode tasks.json 参考下面的任务
+            sudo modprobe nbd
+            sudo qemu-nbd -c /dev/nbd0 ./2kfs.img
+            sudo mount /dev/nbd0p1 ./mnt/
+            sudo cp ${KERNEL_PREFIX}/kernel.bin ./mnt/kernel.bin
+            sudo umount ./mnt/
+            sudo qemu-nbd -d /dev/nbd0
+            ```
+            拷贝完后启动qemu，进入uboot界面
 
-```json
-{
-			"label": "qemu ls2k uboot",
-			"type": "shell",
-			"command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && gnome-terminal -- ./ls2k_release.sh",
-			"presentation": {
-				"echo": true,
-				"clear": true,
-				"group": "qemu"
-			},
-			"isBackground": true,
-			"problemMatcher": [
-				{
-					"pattern": {
-						"regexp": ".*(错误)",
-						"severity": 0
-					},
-					"background": {
-						"activeOnStart": true,
-						"beginsPattern": "^TaskInfo: QEMU Starting",
-						"endsPattern": "^TaskInfo: Start Release"
-					}
-				},
-				"$gcc"
-			]
-		}
-```
+            uboot 启动后及时按 c 进入控制台，或者按 m 进入菜单，菜单内有跳转到控制台的选项。
 
-vscode launch.json 参考下面的启动
+            此时执行 `scsi reset`，检测SCSI设备
 
-```json
-		{
-			"name": "qemu-ls2k-start(uboot)",
-			"type": "cppdbg",
-			"request": "launch",
-			"cwd": "${workspaceFolder}",
-			"program": "./build/kernel.elf",
-			"args": [],
-			"stopAtEntry": false,
-			"environment": [],
-			"externalConsole": true,
-			"MIMode": "gdb",
-			"miDebuggerPath": "loongarch64-linux-gnu-gdb",
-			"miDebuggerServerAddress": "localhost:1234",
-			"preLaunchTask": "qemu ls2k uboot"
-		}
-```
+            然后执行 `ext4load scsi 0 ${loadaddr} /kernel.bin` 可以加载内核到内存
 
-此处虽然使用的是 kernel.bin，但调试的是 kernel.elf，实测有效，但是要保证两个文件是一致的，否则调试会出现错位。
+            使用 `md ${loadaddr}` 可以查看内核是否被正确加载
+
+            最后使用 `go ${loadaddr}` 跳转到内核执行
+
+            ### II. 如何调试uboot启动的内核
+
+            vscode tasks.json 参考下面的任务
+
+            ```json
+            {
+            			"label": "qemu ls2k uboot",
+            			"type": "shell",
+            			"command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && gnome-terminal -- ./ls2k_release.sh",
+            			"presentation": {
+            				"echo": true,
+            				"clear": true,
+            				"group": "qemu"
+            			},
+            			"isBackground": true,
+            			"problemMatcher": [
+            				{
+            					"pattern": {
+            						"regexp": ".*(错误)",
+            						"severity": 0
+            					},
+            					"background": {
+            						"activeOnStart": true,
+            						"beginsPattern": "^TaskInfo: QEMU Starting",
+            						"endsPattern": "^TaskInfo: Start Release"
+            					}
+            				},
+            				"$gcc"
+            			]
+            		}
+            ```
+            vscode launch.json 参考下面的启动
+
+            ```json
+            		{
+            			"name": "qemu-ls2k-start(uboot)",
+            			"type": "cppdbg",
+            			"request": "launch",
+            			"cwd": "${workspaceFolder}",
+            			"program": "./build/kernel.elf",
+            			"args": [],
+            			"stopAtEntry": false,
+            			"environment": [],
+            			"externalConsole": true,
+            			"MIMode": "gdb",
+            			"miDebuggerPath": "loongarch64-linux-gnu-gdb",
+            			"miDebuggerServerAddress": "localhost:1234",
+            			"preLaunchTask": "qemu ls2k uboot"
+            		}
+            ```
+            此处虽然使用的是 kernel.bin，但调试的是 kernel.elf，实测有效，但是要保证两个文件是一致的，否则调试会出现错位。

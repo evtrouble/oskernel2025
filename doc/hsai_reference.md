@@ -1,6 +1,6 @@
 `<font face="Maple Mono SC NF">`
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队
+###### OS大赛 - 内核设计- RuOK队
 
 ---
 

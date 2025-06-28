@@ -1,9 +1,8 @@
 <font face="Maple Mono SC NF">
 
+###### OS大赛 - 内核设计 -RuOK队
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队 
-
--------------------------------------------------------------
+---
 
 [`<= 回到目录`](../README.md)
 
@@ -39,9 +38,8 @@ HSAI 的内部结构主要包括四个部分：SMP、通用设备抽象（通用
 
 当架构和SoC的目录好后，在项目根目录下的 Makefile 中对于架构和开发板的配置也应当使用相同的名称，以上述 龙芯2k1000 qemu 为例。
 
-	CONF_ARCH=loongarch
-	CONF_PLATFORM=qemu_2k1000
-
+CONF_ARCH=loongarch
+CONF_PLATFORM=qemu_2k1000
 项目编译时会以 hal_\$(CONF_ARCH)_\$(CONF_PLATFORM).a 作为 HAL 库文件的名称，并且默认存在于 build/ 下。
 
 ### ii. HAL 开发对接 HSAI 指导
@@ -56,3 +54,10 @@ HSAI 将 CPU 和 Memory 进行了抽象，分别定义了纯虚类 `VirtualCpu` 
 
 - 当前 HSAI 架构仍然不完善，可能有未知的问题
 - HSAI 实际上应当包含设备管理，但是目前 XN6 架构变更不完善，设备管理尚未迁移至 HSAI 当中。
+
+## Ⅳ.实际应用时对HSAI架构的调试和改进
+
+* 在系统集成测试阶段，发现 HSAI 实现层存在**无效符号链接**问题，导致构建过程中偶发符号重定义错误（`multiple definition of symbol`）。
+* 针对该缺陷，团队实施以下关键改进：
+  * 消除架构中的符号链接歧义，通过路径规范化解决跨模块编译依赖
+  * 重构多处头文件包含链，解耦硬件服务接口`HSI`与内核服务接口`KSI`的交叉引用
