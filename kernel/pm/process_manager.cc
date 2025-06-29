@@ -50,6 +50,7 @@
 #include "klib/common.hh"
 #include "fs/dentrycache.hh"
 #include "errno-base.h"
+#include "asched.h"
 extern "C" {
 extern uint64 _start_u_init;
 extern uint64 _end_u_init;
@@ -113,6 +114,8 @@ namespace pm
 				p->_priority = default_proc_prio;
 				p->uid 	 = 0; // 默认用户ID
 				p->gid 	 = 0; // 默认组ID
+				p->tid   =p->_pid; // 线程ID与进程ID相同
+				p->tgid  =p->_pid; // 线程组ID与进程
 
 				// p->_shm = mm::vml::vm_trap_frame - 64 * 2 * hsai::page_size;
 				// p->_shmkeymask = 0;
@@ -367,7 +370,7 @@ namespace pm
 		// Allocate process.
 		if ( ( np = alloc_proc() ) == nullptr ) { return -1; }
 
-		np->_lock.acquire();
+		// np->_lock.acquire();
 
 		// Copy user memory from parent to child.
 
@@ -388,7 +391,7 @@ namespace pm
 				if ( mm::k_vmm.vm_copy( *curpt, *newpt, sec_start, sec_size ) < 0 )
 				{
 					freeproc( np );
-					np->_lock.release();
+					// np->_lock.release();
 					return -1;
 				}
 				np->_prog_sections[j] = pd;
@@ -404,7 +407,7 @@ namespace pm
 			if ( mm::k_vmm.vm_copy( *curpt, *newpt, heap_start, heap_size ) < 0 )
 			{
 				freeproc( np );
-				np->_lock.release();
+				// np->_lock.release();
 				return -2;
 			}
 			np->_sz			= p->_sz;
@@ -422,7 +425,7 @@ namespace pm
 									( 1 + default_proc_ustack_pages ) * hsai::page_size ) < 0 )
 			{
 				freeproc( np );
-				np->_lock.release();
+				// np->_lock.release();
 				return -3;
 			}
 		}
@@ -437,7 +440,7 @@ namespace pm
 						 0 )
 					{
 						freeproc( np );
-						np->_lock.release();
+						// np->_lock.release();
 						return -3;
 					}
 					np->vm[i].is_used = true;
@@ -496,18 +499,179 @@ namespace pm
 
 		pid = np->_pid;
 
-		np->_lock.release();
+		// np->_lock.release();
 
 		_wait_lock.acquire();
 		np->parent = p;
 		_wait_lock.release();
 
-		np->_lock.acquire();
+		// np->_lock.acquire();
 		np->_state		= ProcState::runnable;
 		np->_start_tick = tmm::k_tm.get_ticks();
 		np->_user_ticks = 0;
-		np->_lock.release();
+		// np->_lock.release();
 
+		return pid;
+	}
+
+	Pcb *ProcessManager::alloc_thread()
+	{
+		Pcb *p;
+		for ( uint i = 0; i < num_process; i++ )
+		{
+			p = &k_proc_pool[( _last_alloc_proc_gid + i ) % num_process];
+			p->_lock.acquire();
+			if ( p->_state == ProcState::unused )
+			{
+				pm::k_pm.alloc_pid( p );
+				p->_state	 = ProcState::used;
+				p->_slot	 = default_proc_slot;
+				p->_priority = default_proc_prio;
+				p->uid 	 = 0; // 默认用户ID
+				p->gid 	 = 0; // 默认组ID
+				Pcb * parent = get_cur_pcb();
+				p->tid   =p->_pid; // 线程ID与进程ID相同
+				p->tgid  =parent->_pid; // 线程组ID与进程
+
+				// p->_shm = mm::vml::vm_trap_frame - 64 * 2 * hsai::page_size;
+				// p->_shmkeymask = 0;
+				// pm::k_pm.set_vma( p );
+
+				if ( ( p->_trapframe = (TrapFrame *) mm::k_pmm.alloc_page() ) == nullptr )
+				{
+					freeproc( p );
+					p->_lock.release();
+					return nullptr;
+				}
+
+				p->_mqmask = 0;
+
+				memset( p->_context, 0, hsai::context_size );
+
+				hsai::set_context_entry( p->_context, (void *) _wrp_fork_ret );
+
+				hsai::set_context_sp( p->_context,
+									  p->_kstack + hsai::page_size * default_proc_kstack_pages );
+
+				p->_lock.release();
+
+				_last_alloc_proc_gid = p->_gid;
+				log_trace( "gid is:%d\n", p->_gid );
+
+				return p;
+			}
+			else { p->_lock.release(); }
+		}
+		return nullptr;
+	}
+
+	int ProcessManager::clone(int flags, uint64 child_stack, uint64 parent_tid, uint64 child_tid, unsigned long tls)
+	{	
+		int pid;
+		Pcb * child;
+		Pcb * parent = get_cur_pcb();
+		mm::PageTable *parent_pt  = parent->get_pagetable();
+
+		if(flags & CLONE_THREAD){
+			log_info("    CLONE_THREAD: 创建线程\n");
+			if((child = alloc_thread())==nullptr)return -1;
+			//共享虚拟内存
+			if(flags&CLONE_VM ){
+				log_info("    CLONE_VM: 共享虚拟内存\n");
+				child->_pt = parent->_pt;
+			}else{
+				return -1; // 目前不支持CLONE_VM	
+			}
+			// 拷贝 prog_sections 元数据结构
+			child->_prog_section_cnt = parent->_prog_section_cnt;
+			for (int j = 0; j < parent->_prog_section_cnt; j++) {
+				child->_prog_sections[j] = parent->_prog_sections[j];
+			}
+			// 拷贝堆元数据
+			child->_sz = parent->_sz;
+			child->_heap_start = parent->_heap_start;
+			child->_heap_ptr = parent->_heap_ptr;
+			//拷贝虚拟地址空间
+			for (int i = 0; i < max_vma_num; i++) {
+				if (parent->vm[i].is_used) {
+					child->vm[i] = parent->vm[i];
+					if (child->vm[i].vfile)
+						child->vm[i].vfile->dup();
+				}
+			}
+
+			//hsai::proc_init( (void *) child );
+
+		
+
+			/// TODO: >> Share Memory Copy
+			// shmaddcount( p->shmkeymask );
+			// np->shm = p->shm;
+			// np->shmkeymask = p->shmkeymask;
+			// for ( i = 0; i < MAX_SHM_NUM; ++i )
+			// {
+			// 	if ( shmkeyused( i, np->shmkeymask ) )
+			// 	{
+			// 		np->shmva[ i ] = p->shmva[ i ];
+			// 	}
+			// }
+
+			// copy saved user registers.
+			hsai::copy_trap_frame( parent->get_trapframe(), child->get_trapframe() );
+
+			// Cause fork to return 0 in the child.
+			hsai::set_trap_frame_return_value( child->get_trapframe(), 0 );
+
+			if ( child_stack != 0 ) hsai::set_trap_frame_user_sp( child->get_trapframe(), child_stack );
+
+			/// TODO: >> Message Queue Copy
+			// addmqcount( p->mqmask );
+			// np->mqmask = p->mqmask;
+
+			// increment reference counts on open file descriptors.
+			for ( int i = 0; i < (int) max_open_files; i++ )
+				if ( parent->_ofile[i] )
+				{
+					// fs::k_file_table.dup( p->_ofile[ i ] );
+					parent->_ofile[i]->dup();
+					child->_ofile[i] = parent->_ofile[i];
+				}
+			child->_cwd	  = parent->_cwd;
+			child->_cwd->dup();
+			child->_cwd_name = parent->_cwd_name;
+
+			/// TODO: >> cwd inode ref-up
+			// np->cwd = idup( p->cwd );
+
+			strncpy( child->_name, parent->_name, sizeof( parent->_name ) );
+
+			pid = child->_pid;
+			printf("分配到的pid是: %d\n", pid);
+
+
+			_wait_lock.acquire();
+			child->parent = parent;
+			_wait_lock.release();
+
+			child->_state		= ProcState::runnable;
+			child->_start_tick = tmm::k_tm.get_ticks();
+			child->_user_ticks = 0;
+			if(flags & CLONE_PARENT_SETTID){
+				log_info("    CLONE_PARENT_SETTID: 在父进程空间设置tid\n");
+				if(mm::k_vmm.copyout( *parent_pt, parent_tid, &pid, sizeof(pid) ) < 0 )return -1;
+				
+			}
+			if(flags & CLONE_SETTLS){
+				log_info("    CLONE_SETTLS: 设置线程局部存储\n");
+				if(tls != 0){
+					// 设置线程局部存储
+					hsai::set_trap_frame_user_tp( child->get_trapframe(), tls );
+				}
+			}
+		}else{
+			pid= fork( child_stack );
+		}
+		log_info( "当前线程%d, 创建子进程（线程）: pid = %d", parent->_pid,pid );
 		return pid;
 	}
 
@@ -1304,8 +1468,9 @@ namespace pm
 						p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
 					}
 				}
+				uint64 oa= hsai::page_round_up(va);
 				uint64 npages = len / hsai::page_size;
-				mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
+				mm::k_vmm.vm_unmap( p->_pt, oa, npages, 1 );
 				p->vm[i].address = 0;
 				if(p->vm[i].vfile)p->vm[i].vfile->free_file();
 				p->vm[i].vfile = nullptr;

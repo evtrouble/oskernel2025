@@ -153,12 +153,14 @@ namespace syscall
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
 	{
+		pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
 #ifdef OS_DEBUG
 		if ( sys_num != SYS_write )
 		{
+
 			if ( _syscall_name[sys_num] != nullptr )
-				printf( YELLOW_COLOR_PRINT "syscall %16s",
-						_syscall_name[sys_num] );
+				printf( YELLOW_COLOR_PRINT "进程:%d syscall %16s\n",
+						proc->_pid,_syscall_name[sys_num] );
 			else
 				log_panic( "unknown syscall %d\n", sys_num );
 			auto [usg, rst] = mm::k_pmm.mem_desc();
@@ -417,12 +419,79 @@ namespace syscall
 		return -1; // -EPERM
 	}
 
+	// uint64 SyscallHandler::_sys_fork()
+	// {
+	// 	uint64 u_sp;
+	// 	if ( _arg_addr( 1, u_sp ) < 0 ) return -1;
+
+	// 	return pm::k_pm.fork( u_sp );
+	// }
+
 	uint64 SyscallHandler::_sys_fork()
 	{
-		uint64 u_sp;
-		if ( _arg_addr( 1, u_sp ) < 0 ) return -1;
-
-		return pm::k_pm.fork( u_sp );
+		// clone系统调用参数:
+		// arg0: flags - 控制创建进程/线程的行为标志
+		// arg1: stack - 新进程的栈指针 
+		// arg2: parent_tid - 父进程TID的地址
+		// arg3: child_tid - 子进程TID的地址
+		// arg4: tls - 线程本地存储描述符
+		
+		int flags;
+		uint64 stack, parent_tid, child_tid, tls;
+		
+		// 读取所有参数
+		if (_arg_int(0, flags) < 0) {
+			printf("clone系统调用: 读取flags参数失败\n");
+			return -1;
+		}
+		
+		if (_arg_addr(1, stack) < 0) {
+			printf("clone系统调用: 读取stack参数失败\n");
+			return -1;
+		}
+		
+		if (_arg_addr(2, parent_tid) < 0) {
+			printf("clone系统调用: 读取parent_tid参数失败\n");
+			return -1;
+		}
+		
+		if (_arg_addr(3, child_tid) < 0) {
+			printf("clone系统调用: 读取child_tid参数失败\n");
+			return -1;
+		}
+		
+		if (_arg_addr(4, tls) < 0) {
+			printf("clone系统调用: 读取tls参数失败\n");
+			return -1;
+		}
+		
+		// // 打印所有参数
+		// printf("clone系统调用参数:\n");
+		// printf("  flags = 0x%x (%d)\n", flags, flags);
+		// printf("  stack = 0x%lx\n", stack);
+		// printf("  parent_tid = 0x%lx\n", parent_tid);
+		// printf("  child_tid = 0x%lx\n", child_tid);
+		// printf("  tls = 0x%lx\n", tls);
+		
+		// // 解析flags的含义
+		// printf("  flags解析:\n");
+		// if (flags & 0x00000100) printf("    CLONE_VM: 共享虚拟内存\n");
+		// if (flags & 0x00000200) printf("    CLONE_FS: 共享文件系统信息\n");
+		// if (flags & 0x00000400) printf("    CLONE_FILES: 共享文件描述符表\n");
+		// if (flags & 0x00000800) printf("    CLONE_SIGHAND: 共享信号处理器\n");
+		// if (flags & 0x00002000) printf("    CLONE_PTRACE: 允许跟踪\n");
+		// if (flags & 0x00004000) printf("    CLONE_VFORK: vfork语义\n");
+		// if (flags & 0x00008000) printf("    CLONE_PARENT: 设置父进程\n");
+		// if (flags & 0x00010000) printf("    CLONE_THREAD: 创建线程\n");
+		// if (flags & 0x00020000) printf("    CLONE_NEWNS: 新的命名空间\n");
+		// if (flags & 0x00100000) printf("    CLONE_PARENT_SETTID: 写子进程tid\n");
+		// if (flags & 0x00200000) printf("    CLONE_SYSVSEM: 共享System V信号量\n");
+		// if (flags & 0x00400000) printf("    CLONE_SETTLS: 设置TLS\n");
+		// if (flags & 0x01000000) printf("    CLONE_PARENT_SETTID: 设置父进程TID\n");
+		// if (flags & 0x02000000) printf("    CLONE_CHILD_CLEARTID: 清除子进程TID\n");
+		// if (flags & 0x08000000) printf("    CLONE_CHILD_SETTID: 设置子进程TID\n");
+		
+		return pm::k_pm.clone(flags, stack, parent_tid, child_tid, tls);
 	}
 
 	uint64 SyscallHandler::_sys_clone3()
@@ -484,6 +553,7 @@ namespace syscall
 			return -1;
 
 		log_trace( "execve fetch argv=%p", uargv );
+		// printf("替换进程,可执行文件路径%s\n",path.c_str());
 
 		eastl::vector<eastl::string> argv;
 		ulong						 uarg;
@@ -529,6 +599,9 @@ namespace syscall
 			// 修改 path 为 busybox 路径
 			path = "./busybox";
 		}
+		// for(int i = 0; i < argv.size(); i++){
+		// 	printf("argv[%d]: %s\n", i, argv[i].c_str());
+		// }
 
 		return pm::k_pm.execve( path, argv, envp );
 	}
@@ -2005,7 +2078,7 @@ namespace syscall
 		else
 			base = static_cast<fs::normal_file *>( cur_proc->_ofile[dirfd] )->getDentry();
 
-		if( mm::k_vmm.copy_str_in( *pt, pathname, pathaddr, 128 ) < 0 )
+		if( pathaddr==0 || mm::k_vmm.copy_str_in( *pt, pathname, pathaddr, 128 ) < 0 )
 			return -1;
 
 		if( timespecaddr == 0 )
@@ -2190,9 +2263,16 @@ namespace syscall
 		printf("系统调用rt_sigtimedwait\n");
 		return 0;
 	}
+	/**
+	 * @ Parmeters:
+	 * @ uaddr: 指向用户空间中整型变量的指针，作为同步原语和等待队列的“键”使用。
+	 * @ op: 操作码，低 8 位指定具体操作（如 FUTEX_WAIT、FUTEX_WAKE 等），高位为附加标志位（如 FUTEX_PRIVATE_FLAG）。
+	 * @ val: 	对于 FUTEX_WAIT：期望 *uaddr == val 时才会阻塞；对于 FUTEX_WAKE：表示要唤醒的线程数量。
+	 * @ timeout_addr: 	（可选）等待的超时时间，仅用于 FUTEX_WAIT 类型的操作。
+	 * @ uaddr2: 	用于某些复合操作（如 FUTEX_REQUEUE），表示另一个同步地址。
+	 * @ val3: 用于某些扩展操作（如 FUTEX_CMP_REQUEUE），作为额外比较或限制值。
+	 */
 	uint64 SyscallHandler::_sys_futex(){
-		// futex系统调用的伪实现 - 由于内核不支持线程，暂时返回成功
-		// 参数: uaddr, op, val, timeout, uaddr2, val3
 		uint64 uaddr;
 		int op;
 		int val;
@@ -2207,46 +2287,31 @@ namespace syscall
 		if (_arg_addr(3, timeout_addr) < 0) return -1;
 		if (_arg_addr(4, uaddr2) < 0) return -1;
 		if (_arg_int(5, val3) < 0) return -1;
-		
-		// 提取基本操作码（忽略标志位）
-		int base_op = op & 0x7F;
-		
-		// 打印调试信息（减少输出频率以避免日志刷屏）
-		static int futex_call_count = 0;
-		if (++futex_call_count <= 5 || (futex_call_count % 100) == 0) {
-			printf("futex[%d]: uaddr=0x%lx, op=%d(base=%d), val=%d, timeout=0x%lx, uaddr2=0x%lx, val3=%d\n",
-				   futex_call_count, uaddr, op, base_op, val, timeout_addr, uaddr2, val3);
-		}
-		
-		// 由于内核不支持线程，对于所有futex操作都返回成功
-		// 标准futex操作码定义：
-		// FUTEX_WAIT = 0, FUTEX_WAKE = 1, FUTEX_FD = 2, FUTEX_REQUEUE = 3,
-		// FUTEX_CMP_REQUEUE = 4, FUTEX_WAKE_OP = 5, FUTEX_LOCK_PI = 6, etc.
+		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = cur_proc->get_pagetable();
+		int expected_val;
+		int base_op = op & 0x7f; // 获取操作码的基本部分
 		switch (base_op) {
-			case 0: // FUTEX_WAIT
-			case 9: // FUTEX_WAIT_BITSET
-			case 11: // FUTEX_WAIT_REQUEUE_PI
-				// 对于WAIT类操作，由于内核不支持线程，返回ENOSYS让程序知道不支持
-				// 这样可以避免程序无限循环等待
-				return -38; // -ENOSYS
-			case 1: // FUTEX_WAKE
-			case 10: // FUTEX_WAKE_BITSET
-				// 返回唤醒的线程数（这里总是0，因为没有线程在等待）
-				return 0;
-			case 2: // FUTEX_FD
-			case 3: // FUTEX_REQUEUE
-			case 4: // FUTEX_CMP_REQUEUE
-			case 5: // FUTEX_WAKE_OP
-			case 6: // FUTEX_LOCK_PI
-			case 7: // FUTEX_UNLOCK_PI
-			case 8: // FUTEX_TRYLOCK_PI
-			case 12: // FUTEX_CMP_REQUEUE_PI
-				// 对于其他已知操作，返回成功
+			case FUTEX_WAIT:
+				if( mm::k_vmm.copy_in(*pt, &expected_val, uaddr, sizeof(int)) < 0 )
+					return -1;
+				if(expected_val != val)
+				{
+					log_error("futex系统调用：FUTEX_WAIT失败，期望值不匹配\n");
+					return -EAGAIN; // 期望值不匹配
+				}else{
+					log_info("futex系统调用：FUTEX_WAIT成功，阻塞进程%d\n", cur_proc->_pid);
+					// 阻塞当前进程
+					cur_proc->_lock.acquire();
+					pm::k_pm.sleep((void*)uaddr,&cur_proc->_lock);
+					return 0; // 成功阻塞
+				}
+			case FUTEX_PRIVATE_FLAG:
+				printf("futex系统调用：FUTEX_PRIVATE_FLAG\n");
 				return 0;
 			default:
-				// 对于未知操作码，返回错误
-				printf("futex: unknown operation %d (base=%d), returning ENOSYS\n", op, base_op);
-				return -38; // -ENOSYS
+				log_error("futex系统调用：unkown opcode %d\n", op);
+				break;
 		}
 	}
 

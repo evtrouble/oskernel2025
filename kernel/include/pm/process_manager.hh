@@ -56,6 +56,7 @@ namespace pm
 		bool change_state( Pcb *p, ProcState state );
 		void alloc_pid( Pcb *p );
 		Pcb *alloc_proc();
+		Pcb *alloc_thread();
 
 		void set_slot( Pcb *p, int slot );
 		void set_priority( Pcb *p, int priority );
@@ -79,6 +80,7 @@ namespace pm
 		int kill(int pid, int sig);
 		int fork( uint64 usp );
 		int fork();
+		int clone(int flags, uint64 child_stack, uint64 parent_tid, uint64 child_tid, unsigned long tls);
 		void fork_ret();
 		long brk( long n );
 		int open( int dir_fd, eastl::string path, uint flags );

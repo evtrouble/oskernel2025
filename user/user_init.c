@@ -111,6 +111,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_pipe[]	  
 // 	"'echo hello,busybox!'";
 __attribute__( ( section( ".user.init.data" ) ) ) const char sh_name[]	 = "sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char back_path[]	 = "..";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm0[]	 = "-w";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm1_static[]	 = "entry-static.exe";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm2[]	 = "argv";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char echo_name[] = "echo";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char cat_name[]	 = "cat";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char hello_busybox_str[] =
@@ -125,6 +128,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_pa
 // __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_path[] = "/mnt/glibc";
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
 __attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
+__attribute__(( section( ".user.init.data" ) )) const char	  runtest_path[] = "./runtest.exe";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -199,12 +203,13 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char digits[] = "0123456
 } while(0)
 
 int			basic_test( void ) __attribute__( ( section( ".user.init" ) ) );
-int			test_all( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_busybox( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_lua( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_libctest( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_lmbench( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_local( void ) __attribute__( ( section( ".user.init" ) ) );
 
-int			test_all( void ) 
+int			test_busybox( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
 	bb_sh[0] = sh_name;
@@ -218,16 +223,6 @@ int           test_lua(void)
 	__attribute__(( __unused__ )) int pid;
 	bb_sh[0] = sh_name;
 	bb_sh[1] = exec_test_lua_path;
-	bb_sh[2] = 0;
-	RUN_TESTS( busybox_path, bb_sh );
-
-}
-
-int           test_libctest(void)
-{	
-	__attribute__(( __unused__ )) int pid;
-	bb_sh[0] = sh_name;
-	bb_sh[1] = exec_test_libctest_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
 
@@ -280,6 +275,145 @@ int			basic_test( void )
 	RUN_TESTS( exec_test_pipe, 0 );
 }
 
+// libctest 测试程序名称数组
+__attribute__((section(".user.init.data"))) const char libctest_static_programs[][32] = {
+    "argv",
+    "basename",
+    "clocale_mbfuncs",
+    "clock_gettime",
+    "dirname",
+    "env",
+    "fdopen",
+    "fnmatch",
+    "fscanf",
+    "fwscanf",
+    "iconv_open",
+    "inet_pton",
+    "mbc",
+    "memstream",
+    // "pthread_cancel_points",
+    // "pthread_cancel",
+    // "pthread_cond",
+    // "pthread_tsd",
+    "qsort",
+    "random",
+    "search_hsearch",
+    "search_insque",
+    "search_lsearch",
+    "search_tsearch",
+    "setjmp",
+    "snprintf",
+    "socket",
+    "sscanf",
+    "sscanf_long",
+    "stat",
+    "strftime",
+    "string",
+    "string_memcpy",
+    "string_memmem",
+    "string_memset",
+    "string_strchr",
+    "string_strcspn",
+    "string_strstr",
+    "strptime",
+    "strtod",
+    "strtod_simple",
+    "strtof",
+    "strtol",
+    "strtold",
+    "swprintf",
+    "tgmath",
+    "time",
+    "tls_align",
+    "udiv",
+    "ungetc",
+    "utime",
+    "wcsstr",
+    "wcstol",
+    "daemon_failure",
+    "dn_expand_empty",
+    "dn_expand_ptr_0",
+    "fflush_exit",
+    "fgets_eof",
+    "fgetwc_buffering",
+    "fpclassify_invalid_ld80",
+    "ftello_unflushed_append",
+    "getpwnam_r_crash",
+    "getpwnam_r_errno",
+    "iconv_roundtrips",
+    "inet_ntop_v4mapped",
+    "inet_pton_empty_last_field",
+    "iswspace_null",
+    "lrand48_signextend",
+    "lseek_large",
+    "malloc_0",
+    "mbsrtowcs_overflow",
+    "memmem_oob_read",
+    "memmem_oob",
+    "mkdtemp_failure",
+    "mkstemp_failure",
+    "printf_1e9_oob",
+    "printf_fmt_g_round",
+    "printf_fmt_g_zeros",
+    "printf_fmt_n",
+    // "pthread_robust_detach",
+    // "pthread_cancel_sem_wait",
+    // "pthread_cond_smasher",
+    // "pthread_condattr_setclock",
+    // "pthread_exit_cancel",
+    // "pthread_once_deadlock",
+    // "pthread_rwlock_ebusy",
+    "putenv_doublefree",
+    "regex_backref_0",
+    "regex_bracket_icase",
+    "regex_ere_backref",
+    "regex_escaped_high_byte",
+    "regex_negated_range",
+    "regexec_nosub",
+    "rewind_clear_error",
+    "rlimit_open_files",
+    "scanf_bytes_consumed",
+    "scanf_match_literal_eof",
+    "scanf_nullbyte_char",
+    "setvbuf_unget",
+    "sigprocmask_internal",
+    "sscanf_eof",
+    "statvfs",
+    "strverscmp",
+    "syscall_sign_extend",
+    "uselocale_0",
+    "wcsncpy_read_overflow",
+    "wcsstr_false_negative"
+};
+int           test_libctest(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	//static部分
+	int array_size = sizeof(libctest_static_programs) / sizeof(libctest_static_programs[0]);
+	bb_sh[0] = runtest_path;
+	bb_sh[1] = libctest_parm0;
+	bb_sh[2] = libctest_parm1_static;
+	bb_sh[3] = libctest_parm2;
+	bb_sh[4] = 0;
+	for(int i = 0; i < array_size; i++) {
+		bb_sh[3]= libctest_static_programs[i];
+        RUN_TESTS(runtest_path, bb_sh);
+    }
+	//动态部分
+
+}
+
+int           test_local(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_libctest_static_path;
+	bb_sh[2] = 0;
+	RUN_TESTS( busybox_path, bb_sh );
+
+
+}
+
 int init_main( void )
 {
 
@@ -289,12 +423,14 @@ int init_main( void )
 	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
 	basic_test();
 	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
-	//回到musl目录
+	// 回到musl目录
 	chdir( back_path );
 	//lua测试
 	test_lua();
 	//busybox测试
-	test_all();
+	test_busybox();
+  // libctest测试
+	test_libctest();
 
 
 	chdir( test_glibc_basic_path );
@@ -307,10 +443,8 @@ int init_main( void )
 	//lua测试
 	test_lua();
 	// busybox测试
-	test_all();
+	test_busybox();
 #ifdef __riscv
-	//libtest
-	test_libctest();
 	//lmbench
 	test_lmbench();
 #endif

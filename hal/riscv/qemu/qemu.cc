@@ -163,6 +163,12 @@ namespace hsai
 		tf->sp		  = sp;
 	}
 
+	void set_trap_frame_user_tp( void* trapframe, ulong tp )
+	{
+		TrapFrame* tf = (TrapFrame*) trapframe;
+		tf->tp		  = tp;
+	}
+
 	void set_trap_frame_arg( void* trapframe, uint arg_num, ulong value )
 	{
 		TrapFrame* tf = (TrapFrame*) trapframe;

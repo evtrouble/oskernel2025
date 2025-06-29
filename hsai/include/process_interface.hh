@@ -65,6 +65,8 @@ namespace hsai
 
 	extern __hsai_hal void set_trap_frame_user_sp( void * trapframe, ulong sp );
 
+	extern __hsai_hal void set_trap_frame_user_tp( void * trapframe, ulong tp );
+
 	extern __hsai_hal void set_trap_frame_arg( void * trapframe, uint arg_num, ulong value );
 
 	extern __hsai_hal void copy_trap_frame( void * from, void * to );

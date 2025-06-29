@@ -169,6 +169,8 @@ namespace pm
 
 		int uid;  // 用户ID
   		int gid;  // 组ID
+		int tid; // 线程ID
+		int tgid; // 线程组ID
 
 	public:
 
