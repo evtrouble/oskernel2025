@@ -1,8 +1,8 @@
 <font face="Maple Mono SC NF">
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队
+###### OS大赛 - 内核设计 - RuOK队
 
--------------------------------------------------------------
+---
 
 # 适配2k1000星云板
 
@@ -10,16 +10,13 @@
 
 安装 tftp 服务程序
 
-	sudo apt install tftpd-hpa
-
+sudo apt install tftpd-hpa
 打开 tftp 服务
 
-	sudo service tftpd-hpa start
-
+sudo service tftpd-hpa start
 查看 tftp 服务状态
 
-	sudo service tftpd-hpa status
-
+sudo service tftpd-hpa status
 如果 tftp 服务正常打开，可以看到类似如下的信息：
 
 ```
@@ -34,13 +31,11 @@
      CGroup: /system.slice/tftpd-hpa.service
              └─2644 /usr/sbin/in.tftpd --listen --user tftp --address :69 --secure /srv/tftp
 ```
-
 其中CGroup中的参数 `--secure` 的值 `/srv/tftp` 就是本机tftp访问的路径，所有客户端经过tftp访问本机都会在这个路径下查找文件。
 
 然后查看本机网络ip
 
-	ifconfig
-
+ifconfig
 当然可以自己配置一个ip地址。对于ubuntu而言，在设置>网络>有线>网络选项>IPv4中，选择使用手动方式，然后在下面的地址中配置ip和掩码，建议使用192.168.\*.\*的ip，因为这是一个内网路由，而掩码配置为255.255.255.0。例如，我将地址配置为`192.168.2.2`，子网掩码配置为`255.255.255.0`。
 
 ## 2. 使用串口监听器接收开发板调试输出
@@ -49,31 +44,26 @@
 
 安装minicom
 
-	sudo apt install minicom
-
+sudo apt install minicom
 安装好后，使用下面的命令配置 minicom
 
-	minicom -s
-
+minicom -s
 此时进入到 minicom 配置对话框，进入到串口设置，并配置串行设备为 `/dev/ttyUSB0`，如果这个设备不存在，你可能需要检查一下接入的设备名称。回到配置对话框，并选择保存设置为dfl后，可退出配置对话框。
 
 此处还需解决两个问题：(1) 接收的数据回显到终端时，换行不会执行回车，使得打印的字符一直向右偏移。(2) 此时的minicom是黑白的，无法打印彩色字符。
 
 问题(1) 可以通过进入minicom后，按键 `Ctrl+A` 然后 `Z` 调出minicom菜单，使用 `U` 来开启自动回车。也有一劳永逸的方法：在 `~/.minirc.dfl` 中加入下面的命令：
 
-	pu addcarreturn    Yes
-
+pu addcarreturn    Yes
 如果你使用root用户，那么这个文件路径应当是`/etc/minicom/minirc.dfl`。如果有仍然疑问可以参考 [StackExchange上的一篇提问](https://unix.stackexchange.com/questions/283924/how-can-minicom-permanently-translate-incoming-newline-n-to-crlf)。
 
 问题(2) 的解决方法则通过在打开 minicom 的时候，添加参数 `-con`。
 
-	minicom -con
-
+minicom -con
 此时进入的界面便支持彩色。也可以为 minicom 添加环境变量，使得 `minicom` 命令也能像 `minicom -con` 一样进入彩色终端。环境变量应当如下方式定义：
 
-	MINICOM='-con'
-	export MINICOM
-
+MINICOM='-con'
+export MINICOM
 将这两条语句添加进 `~/.bashrc`，然后使用 `source ~/.bashrc` 更新环境变量即可。如果仍然有疑问可以参考这篇 [WiKi](https://wiki.emacinc.com/wiki/Getting_Started_With_Minicom)。
 
 ## 3. uboot+tftp 启动内核
@@ -103,18 +93,16 @@ serverip=192.168.2.2
 
 ...
 ```
-
 例子中只展示了部分重要的变量，例如当前串口波特率，本机ip地址，本机子网掩码，tftp服务器ip地址，内核加载地址等。
 
 可以使用 `setenv env-name env-value` 来配置环境变量的值。
 
 为了适配我们当前的内核和tftp服务器，应当使用下面的命令进行配置：
 
-	setenv ipaddr 192.168.2.3
-	setenv serverip 192.168.2.2
-	setenv netmask 255.255.255.0
-	setenv loadaddr 0x9000000090000000
-
+setenv ipaddr 192.168.2.3
+setenv serverip 192.168.2.2
+setenv netmask 255.255.255.0
+setenv loadaddr 0x9000000090000000
 配置完了之后，使用 `saveenv` 来将配置持久化，刷写到 SPI flash
 中。
 
@@ -126,7 +114,6 @@ Speed: 1000, full duplex
 Using ethernet@40040000 device
 host 192.168.2.2 is alive
 ```
-
 打印的信息提示 host is alive 则网络通畅。
 
 然后使用 `tftpboot ${loadaddr} kernel.bin` 来将内核从服务器下载到内存的 ${loadaddr} 的位置上。
@@ -135,8 +122,7 @@ host 192.168.2.2 is alive
 
 在跳转之前，如果对内存中的数据有疑问可以使用 `md` 命令，例如
 
-	md ${loadaddr}
-
+md ${loadaddr}
 会将内存指定地址的一段数据转储并显示到终端上。
 
 ```
@@ -158,12 +144,9 @@ host 192.168.2.2 is alive
 90000000900000e0: 00000000 00000000 00000000 00000000  ................
 90000000900000f0: 00000000 00000000 00000000 00000000  ................
 ```
-
 uboot 其他命令简介：
 
 `poweroff` 可以用于将星云板软关机。
-
-
 
 # 适配2k1000星云板过程中遇到的问题
 
@@ -175,10 +158,9 @@ uboot 其他命令简介：
 
 实际上 uboot 可以为我们初始化 SATA 控制器到最小可用的AHCI模式，在uboot控制台使用命令
 
-	scsi reset
-	或
-	scsi scan 
-
+scsi reset
+或
+scsi scan 
 可以一键初始化SATA控制器
 
 ### 2.2 SATA的DMA访存异常

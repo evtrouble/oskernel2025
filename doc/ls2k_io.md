@@ -1,8 +1,8 @@
 <font face="Liberation Mono">
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队
+###### OS大赛 - 内核设计 - RuOK队
 
--------------------------------------------------------------
+---
 
 [`<= 回到目录`](../README.md)
 
@@ -20,8 +20,8 @@ SATA控制器挂载在PCI总线上，从IO网络图中可以看出，SATA的DMA�
 IO DMA的二级交叉开关的窗口有8个，其中窗口0默认已经启用：
 
 - pci_win0_base = 0x0000_0000
-- pci_win0_mask = 0xffff_ffff_f000_0000 
-- pci_win0_mmap = 0x0000_00f0 
+- pci_win0_mask = 0xffff_ffff_f000_0000
+- pci_win0_mmap = 0x0000_00f0
 
 从mask和base中看出访存范围是 0x0000_0000 - 0x0fff_ffff
 

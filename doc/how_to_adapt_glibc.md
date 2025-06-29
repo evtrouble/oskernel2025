@@ -1,8 +1,8 @@
 <font face="Maple Mono SC NF">
 
-###### OS大赛 - 内核设计loongarch赛道 - 俺争取不掉队
+###### OS大赛 - 内核设计 - RuOK队
 
--------------------------------------------------------------
+---
 
 [`<= 回到目录`](../README.md)
 
@@ -32,10 +32,10 @@
 
 直到当我学会调试用户程序后，我才在glibc中定位到了 stdlib/exit.c:__run_exit_handlers 这个函数中一个奇怪的变量。
 这个变量是一个结构体 exit_function_list，它是 atexit 机制在glibc初始化时注册的析构函数表，这些析构函数可以对全局变量、
-TLS变量进行释放，可以将so从内存中卸载（这些是我查阅资料所得，没有经过验证，可能有误）。而 exit_function_list 
+TLS变量进行释放，可以将so从内存中卸载（这些是我查阅资料所得，没有经过验证，可能有误）。而 exit_function_list
 结构体定义如下：
 
-```C {.line-numbers}
+```C
 struct exit_function_list
  {
 	struct exit_function_list *next;
@@ -52,7 +52,7 @@ struct exit_function_list
 
 而 exit_function 定义如下：
 
-```C {.line-numbers}
+```C
 struct exit_function
 {
 	/* `flavour' should be of type of the `enum' above but since we need
@@ -87,7 +87,7 @@ struct exit_function
 
 然后，我又注意到了__run_exit_handlers源码中使用了一段宏
 
-```C 
+```C
 PTR_DEMANGLE (cxafct); 
 ```
 
@@ -116,7 +116,7 @@ extern uintptr_t __pointer_chk_guard attribute_relro;
 
 当然，我找到了，它就在 elf/rtld.c/security_init()中
 
-```C {.line-numbers}
+```C
 static void
 security_init (void)
 {
