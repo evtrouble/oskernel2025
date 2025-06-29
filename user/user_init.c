@@ -116,6 +116,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char sh_name[]	 = "sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char back_path[]	 = "..";
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm0[]	 = "-w";
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm1_static[]	 = "entry-static.exe";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm1_dynamic[]	 = "entry-dynamic.exe";
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm2[]	 = "argv";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char echo_name[] = "echo";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char cat_name[]	 = "cat";
@@ -410,10 +411,11 @@ int           test_libctest(void)
 int           test_local(void)
 {	
 	__attribute__(( __unused__ )) int pid;
-	bb_sh[0] = sh_name;
-	bb_sh[1] = exec_test_libctest_static_path;
-	bb_sh[2] = 0;
-	RUN_TESTS( busybox_path, bb_sh );
+	bb_sh[0] = runtest_path;
+	bb_sh[1] = libctest_parm0;
+	bb_sh[2] = libctest_parm1_dynamic;
+	bb_sh[3] = libctest_parm2;
+	RUN_TESTS( runtest_path, bb_sh );
 
 
 }
