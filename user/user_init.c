@@ -34,6 +34,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua_path[]	 = "lua_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_path[]	 = "libctest_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char echo[]	 = "echo";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_start[]	 = "#### OS COMP TEST GROUP START libctest-musl ####";
+__attribute__( ( section( ".user.init.data" ) ) ) const char libctest_end[]	 = "#### OS COMP TEST GROUP END libctest-musl ####";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_static_path[]	 = "run-static.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_dynamic_path[]	 = "run-dynamic.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lmbench_path[]	 = "libcbench_testcode.sh";
@@ -388,6 +391,10 @@ __attribute__((section(".user.init.data"))) const char libctest_static_programs[
 int           test_libctest(void)
 {	
 	__attribute__(( __unused__ )) int pid;
+  bb_sh[0] = echo;
+  bb_sh[1] = libctest_start;
+  bb_sh[2] = 0;
+  RUN_TESTS( busybox_path, bb_sh );
 	//static部分
 	int array_size = sizeof(libctest_static_programs) / sizeof(libctest_static_programs[0]);
 	bb_sh[0] = runtest_path;
@@ -398,9 +405,13 @@ int           test_libctest(void)
 	for(int i = 0; i < array_size; i++) {
 		bb_sh[3]= libctest_static_programs[i];
         RUN_TESTS(runtest_path, bb_sh);
-    }
+  }
 	//动态部分
 
+  bb_sh[0] = echo;
+  bb_sh[1] = libctest_end;
+  bb_sh[2] = 0;
+  RUN_TESTS( busybox_path, bb_sh );
 }
 
 int           test_local(void)
