@@ -16,8 +16,10 @@
 
 1) 克隆项目到本地。
 2) 打开顶层Makefile，更改`TOOLPREFIX`，这个是编译工具链的前缀，例如`loongarch64-linux-gnu-gcc`的前缀是`loongarch64-linux-gnu-`，请确保加上前缀后的gcc在本地是有效的命令。由于龙芯的工具链版本较多，且偶尔有兼容性问题，这里推荐使用大赛给出的工具链版本：[大赛工具链](https://github.com/LoongsonLab/oscomp-toolchains-for-oskernel)，同时这个仓库里面有相应的gdb。
-3) 配置架构。在Makefile中配置CONF_ARCH和CONF_PLATFORM，即架构名称和芯片名称。构建项目时会依照两个名称到hal目录下寻找子模块。
-4) 执行`make all`命令将触发全架构编译流程，系统会在`build/`目录下生成标准化的内核镜像文件，包括采用ELF格式的可执行文件`kernel.elf` 与可直接烧录的原始二进制镜像`kernel.bin` 。为满足跨平台开发需求，开发者亦可选择定向构建指令——`make build-la`专用于龙芯LoongArch架构，`make build-rv`则针对RISC-V架构，二者均继承标准构建的输出规范，保证生成文件的路径一致性（`build/`）与命名规则统一性（`.elf/.bin`后缀）
+3) 配置架构。在Makefile中配置`CONF_ARCH`和`CONF_PLATFORM`，即架构名称和芯片名称。构建项目时会依照两个名称到hal目录下寻找子模块。  
+   - 龙芯架构：`CONF_ARCH=loongarch`，`CONF_PLATFORM=qemu`
+   - RISC-V架构：`CONF_ARCH=riscv`，`CONF_PLATFORM=qemu` 或 `k210`
+4) 执行`make all`命令将触发全架构编译流程，系统会在`build/`目录下生成标准化的内核镜像文件，包括采用ELF格式的可执行文件`kernel.elf` 与可直接烧录的原始二进制镜像`kernel.bin`。为满足跨平台开发需求，开发者亦可选择定向构建指令——`make build-la`专用于龙芯LoongArch架构，`make build-rv`则针对RISC-V架构，二者均继承标准构建的输出规范，保证生成文件的路径一致性（`build/`）与命名规则统一性（`.elf/.bin`后缀）。
 5) 配置一个sh脚本`debug.sh`用于运行qemu，qemu使用龙芯实验室提供的[大赛qemu](https://github.com/LoongsonLab/2k1000-materials)。运行qemu的脚本可参考：
 
 ```sh
@@ -31,81 +33,102 @@ KERNEL_PREFIX=`pwd`
 cd $RUNENV_PREFIX
 
 ./bin/qemu-system-loongarch64 \
-	-M ls2k \
-	-serial stdio \
-	-k ./share/qemu/keymaps/en-us \
-	-kernel ${KERNEL_PREFIX}/build/kernel.elf \
-	-serial vc \
-	-m 1G \
-	-net nic \
-	-net user,net=10.0.2.0/24,tftp=/srv/tftp \
-	-vnc :0 \
-	-S -s \
-	-hda your_2kfs_img \
-	-hdb your_sdcard_img
+    -M ls2k \
+    -serial stdio \
+    -k ./share/qemu/keymaps/en-us \
+    -kernel ${KERNEL_PREFIX}/build/kernel.elf \
+    -serial vc \
+    -m 1G \
+    -net nic \
+    -net user,net=10.0.2.0/24,tftp=/srv/tftp \
+    -vnc :0 \
+    -S -s \
+    -hda your_2kfs_img \
+    -hdb your_sdcard_img
 ```
+
+#### 1.1.1 架构和平台说明
+
+- `CONF_ARCH` 支持 `loongarch` 和 `riscv`，分别对应龙芯和RISC-V架构。
+- `CONF_PLATFORM` 支持 `qemu`（虚拟机）和 `k210`（RISC-V开发板）。
+- 编译命令举例：
+  - 龙芯架构：`make build-la`
+  - RISC-V架构：`make build-rv`
+  - 双架构同时编译：`make all`
+
+#### 1.1.2 镜像与文件系统
+
+- 编译后会在根目录生成 `kernel-la`（龙芯）和 `kernel-rv`（RISC-V）两个内核镜像。
+- 文件系统镜像如 `sdcard.img`（loongarch）或 `sdcard-rv.img`（riscv）自动生成并格式化为ext4，用户程序会自动复制到镜像根目录。
+- 若需手动制作或挂载镜像，可参考Makefile中的`fs`目标。
+
+#### 1.1.3 QEMU运行参数
+
+- QEMU参数可在Makefile中查看，支持多核（`-smp`）、虚拟磁盘、virtio-blk、virtio-net等。
+- RISC-V架构默认使用`qemu-system-riscv64`，龙芯使用`qemu-system-loongarch64`。
+- 运行命令可直接使用`make run`，会自动加载RISC-V内核和磁盘镜像。
 
 ### 1.2 vscode 环境配置
 
-1) 使用`vscode`+`gdb`调试，需要在.vscode中配置`lanuch.json`。参考配置如下：
+1) 使用`vscode`+`gdb`调试，需要在.vscode中配置`launch.json`。参考配置如下：
 
 ```json
 {
-	"version": "0.2.0",
-	"configurations": [
-		{
-			"name": "qemu-ls2k-start (debug)",
-			"type": "cppdbg",
-			"request": "launch",
-			"cwd": "${workspaceFolder}",
-			"program": "./build/kernel.elf",
-			"args": [],
-			"stopAtEntry": false,
-			"environment": [],
-			"externalConsole": true,
-			"MIMode": "gdb",
-			"miDebuggerPath": "loongarch64-linux-gnu-gdb",
-			"miDebuggerServerAddress": "localhost:1234",
-			"preLaunchTask": "qemu ls2k"
-		}
-	]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "qemu-ls2k-start (debug)",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "program": "./build/kernel.elf",
+            "args": [],
+            "stopAtEntry": false,
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "miDebuggerPath": "loongarch64-linux-gnu-gdb",
+            "miDebuggerServerAddress": "localhost:1234",
+            "preLaunchTask": "qemu ls2k"
+        }
+    ]
 }
 ```
 
-上述配置中的`miDebuggerPath`可以替换成对应的riscvv工具链，并且实际上还配置了一个终端任务`qemu ls2k`，这个任务用于运行前面配置好的运行qemu的脚本，以在vscode启动gdb之前确保打开qemu，然后再用gdb接入调试。`qemu lask` task的配置参考如下：
+上述配置中的`miDebuggerPath`可以替换成对应的riscv工具链，并且实际上还配置了一个终端任务`qemu ls2k`，这个任务用于运行前面配置好的运行qemu的脚本，以在vscode启动gdb之前确保打开qemu，然后再用gdb接入调试。`qemu ls2k` task的配置参考如下：
 
 ```json
 {
-	"version": "0.2.0",
-	"tasks": [
-		{
-			"label": "qemu ls2k",
-			"type": "shell",
-			"command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && ./ls2k_debug.sh",
-			// 使用下面这个command还可以不使用vscode集成中断，另外打开一个ubuntu终端来运行qemu
-			// "command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && gnome-terminal -- ./ls2k_debug.sh",
-			"presentation": {
-				"echo": true,
-				"clear": true,
-				"group": "qemu"
-			},
-			"isBackground": true,
-			"problemMatcher": [
-				{
-					"pattern": {
-						"regexp": ".*(错误)",
-						"severity": 0
-					},
-					"background": {
-						"activeOnStart": true,
-						"beginsPattern": "^TaskInfo: QEMU Starting",
-						"endsPattern": "^TaskInfo: Start Debug"
-					}
-				},
-				"$gcc"
-			]
-		}
-	]
+    "version": "0.2.0",
+    "tasks": [
+        {
+            "label": "qemu ls2k",
+            "type": "shell",
+            "command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && ./ls2k_debug.sh",
+            // 使用下面这个command还可以不使用vscode集成中断，另外打开一个ubuntu终端来运行qemu
+            // "command": "echo 'TaskInfo: QEMU Starting' && echo 'TaskInfo: Start Debug' && gnome-terminal -- ./ls2k_debug.sh",
+            "presentation": {
+                "echo": true,
+                "clear": true,
+                "group": "qemu"
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": ".*(错误)",
+                        "severity": 0
+                    },
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "^TaskInfo: QEMU Starting",
+                        "endsPattern": "^TaskInfo: Start Debug"
+                    }
+                },
+                "$gcc"
+            ]
+        }
+    ]
 }
 ```
 
@@ -121,6 +144,15 @@ cd $RUNENV_PREFIX
 3) 其他依赖详见下图：
    ![](./img/gdb_depends.png)
 
+### 1.4 常用Makefile命令说明
+
+- `make build-la`：编译龙芯架构内核，输出`kernel-la`
+- `make build-rv`：编译RISC-V架构内核，输出`kernel-rv`
+- `make all`：同时编译两种架构
+- `make fs`：自动生成并挂载文件系统镜像，将用户程序复制到镜像
+- `make run`：启动RISC-V架构的QEMU虚拟机并加载内核和磁盘镜像
+- `make clean`：清理所有构建产物
+
 ## 2. 调试重定位程序（用户程序）
 
 用户程序通常是通过系统调用execve将程序映像加载到内存中运行，具体加载的位置是由用户程序的elf格式定义的，这意味着用户程序是一个重定位程序，必须要在运行时，将用户程序的符号表额外地加载到gdb，gdb才能根据符号映射到响应的地址设置断点。具体方法如下：
@@ -128,5 +160,13 @@ cd $RUNENV_PREFIX
 1) 编译用户程序，一定要保留调试信息，否则生成的elf文件不会包含符号表，从而gdb无法解析符号。如果不确定生成的文件是否包含调试信息，可以使用 `readelf -l *.elf` 查看是否有debug相关的程序段。
 2) 启动qemu运行内核，然后暂停运行，切换到调试控制台（或gdb命令行）。
 3) 使用 `add-symbol-file elf文件路径` 的方式添加符号表，注意在vscode控制台中，输入gdb命令需要使用 `-exec 命令` 的方式。gdb解析符号表成功后，就可以在源码上添加断点。
-4) 另外，如果使用他人编译好的elf文件，可能其中的符号表映射的源代码位置与本地的源代码位置不符，可以先使用 `info sources` 命令列出符号表映射的源代码位置。如果发现不符，那么这个符号是无法被定位到本地的源代码位置的，可以使用 `set substitude-path elf中符号映射的源码路径前缀 需要替换的源码路径前缀`，例如，如果发现elf文件中的符号映射源码路径的前缀是 /home/Jack/ ，但是本地的源码路径应当在 /home/Brown/ 当中，可以使用命令 set subtitude-path /home/Jack/ /home/Brown/ 进行路径替换。
+4) 另外，如果使用他人编译好的elf文件，可能其中的符号表映射的源代码位置与本地的源代码位置不符，可以先使用 `info sources` 命令列出符号表映射的源代码位置。如果发现不符，那么这个符号是无法被定位到本地的源代码位置的，可以使用 `set substitute-path elf中符号映射的源码路径前缀 需要替换的源码路径前缀`，例如，如果发现elf文件中的符号映射源码路径的前缀是 /home/Jack/ ，但是本地的源码路径应当在 /home/Brown/ 当中，可以使用命令 set substitute-path /home/Jack/ /home/Brown/ 进行路径替换。
+
+---
+
+> **补充说明：**
+> - 项目采用模块化Makefile，支持多架构、多平台灵活切换。
+> - 默认C++标准为C++23（loongarch）和C++17（riscv）。
+> - 所有编译参数、链接脚本、头文件路径等均可在Makefile中灵活调整。
+> - 若遇到编译或运行问题，建议先清理再全量编译：`make clean && make all`
 
