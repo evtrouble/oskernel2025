@@ -17,7 +17,7 @@ RuOK 队设计的操作系统，其**龙芯架构部分**是基于去年优秀�
 
 #### 2. [=> 硬件接口设计](./doc/hsai.md)
 
-#### 3. [=> HSAI 参考](./doc/hsai_reference.md)
+#### 3. [=> HSAI 参考](./doc/hsai_reference_ruok.md)
 
 #### 4. [=> ls2k的IO方式](./doc/ls2k_io.md)
 
@@ -42,3 +42,5 @@ RuOK 队设计的操作系统，其**龙芯架构部分**是基于去年优秀�
 #### 14. [=> 暂时没了解、解决的问题](./doc/to_solve.md)
 
 #### 15. [=> 演示视频链接（百度网盘，提取码7xhu）](https://pan.baidu.com/s/1D4Iemn9PxUI4wGItwXNIjw?pwd=7xhu)  
+
+#### 16. [=> 开发阶段介绍ppt](./doc/操作系统内核开发日志.pptx)  
