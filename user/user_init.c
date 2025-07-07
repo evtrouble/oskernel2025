@@ -415,6 +415,7 @@ int           test_local(void)
 	bb_sh[1] = libctest_parm0;
 	bb_sh[2] = libctest_parm1_dynamic;
 	bb_sh[3] = libctest_parm2;
+  bb_sh[4] = 0;
 	RUN_TESTS( runtest_path, bb_sh );
 
 
@@ -425,35 +426,8 @@ int init_main( void )
 
 
 	chdir( test_musl_basic_path );
-	//basic测试
-	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
-	basic_test();
-	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
-	// 回到musl目录
-	chdir( back_path );
-	//lua测试
-	test_lua();
-	//busybox测试
-	test_busybox();
-  // libctest测试
-	test_libctest();
-
-
-	chdir( test_glibc_basic_path );
-	//basic测试
-	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
-	basic_test();
-	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
-	//回到 glibc目录
-	chdir( back_path );
-	//lua测试
-	test_lua();
-	// busybox测试
-	test_busybox();
-#ifdef __riscv
-	//lmbench
-	test_lmbench();
-#endif
+  chdir(back_path);
+	test_local();
 	poweroff();
 
 

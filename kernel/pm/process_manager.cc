@@ -802,6 +802,11 @@ namespace pm
 		return 0;
 	}
 
+	int ProcessManager::execve_dynamic( eastl::string path, eastl::vector<eastl::string> args, eastl::vector<eastl::string> envs )
+	{
+		
+	}
+
 	int ProcessManager::execve( eastl::string path, eastl::vector<eastl::string> argv,
 								eastl::vector<eastl::string> envs )
 	{
