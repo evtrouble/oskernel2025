@@ -9,6 +9,7 @@ namespace elf
 		ELF_MAGIC = 0x464C457FU,  // "\x7FELF" in little endian
 		ELF_PROG_LOAD = 1,
 		ELF_PROG_FLAG_EXEC = 1,
+		ELF_PT_INTERP       = 3,   // Interpreter path
 		ELF_PROG_FLAG_WRITE = 2,
 		ELF_PROG_FLAG_READ = 4,
 		ELF_GNU_STACK = 0x6474e551U,

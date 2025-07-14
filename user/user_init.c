@@ -73,6 +73,7 @@ __attribute__(( section( ".user.init.data" ) )) const char	 end_test_musl_basic[
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_busybox[] = "busybox";
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo[]	 = "write";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo2[]	 = "/mnt/musl/basic/write";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_fork[]	 = "fork";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_exit[]	 = "exit";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_wait[]	 = "wait";
@@ -133,6 +134,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_pa
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
 __attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
 __attribute__(( section( ".user.init.data" ) )) const char	  runtest_path[] = "./runtest.exe";
+__attribute__(( section( ".user.init.data" ) )) const char	  ld_path[] = "/mnt/musl/lib/libc.so";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -411,12 +413,12 @@ int           test_libctest(void)
 int           test_local(void)
 {	
 	__attribute__(( __unused__ )) int pid;
-	bb_sh[0] = runtest_path;
-	bb_sh[1] = libctest_parm0;
-	bb_sh[2] = libctest_parm1_dynamic;
-	bb_sh[3] = libctest_parm2;
-  bb_sh[4] = 0;
-	RUN_TESTS( runtest_path, bb_sh );
+  // chdir(back_path);
+	// bb_sh[0] = ld_path;
+	// bb_sh[1] =exec_test_echo2;
+	// bb_sh[2] = 0;
+	// RUN_TESTS( ld_path, bb_sh );
+  	RUN_TESTS( exec_test_echo, 0 );
 
 
 }
@@ -426,7 +428,6 @@ int init_main( void )
 
 
 	chdir( test_musl_basic_path );
-  chdir(back_path);
 	test_local();
 	poweroff();
 
