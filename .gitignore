@@ -29,6 +29,7 @@ kernel-rv
 kernel-la
 build-loongarch-qemu_2k1000/*
 build-riscv-qemu/*
+build-riscv-k210/*
 build-loongarch-qemu/*
 riscv64-linux-gnu/*
 riscv64-lp64d--glibc--stable-2022.08-1/*
