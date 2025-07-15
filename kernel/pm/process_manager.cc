@@ -810,7 +810,6 @@ namespace pm
 		fs::dentry	 *de;
 		int			  i, off;
 		eastl::string ab_path;
-		printf("难道是这样");
 		if ( path[0] == '/' )
 			ab_path = path;
 		else
@@ -858,6 +857,12 @@ namespace pm
 		fs::dentry	 *de;
 		int			  i, off;
 		eastl::string ab_path,interpret_path;
+		uint64		load_base=0;  
+		vma  tempVma[64];
+		for (int i = 0; i < 64; ++i) {
+   	 		tempVma[i] = proc->vm[i];
+		}
+
 		if ( path[0] == '/' )
 			ab_path = path;
 		else
@@ -878,7 +883,6 @@ namespace pm
 			return -1;
 		}
 		mm::PageTable new_pt = mm::k_vmm.vm_create();
-		printf("这里");
 		u64			  new_sz = 0;
 		// ============   加载程序到内存 =========== //
 		using psd_t		  = program_section_desc;
@@ -920,12 +924,7 @@ namespace pm
 					break;
 				}
 				new_sz += hsai::page_round_up( ph.vaddr + ph.memsz ) - pva;
-				// if ( ( ph.vaddr % hsai::page_size ) != 0 )
-				// {
-				// 	log_error( "execve: vaddr not aligned" );
-				// 	proc_freepagetable( proc->_pt, sz );
-				// 	return -1;
-				// }
+
 
 				if ( load_seg( new_pt, ph.vaddr, de, ph.off, ph.filesz ) < 0 )
 				{
@@ -939,11 +938,12 @@ namespace pm
 				new_sec_desc[new_sec_cnt]._sec_start  = (void *) ph.vaddr;
 				new_sec_desc[new_sec_cnt]._sec_size	  = ph.memsz;
 				new_sec_desc[new_sec_cnt]._debug_name = "LOAD";
-				printf( "开始地址是%p,结束地址是%p，是否可写%d\n",
-						new_sec_desc[new_sec_cnt]._sec_start,
-						(void *) ( new_sec_desc[new_sec_cnt]._sec_size +
-								   new_sec_desc[new_sec_cnt]._sec_start ),
-						executable );
+				if(load_base==0)load_base = ph.vaddr;
+				// printf( "开始地址是%p,结束地址是%p，是否可写%d\n",
+				// 		new_sec_desc[new_sec_cnt]._sec_start,
+				// 		(void *) ( new_sec_desc[new_sec_cnt]._sec_size +
+				// 				   new_sec_desc[new_sec_cnt]._sec_start ),
+				// 		executable );
 				new_sec_cnt++;
 			}
 
@@ -953,78 +953,12 @@ namespace pm
 				return -1;
 			}
 		}
-		u64 phdr = 0; // for AT_PHDR
-		{
-			ulong phsz = elf.phentsize * elf.phnum;
-			u64	  sz1;
-			u64	  load_end = 0;
-
-			for ( auto &sec : new_sec_desc ) // 搜索load段末尾地址
-			{
-				u64 end = (ulong) sec._sec_start + sec._sec_size;
-				if ( end > load_end ) load_end = end;
-			}
-			printf("loadend是%p, 需要大小是宾子成%p",load_end,load_end + phsz);
-			
-			load_end = 0x4000;
-			load_end = hsai::page_round_up( load_end );
-			if ( ( sz1 = mm::k_vmm.vm_alloc( new_pt, load_end, load_end + phsz ) ) == 0 )
-			{
-				log_error( "execve: vaalloc" );
-				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-				return -1;
-			}
-
-			u8 *tmp = new u8[phsz + 8];
-			if ( tmp == nullptr )
-			{
-				log_error( "execve: no mem" );
-				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-				return -1;
-			}
-
-			if ( de->getNode()->nodeRead( (ulong) tmp, elf.phoff, phsz ) != phsz )
-			{
-				log_error( "execve: node read" );
-				delete[] tmp;
-				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-				return -1;
-			}
-			for (size_t i = 0; i < phsz + 8; i += 16) {
-        printf("%08lx: ", (unsigned long)(tmp + i));
-        for (size_t j = 0; j < 16 && i + j < phsz + 8; ++j) {
-            printf("%02x ", tmp[i + j]);
-        }
-        printf("\n");
-    }
-			
-
-			if ( mm::k_vmm.copyout( new_pt, load_end, (void *) tmp, phsz ) < 0 )
-			{
-				log_error( "execve: copy out" );
-				delete[] tmp;
-				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-				return -1;
-			}
-
-			delete[] tmp;
-
-			phdr = load_end;
-
-			// 将该段作为程序段记录下来
-			psd_t &ph_psd	   = new_sec_desc[new_sec_cnt];
-			ph_psd._sec_start  = (void *) phdr;
-			ph_psd._sec_size   = phsz;
-			ph_psd._debug_name = "program headers";
-			new_sec_cnt++;
-
-			new_sz += hsai::page_round_up( phsz );
-		}
         // ============  加载链接器到内存 ========= //
 		fs::dentry	 *de_interp;
 		fs::Path path_resolver2( interpret_path );
 		elf::elfhdr	  elf_interp;
-		uint64        interp_base=0x10000;
+		// 这个地方写死是有不足的，作者是彩笔，诸君可优化
+		uint64        interp_base=0x400000;
 		elf::proghdr  ph_interp = {};
 		if ( ( de_interp = path_resolver2.pathSearch() ) == nullptr )
 		{
@@ -1097,6 +1031,10 @@ namespace pm
 				_free_pt_with_sec( new_pt, new_sec_desc_interp, new_sec_cnt_interp );
 				return -1;
 			}
+		}
+		//这地方是给程序打补丁，为什么DYN类型的argv[0]要求是程序名，而EXEC的不一样
+		if(elf.type == elf::ET_DYN){
+			argv.insert(argv.begin(), "/lib/ld-musl-riscv64-sf.so.1");
 		}
 		
 		// allocate two pages , the second is used for the user stack
@@ -1244,60 +1182,58 @@ namespace pm
 				return -1;
 			}
 
-			if ( phdr != 0 )
+			
+			// auxy[4] = AT_PAGESZ
+			aux.a_type	   = elf::AT_PAGESZ;
+			aux.a_un.a_val = hsai::page_size;
+			ustack << aux;
+			if( ustack.errno() != ustack.rc_ok)
 			{
-				// auxy[4] = AT_PAGESZ
-				aux.a_type	   = elf::AT_PAGESZ;
-				aux.a_un.a_val = hsai::page_size;
-				ustack << aux;
-				if( ustack.errno() != ustack.rc_ok)
-				{
-					_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-					log_error( "execve: push into stack" );
-					return -1;
-				}
-				// auxv[3] = AT_PHNUM
-				aux.a_type	   = elf::AT_PHNUM;
-				aux.a_un.a_val = elf.phnum;
-				ustack << aux;
-				if ( ustack.errno() != ustack.rc_ok )
-				{
-					_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-					log_error( "execve: push into stack" );
-					return -1;
-				}
-				// auxv[2] = AT_PHENT
-				aux.a_type	   = elf::AT_PHENT;
-				aux.a_un.a_val = elf.phentsize;
-				ustack << aux;
-				if ( ustack.errno() != ustack.rc_ok )
-				{
-					_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-					log_error( "execve: push into stack" );
-					return -1;
-				}
-				// auxv[1] = AT_PHDR
-				aux.a_type	   = elf::AT_PHDR;
-				printf("程序头表地址是%p\n",phdr);
-				aux.a_un.a_val = phdr;
-				ustack << aux;
-
-				//目标程序地址
-				aux.a_type = elf::AT_ENTRY;
-				aux.a_un.a_val = 0;
-				ustack << aux;
-
-				// AT_BASE：动态链接器的加载地址（如果你有加载解释器）
-				aux.a_type = elf::AT_BASE;
-				aux.a_un.a_val = interp_base; // 动态链接器的 vaddr
-				ustack << aux;
-				if ( ustack.errno() != ustack.rc_ok )
-				{
-					_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
-					log_error( "execve: push into stack" );
-					return -1;
-				}
+				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
+				log_error( "execve: push into stack" );
+				return -1;
 			}
+			// auxv[3] = AT_PHNUM
+			aux.a_type	   = elf::AT_PHNUM;
+			aux.a_un.a_val = elf.phnum;
+			ustack << aux;
+			if ( ustack.errno() != ustack.rc_ok )
+			{
+				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
+				log_error( "execve: push into stack" );
+				return -1;
+			}
+			// auxv[2] = AT_PHENT
+			aux.a_type	   = elf::AT_PHENT;
+			aux.a_un.a_val = elf.phentsize;
+			ustack << aux;
+			if ( ustack.errno() != ustack.rc_ok )
+			{
+				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
+				log_error( "execve: push into stack" );
+				return -1;
+			}
+			// auxv[1] = AT_PHDR
+			aux.a_type	   = elf::AT_PHDR;
+			aux.a_un.a_val = load_base + elf_interp.phoff;
+			ustack << aux;
+
+			//目标程序地址
+			aux.a_type = elf::AT_ENTRY;
+			aux.a_un.a_val = elf.entry;
+			ustack << aux;
+
+			// AT_BASE：动态链接器的加载地址（如果你有加载解释器）
+			aux.a_type = elf::AT_BASE;
+			aux.a_un.a_val = interp_base; // 动态链接器的 vaddr
+			ustack << aux;
+			if ( ustack.errno() != ustack.rc_ok )
+			{
+				_free_pt_with_sec( new_pt, new_sec_desc, new_sec_cnt );
+				log_error( "execve: push into stack" );
+				return -1;
+			}
+			
 			// auxv[0] = AT_RANDOM
 			aux.a_type	   = elf::AT_RANDOM;
 			aux.a_un.a_val = rd_pos;
@@ -1391,19 +1327,19 @@ namespace pm
 		{
 			for ( int i = 0; i < max_vma_num; i++ )
 			{
-				if ( proc->vm[i].is_used )
+				if ( tempVma[i].is_used )
 				{
-					ulong start = hsai::page_round_down( (ulong) proc->vm[i].address );
-					ulong end = hsai::page_round_up( (ulong) proc->vm[i].address + proc->vm[i].length );
+					ulong start = hsai::page_round_down( (ulong) tempVma[i].address );
+					ulong end = hsai::page_round_up( (ulong) tempVma[i].address + tempVma[i].length );
 					mm::k_vmm.vm_unmap( proc->_pt, start, ( end - start ) / hsai::page_size,
 								1 );
-					proc->vm[i].is_used = false;
-					proc->vm[i].address = 0;
-					proc->vm[i].length  = 0;
-					if ( proc->vm[i].vfile ) { 
-						proc->vm[i].vfile->free_file(); 
+					tempVma[i].is_used = false;
+					tempVma[i].address = 0;
+					tempVma[i].length  = 0;
+					if ( tempVma[i].vfile ) { 
+						tempVma[i].vfile->free_file(); 
 					}
-					proc->vm[i].vfile = nullptr;
+					tempVma[i].vfile = nullptr;
 				}
 			}
 		}
@@ -2518,6 +2454,28 @@ namespace pm
 		mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
 		return 0;
 	}
+	uint64 ProcessManager::alloc_vma(mm::PageTable &pt, uint64 old_sz,uint64 new_sz, bool executable,bool for_user){
+		Pcb *p = get_cur_pcb();
+		uint64 newsz = mm::k_vmm.vm_alloc( pt, old_sz, new_sz,executable,for_user);
+		if ( newsz == 0 ) return -1;
+		int i=0;
+		for (; i < max_vma_num; i++ )
+		{
+			if ( !p->vm[i].is_used )
+			{
+				p->vm[i].is_used = true;
+				p->vm[i].address = old_sz;
+				p->vm[i].length	 = new_sz-old_sz;
+				p->vm[i].vfile	 = nullptr; // 没有文件
+				break;
+			}
+		}
+		if ( i == pm::max_vma_num ) {
+			log_error("vma区域不够用了\n");
+			return -1;
+		}
+		return newsz;
+	}
 
 	int ProcessManager::mmap( int fd, int prot, int flags, int map_size )
 	{
@@ -2571,7 +2529,7 @@ namespace pm
 				if ( !p->vm[i].is_used )
 				{
 
-					newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+					newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz,true );
 					if ( newsz == 0 ) return -1;
 					p->vm[i].is_used = true;
 

@@ -407,18 +407,27 @@ int           test_libctest(void)
         RUN_TESTS(runtest_path, bb_sh);
   }
 	//动态部分
+  bb_sh[2] = libctest_parm1_dynamic;
+  for(int i = 0; i < array_size; i++) {
+		bb_sh[3]= libctest_static_programs[i];
+        RUN_TESTS(runtest_path, bb_sh);
+  }
   write( 1, libctest_end, sizeof( libctest_end ) );
 }
 
 int           test_local(void)
 {	
 	__attribute__(( __unused__ )) int pid;
-  // chdir(back_path);
-	// bb_sh[0] = ld_path;
-	// bb_sh[1] =exec_test_echo2;
-	// bb_sh[2] = 0;
-	// RUN_TESTS( ld_path, bb_sh );
-  	RUN_TESTS( exec_test_echo, 0 );
+  chdir(back_path);
+	bb_sh[0] = runtest_path;
+	bb_sh[1] = libctest_parm0;
+	bb_sh[2] = libctest_parm1_static;
+	bb_sh[3] = libctest_parm2;
+  bb_sh[4] = 0;
+  RUN_TESTS(runtest_path, bb_sh);
+    // bb_sh[0] = exec_test_echo;
+    // bb_sh[1] = 0;
+  	// RUN_TESTS( exec_test_echo, bb_sh );
 
 
 }
@@ -427,9 +436,38 @@ int init_main( void )
 {
 
 
-	chdir( test_musl_basic_path );
-	test_local();
-	poweroff();
+    chdir( test_musl_basic_path );
+    //basic测试
+    write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
+    basic_test();
+    write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
+    // 回到musl目录
+    chdir( back_path );
+    //lua测试
+    test_lua();
+    //busybox测试
+    test_busybox();
+    // libctest测试
+    test_libctest();
+
+
+    chdir( test_glibc_basic_path );
+    //basic测试
+    write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
+    basic_test();
+    write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+    //回到 glibc目录
+    chdir( back_path );
+    //lua测试
+    test_lua();
+    // busybox测试
+    test_busybox();
+  #ifdef __riscv
+    //lmbench
+    test_lmbench();
+  #endif
+    poweroff();
+
 
 
 	while ( 1 );

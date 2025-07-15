@@ -1172,10 +1172,8 @@ namespace syscall
 		mm::PageTable *pt = p->get_pagetable();
 		tidptr = (int *) hsai::k_mem->to_vir( pt->walk_addr( addr ) );
 		if ( tidptr == nullptr ) return -10;
-		uint64 a=pm::k_pm.set_tid_address( tidptr );
-		printf("正常返回");
 
-		return a;
+		return pm::k_pm.set_tid_address( tidptr );
 	}
 
 	uint64 SyscallHandler::_sys_set_robust_list()

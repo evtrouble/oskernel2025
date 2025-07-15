@@ -13,6 +13,10 @@ namespace elf
 		ELF_PROG_FLAG_WRITE = 2,
 		ELF_PROG_FLAG_READ = 4,
 		ELF_GNU_STACK = 0x6474e551U,
+		ET_NONE = 0 ,
+		ET_REL  = 1 ,
+		ET_EXEC = 2 ,
+		ET_DYN  = 3 ,
 	};
 
 	// File header
