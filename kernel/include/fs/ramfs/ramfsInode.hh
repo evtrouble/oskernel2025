@@ -74,6 +74,13 @@ namespace fs{
                 size_t nodeRead( uint64 dst_, size_t off_, size_t len_ ) override ;
         };
 
+        class Interrupts : public RamInode
+        {
+            public:
+                Interrupts( RamFS *fs, uint ino, FileAttrs attrs ) : ramfs::RamInode( fs, ino, attrs ) {};
+                size_t nodeRead( uint64 dst_, size_t off_, size_t len_ ) override ;
+        };
+
         class SymbleLink : public RamInode
         {   
             private:

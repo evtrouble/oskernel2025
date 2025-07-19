@@ -271,6 +271,7 @@ namespace loongarch
 			rc = 0;
 			if ( cpu->get_cpu_id() == 0 )
 			{
+				hsai::k_im->increase_intr_count(11);
 				rc = hsai::handle_tick_intr();
 				if ( rc < 0 )
 				{
