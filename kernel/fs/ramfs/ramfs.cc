@@ -146,7 +146,7 @@ namespace fs
 
 			//init /proc/interrupts
 			dentry *interrupts = proc->EntryCreate( "interrupts", FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
-			Mount *interrupts_ = new Mount( static_cast<RamFS*>(interrupts->getNode()->getFS()), alloc_ino(), FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
+			Interrupts *interrupts_ = new Interrupts( static_cast<RamFS*>(interrupts->getNode()->getFS()), alloc_ino(), FileAttrs( FileTypes::FT_NORMAL, 0444 ) );
 			interrupts->setNode( interrupts_ );
 			interrupts->dup();
 
