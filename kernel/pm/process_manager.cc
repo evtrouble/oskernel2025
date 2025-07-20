@@ -1731,10 +1731,6 @@ namespace pm
 		else // normal file
 		{
 			fs::normal_file *f = new fs::normal_file( attrs, dentry );
-			if ( dentry->rName() == "test.txt" ) {
-				// printf( "dup success\n" );
-				dentry->dup();
-			}
 			// log_info( "test normal file read" );
 			// {
 			// 	fs::file *ff = ( fs::file * ) f;

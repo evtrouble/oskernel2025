@@ -3,6 +3,7 @@
 #include "fs/dstat.hh"
 
 #include "fs/fat/fat32inode.hh"
+#include "fs/ext4/ext4_inode.hh"
 
 #include "fs/ramfs/ramfsInode.hh"
 #include "fs/ramfs/ramfs.hh"
@@ -26,10 +27,29 @@ namespace fs
             return it->second;
         if ( [[maybe_unused]] auto subnod = (_node->lookup(name)))
         {
-            log_trace("dentry::EntrySearch: found inode");
-            dentry *subdentry = fs::dentrycache::k_dentryCache.allocDentry();
-            new ( subdentry ) dentry(name, (Inode *)subnod, this);
-            //dentry *subdentry = new dentry(name , subnod, this);
+             dentry *subdentry;
+            // ------------------- 伪实现写 ---------------------
+            if(name=="busybox_cmd.txt")
+            {
+                fs::ext4::Ext4IndexNode*  ext4_node =(fs::ext4::Ext4IndexNode*) subnod;
+                subdentry = EntryCreate(name,ext4_node->getAttr(),"");
+                auto memory_node = subdentry->getNode();
+                char* temp = new char[1024];
+                uint64 dst =(uint64)temp;
+                size_t off =0,current_read=0;
+                while (true){
+                    current_read = ext4_node->nodeRead(dst,off,1024);
+                    memory_node->nodeWrite(dst,off,current_read);
+                    off += current_read;
+                    if(current_read != 1024)break;
+                }
+            }
+            // -------------------------------------------------
+            else{
+                log_trace("dentry::EntrySearch: found inode");
+                subdentry = fs::dentrycache::k_dentryCache.allocDentry();
+                new ( subdentry ) dentry(name, (Inode *)subnod, this);
+            }
             children[name] = subdentry;
             return subdentry;
         }
@@ -65,8 +85,13 @@ namespace fs
             delete node_; // 避免内存泄漏
             return nullptr;
         }
+        {
+            // 伪实现
+            newden->dup();
+        }
 
         children [ name ] = newden;
+
 
         log_info("RamFSDen::EntryCreate: created %s, parent %s", name.c_str(), this->name.c_str());
         return newden;
