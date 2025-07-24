@@ -438,6 +438,8 @@ int init_main( void )
 
 	chdir(test_musl_path);
   test_copy_file_range();
+  chdir(test_glibc_path);
+  test_copy_file_range();
 	poweroff();
 
 
