@@ -32,6 +32,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_copy_file_range_path[]	 = "copy-file-range_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua_path[]	 = "lua_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_path[]	 = "libctest_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char echo[]	 = "echo";
@@ -128,7 +129,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm2[]	 =
 // __attribute__( ( section( ".user.init.data" ) ) ) const char lua_test_sh[] =
 // 	"/mnt/sdcard/lua/test.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_basic_path[] = "/mnt/musl/basic/";
+__attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_path[] = "/mnt/musl/";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/basic/";
+__attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_path[] = "/mnt/glibc/";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_path[] = "/mnt/glibc";
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
 __attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
@@ -212,6 +215,8 @@ int			test_lua( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_libctest( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_lmbench( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_local( void ) __attribute__( ( section( ".user.init" ) ) );
+int     test_copy_file_range(void) __attribute__( ( section( ".user.init" ) ) );
+
 
 int			test_busybox( void ) 
 {
@@ -416,44 +421,25 @@ int           test_local(void)
 	bb_sh[2] = libctest_parm1_dynamic;
 	bb_sh[3] = libctest_parm2;
 	RUN_TESTS( runtest_path, bb_sh );
+}
 
-
+int test_copy_file_range(void)
+{
+  	__attribute__(( __unused__ )) int pid;
+    bb_sh[0] = sh_name;
+    bb_sh[1] = exec_test_copy_file_range_path;
+    bb_sh[2] = 0;
+    RUN_TESTS( busybox_path, bb_sh );
 }
 
 int init_main( void )
 {
 
 
-	chdir( test_musl_basic_path );
-	//basic测试
-	write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
-	basic_test();
-	write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
-	// 回到musl目录
-	chdir( back_path );
-	//lua测试
-	test_lua();
-	//busybox测试
-	test_busybox();
-  // libctest测试
-	test_libctest();
-
-
-	chdir( test_glibc_basic_path );
-	//basic测试
-	write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
-	basic_test();
-	write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
-	//回到 glibc目录
-	chdir( back_path );
-	//lua测试
-	test_lua();
-	// busybox测试
-	test_busybox();
-#ifdef __riscv
-	//lmbench
-	test_lmbench();
-#endif
+	chdir(test_musl_path);
+  test_copy_file_range();
+  chdir(test_glibc_path);
+  test_copy_file_range();
 	poweroff();
 
 

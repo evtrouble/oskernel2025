@@ -265,21 +265,38 @@ namespace fs
 		size_t Normal::nodeWrite( uint64 src_, size_t off, size_t len )
 		{
 			size_t write_len = len;
+			// 如果偏移量超过当前数据大小，需要填充0
+			if (off > data.size()) {
+				// 填充0字节到偏移位置
+				data.resize(off, '\0');
+			}
+			
+			// 确保数据容器足够大以容纳新写入的数据
+			if (off + len > data.size()) {
+				data.resize(off + len, '\0');
+			}
+			if(write_len == 0) return 0;
+			// 将写入的数据复制到数据容器中
 
 			char *writecontent = new char[ len ];
 			memset( writecontent, 0, len );
 			memcpy( writecontent, (void *)src_, len );
-			//printf("test.txt write: %s\n", writecontent);
+			
+			
+			// 写入数据
 			for (size_t i = 0; i < write_len; ++i) {
-				if (off + i < data.size()) {
-					data[off + i] = writecontent[i];
-				} else {
-					data.push_back(writecontent[i]);
-				}
+				data[off + i] = writecontent[i];
 			}
+			
 			// printf("data is %s\n", data.c_str());
 			// printf("data size is %d\n", data.length());
+			delete[] writecontent;
 			return write_len;
+		}
+		uint64 Normal::nodeTruncate(uint64 len)
+		{
+			data.resize(len);
+			return data.length();
 		}
 
 		static char* digits = "0123456789abcdef";

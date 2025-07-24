@@ -1,3 +1,8 @@
+/*
+ * @Author: binzc 2019500261@qq.com
+ * @Date: 2025-07-08 09:50:15
+ * @Description: 
+ */
 #include "fs/file/file.hh"
 #include "fs/dentry.hh"
 
@@ -31,6 +36,7 @@ namespace fs
 			if(_den) _den->release();
 			if ( refcnt == 0 ) delete this;
 		}
+		uint64 ftruncate( uint64 len )override;
 
 		virtual void dup() override { refcnt++; if(_den) _den->dup(); }
 

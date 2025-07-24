@@ -155,6 +155,7 @@ namespace fs
 		virtual long read( uint64 buf, size_t len, long off, bool upgrade_off ) = 0;
 		virtual long write( uint64 buf, size_t len, long off, bool upgrade_off ) = 0;
 		virtual void dup() { refcnt++; };
+		virtual uint64 ftruncate( uint64 len ) {return 0;};
 		virtual bool read_ready() = 0;
 		virtual bool write_ready() = 0;
 		virtual off_t lseek( off_t offset, int whence ) = 0;

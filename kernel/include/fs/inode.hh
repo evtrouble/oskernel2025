@@ -1,3 +1,4 @@
+
 //
 // Created by Li Shuang ( pseudonym ) on 2024-05-19
 // --------------------------------------------------------------
@@ -47,6 +48,8 @@ namespace fs
 
 		virtual size_t nodeRead( uint64 dst_, size_t off_, size_t len_ )  = 0;
 		virtual size_t nodeWrite( uint64 src_, size_t off_, size_t len_ ) = 0;
+		virtual uint64 nodeTruncate(uint64 len){return -1;};
+
 
 		using ubuf = mm::UserspaceStream;
 		struct linux_dirent64
