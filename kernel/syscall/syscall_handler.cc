@@ -435,7 +435,7 @@ namespace syscall
 		// arg2: parent_tid - 父进程TID的地址
 		// arg3: child_tid - 子进程TID的地址
 		// arg4: tls - 线程本地存储描述符
-		
+		//printf("hello from _sys_fork\n");
 		int flags;
 		uint64 stack, parent_tid, child_tid, tls;
 		
@@ -511,6 +511,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_getpid()
 	{
+		printf("hello from _sys_getpid\n");
 		return pm::k_pm.get_cur_pcb()->get_pid();
 	}
 
