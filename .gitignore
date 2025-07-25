@@ -36,3 +36,47 @@ riscv64-lp64d-glibc.tar.bz2
 temp/*
 tempRv/*
 tempLa/*
+
+
+
+# 忽略 QEMU 相关文件
+/build-riscv-qemu
+/qemu-9.1.0.tar.xz
+/qemu-9.1.0/
+
+# 忽略 RISC-V 工具链压缩包（按需添加）
+/riscv64-lp64d-glibc.tar.bz2*
+/riscv64-lp64d--glibc--stable-2022.08-1
+
+# 通用忽略规则
+*.o
+*.a
+*.ko
+*.so
+*.swp
+*~
+*.log
+*.d
+*.order
+*.symvers
+*.mod.c
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+
+# 编译产物
+/build-*/
+/obj/
+/dist/
+/bin/
+/lib/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 编辑器文件
+.idea/
+.vscode/
+*.iml

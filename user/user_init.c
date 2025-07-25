@@ -106,6 +106,9 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_munmap[]	
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_unlinkat[] = "unlink";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_pipe[]	  = "pipe";
 
+
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_splice[] = "splice";
+
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_busybox_unstrp[] =
 // 	"busybox_unstrp";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char busybox_name[]	 = "busybox";
@@ -276,6 +279,8 @@ int			basic_test( void )
 	RUN_TESTS( exec_test_munmap, 0 );
 	RUN_TESTS( exec_test_unlinkat, 0 );
 	RUN_TESTS( exec_test_pipe, 0 );
+
+  RUN_TESTS( exec_test_splice, 0 );
 }
 
 // libctest 测试程序名称数组
