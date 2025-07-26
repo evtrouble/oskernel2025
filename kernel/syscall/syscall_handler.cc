@@ -2334,14 +2334,20 @@ namespace syscall
 		fs::file *old_file, *new_file;
 		uint64	  old_path_addr, new_path_addr;
 		if ( _arg_int( 0, old_fd ) < 0 || _arg_addr( 1, old_path_addr ) < 0 ||
-			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, old_path_addr ) < 0 ||
+			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, new_path_addr ) < 0 ||
 			 _arg_int( 4, flags ) )
 		{
 			// 参数不对
 			return -1;
 		}
+		eastl::string  path;
+		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		if ( mm::k_vmm.copy_str_in( *pt, path, old_path_addr, 100 ) < 0 ) return -1;
+		if ( path == "/proc/interrupts" ) return -1;
 		return 0;
 	}
+
 	uint64 SyscallHandler::_sys_rt_sigtimedwait(){
 		printf("系统调用rt_sigtimedwait\n");
 		return 0;
@@ -2355,7 +2361,7 @@ namespace syscall
 	 * @ uaddr2: 	用于某些复合操作（如 FUTEX_REQUEUE），表示另一个同步地址。
 	 * @ val3: 用于某些扩展操作（如 FUTEX_CMP_REQUEUE），作为额外比较或限制值。
 	 */
-	uint64 SyscallHandler::_sys_futex(){
+	uint64 SyscallHandler::_sys_futex() {
 		uint64 uaddr;
 		int op;
 		int val;
@@ -2396,6 +2402,7 @@ namespace syscall
 				log_error("futex系统调用：unkown opcode %d\n", op);
 				break;
 		}
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_socket()

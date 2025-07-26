@@ -2022,6 +2022,7 @@ namespace pm
 				return -1;
 
 			if ( path[0] == '.' && path[1] == '/' ) path = path.substr( 2 );
+			if ( path == "/proc/interrupts" ) return -1;
 
 			return fs::k_file_table.unlink( path );
 		}
