@@ -18,11 +18,8 @@ glibc
 testsuits
 .gdb_cmd.txt
 target/*
-sdcard-rv.img
-sdcard-la.img
 disassembly.txt
 riscv-syscalls-testing/*
-sdcard.img
 test
 test.c
 kernel-rv
@@ -37,3 +34,4 @@ riscv64-lp64d-glibc.tar.bz2
 temp/*
 tempRv/*
 tempLa/*
+*.img
