@@ -7,6 +7,7 @@
 //
 
 #pragma once 
+#include <EASTL/vector.h>
 
 namespace hsai
 {
@@ -14,6 +15,14 @@ namespace hsai
 	{
 	public:
 		virtual int handle_dev_intr() = 0;
+
+		eastl::vector<int> _intr_nums;
+
+		void increase_intr_count(int irq) { 
+			if(irq >= (int)_intr_nums.size())
+				_intr_nums.resize(irq + 1);
+			_intr_nums[irq]++; 
+		}
 
 	public:
 		static int register_interrupt_manager( VirtualInterruptManager * im );

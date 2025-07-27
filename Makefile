@@ -235,6 +235,7 @@ fs:
 
 build-la:
 	@echo "######## 编译 LoongArch 架构 ########"
+# 	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
 	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
 	cp "build-loongarch-qemu/kernel.elf" ./kernel-la
 
@@ -243,6 +244,7 @@ build-rv:
 	tar -xvf riscv64-lp64d-glibc.tar.bz2
 	@echo "######## 编译 RISC-V 架构 ########"
 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=qemu
+# 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=k210
 	cp "build-riscv-qemu/kernel.elf" ./kernel-rv
 
 all: build-la build-rv

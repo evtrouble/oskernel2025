@@ -149,6 +149,8 @@ namespace syscall
 		BIND_SYSCALL(sendto);
 		BIND_SYSCALL(recvfrom);
 		BIND_SYSCALL(setsockopt);
+		BIND_SYSCALL(copy_file_range);
+		BIND_SYSCALL(ftruncate);
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -295,6 +297,84 @@ namespace syscall
 			delete buf;
 		}
 		return writebytes;
+	}
+	uint64 SyscallHandler::_sys_copy_file_range() {
+		int fd_in, fd_out;
+		uint64 off_in_addr, off_out_addr;
+		uint64 off_in, off_out;
+		int len;
+		uint64 flags;
+		fs::file *fi, *fo;
+		pm::Pcb *p = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		
+		// 参数验证
+		if (_arg_fd(0, &fd_in, &fi) < 0 || _arg_fd(2, &fd_out, &fo) < 0 ||
+			_arg_addr(1, off_in_addr) < 0 || _arg_addr(3, off_out_addr) < 0 ||
+			_arg_int(4, len) < 0 || _arg_addr(5, flags) < 0) {
+			return -1;
+		}
+		
+		if (fi == nullptr || fo == nullptr) return -1;
+		if (len == 0) return 0;
+		
+		log_info("偏移量分别是%d  %d\n", fi->get_file_offset(), fo->get_file_offset());
+		log_info("长度是%d\n", len);
+		log_info("copy_file_range: 文件描述符fd_in：%d ，偏移量地址_addr：%d 文件描述符fd_out：%d，偏移量地址off_out_addr %d len%d flags%d\n", 
+			fd_in, off_in_addr, fd_out, off_out_addr, len, flags);
+		
+		// 处理输入偏移量
+		bool use_in_offset = (off_in_addr != 0);
+		if (use_in_offset) {
+			if (mm::k_vmm.copy_in(*pt, &off_in, off_in_addr, sizeof(off_in)) < 0)
+				return -1;
+		} else {
+			off_in = fi->get_file_offset();
+		}
+		
+		// 处理输出偏移量
+		bool use_out_offset = (off_out_addr != 0);
+		if (use_out_offset) {
+			if (mm::k_vmm.copy_in(*pt, &off_out, off_out_addr, sizeof(off_out)) < 0)
+				return -1;
+		} else {
+			off_out = fo->get_file_offset();
+		}
+		
+		// 执行文件复制
+		char* buf = new char[len];
+		int readlen = fi->read((uint64)buf, len, off_in, !use_in_offset);
+		int writeLen = fo->write((uint64)buf, readlen, off_out, !use_out_offset);
+		delete[] buf;  // 修复：应该用 delete[] 而不是 delete
+		
+		// 更新偏移量并写回用户空间
+		if (use_in_offset) {
+			off_in += readlen;
+			if (mm::k_vmm.copyout(*pt, off_in_addr, &off_in, sizeof(off_in)) < 0)
+				return -1;
+		}
+		
+		if (use_out_offset) {
+			off_out += writeLen;
+			if (mm::k_vmm.copyout(*pt, off_out_addr, &off_out, sizeof(off_out)) < 0)
+				return -1;
+		}
+		
+		fs::normal_file *f1 = (fs::normal_file *)fi;
+		fs::normal_file *f2 = (fs::normal_file *)fo;
+		log_info("readlen%d， 入文件大小是%d, 出文件大小是%d\n", readlen, f1->_stat.size, f2->_stat.size);
+		
+		return readlen;
+	}
+	uint64 SyscallHandler::_sys_ftruncate()
+	{
+		fs::file			*f;
+		int fd;
+		uint64 len;
+		if ( _arg_fd( 0, &fd, &f ) < 0 || _arg_addr( 1, len ) < 0 ) return -1;
+		if ( f->ftruncate( len ) < 0 ) return -1;
+		log_info("truncate file  to %d bytes",len);
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_read()
@@ -846,9 +926,12 @@ namespace syscall
 		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
 		mm::PageTable *pt = p->get_pagetable();
 		eastl::string  path;
-		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 100 ) < 0 ) return -1;
+		
+		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 200 ) < 0 ) return -1;
+		
 
-		pm::k_pm.fstatat( dir_fd, path, &kst );
+		if(dir_fd == AT_FDCWD)pm::k_pm.fstatat( dir_fd, path, &kst );
+		else pm::k_pm.fstat( dir_fd, &kst );
 		if ( mm::k_vmm.copyout( *pt, kst_addr, &kst, sizeof( kst ) ) < 0 )
 			return -1;
 
@@ -2131,7 +2214,7 @@ namespace syscall
 
 		if( f == nullptr )
 			return -1;
-
+		log_info("文件fd: %d, offset: %d, whence: %d\n", fd, offset, whence);
 		return f->lseek( offset, whence );
 	}
 
@@ -2472,14 +2555,20 @@ namespace syscall
 		fs::file *old_file, *new_file;
 		uint64	  old_path_addr, new_path_addr;
 		if ( _arg_int( 0, old_fd ) < 0 || _arg_addr( 1, old_path_addr ) < 0 ||
-			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, old_path_addr ) < 0 ||
+			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, new_path_addr ) < 0 ||
 			 _arg_int( 4, flags ) )
 		{
 			// 参数不对
 			return -1;
 		}
+		eastl::string  path;
+		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		if ( mm::k_vmm.copy_str_in( *pt, path, old_path_addr, 100 ) < 0 ) return -1;
+		if ( path == "/proc/interrupts" ) return -1;
 		return 0;
 	}
+
 	uint64 SyscallHandler::_sys_rt_sigtimedwait(){
 		printf("系统调用rt_sigtimedwait\n");
 		return 0;
@@ -2493,7 +2582,7 @@ namespace syscall
 	 * @ uaddr2: 	用于某些复合操作（如 FUTEX_REQUEUE），表示另一个同步地址。
 	 * @ val3: 用于某些扩展操作（如 FUTEX_CMP_REQUEUE），作为额外比较或限制值。
 	 */
-	uint64 SyscallHandler::_sys_futex(){
+	uint64 SyscallHandler::_sys_futex() {
 		uint64 uaddr;
 		int op;
 		int val;
@@ -2534,6 +2623,7 @@ namespace syscall
 				log_error("futex系统调用：unkown opcode %d\n", op);
 				break;
 		}
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_socket()

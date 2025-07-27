@@ -77,6 +77,13 @@ namespace fs
 		return rlen;
 	}
 
+	uint64 normal_file::ftruncate(uint64 len)
+	{
+		uint64 cur_len=getDentry()->getNode()->nodeTruncate(len);
+		this->_stat.size = cur_len;
+		return cur_len;
+	}
+
 	off_t normal_file::lseek( off_t offset, int whence )
 	{
 		off_t size = static_cast<off_t>( this->_stat.size );
@@ -84,12 +91,12 @@ namespace fs
 		switch ( whence )
 		{
 		case SEEK_SET:
-			if( offset < 0 || offset > size ) return -EINVAL;
+			if( offset < 0  ) return -EINVAL;
 			_file_ptr = offset;
 			break;
 		case SEEK_CUR:
 			new_off = _file_ptr + offset;
-			if( new_off < 0 || new_off > size ) return -EINVAL;
+			if( new_off < 0 ) return -EINVAL;
 			_file_ptr = new_off;
 			break;
 		case SEEK_END:

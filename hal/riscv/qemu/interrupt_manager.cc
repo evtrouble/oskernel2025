@@ -55,7 +55,10 @@ namespace riscv
 				// hsai_warn( "uart intr not implement" );
 				_uart0->handle_intr();
 			}
-			else if (DISK_IRQ == irq ) { _disk->handle_intr(); }
+			else if (DISK_IRQ == irq ) { 
+				k_im.increase_intr_count(irq);
+				_disk->handle_intr(); 
+			}
 			else if (irq) {
 				hsai_printf("unexpected interrupt irq = %d\n", irq);
 			}

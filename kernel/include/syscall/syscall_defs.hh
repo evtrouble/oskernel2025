@@ -102,7 +102,8 @@ namespace syscall
 		_build_sysnum_enum_(recvfrom, 207),
 		_build_sysnum_enum_(setsockopt, 208),
 		_build_sysnum_enum_(clone3, 435),
-
+		_build_sysnum_enum_(copy_file_range, 285),
+		_build_sysnum_enum_(ftruncate, 46),
 		
 	};
 

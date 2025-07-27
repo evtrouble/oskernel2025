@@ -5,6 +5,7 @@
 
 #include "pm/process_manager.hh"
 #include "tm/timer_manager.hh"
+#include "intr/virtual_interrupt_manager.hh"
 
 #include "klib/klib.hh"
 #include "hsai_global.hh"
@@ -264,21 +265,94 @@ namespace fs
 		size_t Normal::nodeWrite( uint64 src_, size_t off, size_t len )
 		{
 			size_t write_len = len;
+			// 如果偏移量超过当前数据大小，需要填充0
+			if (off > data.size()) {
+				// 填充0字节到偏移位置
+				data.resize(off, '\0');
+			}
+			
+			// 确保数据容器足够大以容纳新写入的数据
+			if (off + len > data.size()) {
+				data.resize(off + len, '\0');
+			}
+			if(write_len == 0) return 0;
+			// 将写入的数据复制到数据容器中
 
 			char *writecontent = new char[ len ];
 			memset( writecontent, 0, len );
 			memcpy( writecontent, (void *)src_, len );
-			//printf("test.txt write: %s\n", writecontent);
+			
+			
+			// 写入数据
 			for (size_t i = 0; i < write_len; ++i) {
-				if (off + i < data.size()) {
-					data[off + i] = writecontent[i];
-				} else {
-					data.push_back(writecontent[i]);
-				}
+				data[off + i] = writecontent[i];
 			}
+			
 			// printf("data is %s\n", data.c_str());
 			// printf("data size is %d\n", data.length());
+			delete[] writecontent;
 			return write_len;
+		}
+		uint64 Normal::nodeTruncate(uint64 len)
+		{
+			data.resize(len);
+			return data.length();
+		}
+
+		static char* digits = "0123456789abcdef";
+		static int printint( int xx, int base, int sign, char* des )
+		{
+			char		 buf[16 + 1];
+			int			 i;
+			unsigned int x;
+
+			if ( sign && ( sign = xx < 0 ) )
+				x = -xx;
+			else
+				x = xx;
+
+			buf[16] = 0;
+			i		= 15;
+			do {
+				buf[i--] = digits[x % base];
+			}
+			while ( ( x /= base ) != 0 );
+
+			if ( sign ) buf[i--] = '-';
+			i++;
+			memcpy( des, buf + i, 16 - i );
+			return 16 - i; // 返回写入的字节数
+		}
+
+		size_t strlen( const char *s )
+		{
+			size_t len = 0;
+			while ( *s )s++, len++;
+			return len;
+		}
+
+		size_t Interrupts::nodeRead( uint64 dst_, size_t off_, size_t len_ )
+		{
+			int off = off_;
+			size_t readbts = 0;
+			int cnt = 0;
+			char  *buf	   = (char *) dst_;
+			for ( auto it : hsai::k_im->_intr_nums )
+			{
+				if( readbts + 10 >= len_ )
+				{
+					break; // 如果已经读取了足够的字节，退出循环
+				}
+				if(it != 0){
+					readbts = printint( it, 10, 0, readbts + buf );
+					buf[readbts] = ':'; 
+					readbts += 1;
+					readbts += printint( cnt, 10, 0, buf + readbts );
+					buf[readbts] = '\n'; // 确保每个字段之间用空
+					readbts += 1;
+				}
+			}
+			return readbts;
 		}
 	}
 }

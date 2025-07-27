@@ -177,7 +177,7 @@ namespace fs
 		log_trace( "path search %d level", dirsize );
 		for ( int i = 0; i < dirsize; i++ )
 		{
-			log_trace( "pathSearch: dirname[%d]: %s", i, dirname[i] );
+			log_trace( "pathSearch: dirname[%d]: %s", i, dirname[i].c_str() );
 			while(entry->isMntPoint()) 
 				log_panic("pathSearch: entry is a mount point"); 
 			/// @todo 这里随后检查 是否是目录，文件的结构不完善
