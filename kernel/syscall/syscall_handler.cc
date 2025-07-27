@@ -511,7 +511,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_getpid()
 	{
-		printf("hello from _sys_getpid\n");
+		//printf("hello from _sys_getpid\n");
 		return pm::k_pm.get_cur_pcb()->get_pid();
 	}
 
@@ -2273,7 +2273,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_splice()
 	{
-		printf("sys_splice called\n");
+		//printf("sys_splice called\n");
 		int fd_in;
 		uint64 off_in_addr;
 		int fd_out;
