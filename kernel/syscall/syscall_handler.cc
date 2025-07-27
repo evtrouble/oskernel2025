@@ -539,7 +539,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_tgkill()
 	{
-		printf("调用tgkill\n");
+		//printf("调用tgkill\n");
 		return 0;
 
 	}
@@ -2392,7 +2392,7 @@ namespace syscall
 			}
 			
 			// 写入普通文件
-			//write_bytes = file_out->write((uint64)buf, read_bytes, off_out, false);
+			write_bytes = file_out->write((uint64)buf, read_bytes, off_out, false);
 			
 			// 更新文件偏移
 			if (write_bytes > 0) {

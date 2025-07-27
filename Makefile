@@ -214,6 +214,7 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 run: 
 	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.bin -drive file=sdcard-rv-final.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
 
+
 #-bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.bin
 
 dst=/mnt
