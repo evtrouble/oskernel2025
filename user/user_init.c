@@ -33,6 +33,8 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char wait_fail[]	   = "w
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_basic[]	 = "run-all.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_busybox_path[]	 = "busybox_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_copy_file_range_path[]	 = "copy-file-range_testcode.sh";
+//splice_testcode.sh
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_splice_path[]	 = "splice_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_interrupt_path[]	 = "interrupts_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua_path[]	 = "lua_testcode.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_path[]	 = "libctest_testcode.sh";
@@ -217,9 +219,8 @@ int			test_libctest( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_lmbench( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_local( void ) __attribute__( ( section( ".user.init" ) ) );
 int     test_copy_file_range(void) __attribute__( ( section( ".user.init" ) ) );
+int     test_splice( void ) __attribute__( ( section( ".user.init" ) ) );
 int     test_interrupt(void) __attribute__( ( section( ".user.init" ) ) );
-
-
 int			test_busybox( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
@@ -434,6 +435,14 @@ int test_copy_file_range(void)
     RUN_TESTS( busybox_path, bb_sh );
 }
 
+int test_splice(void)
+{
+  	__attribute__(( __unused__ )) int pid;
+    bb_sh[0] = sh_name;
+    bb_sh[1] = exec_test_splice_path;
+    bb_sh[2] = 0;
+    RUN_TESTS( busybox_path, bb_sh );
+}
 int test_interrupt(void)
 {
   	__attribute__(( __unused__ )) int pid;
@@ -446,9 +455,11 @@ int test_interrupt(void)
 int init_main( void )
 {
 	chdir(test_musl_path);
+  test_splice();
   test_copy_file_range();
   test_interrupt();
   chdir( test_glibc_path );
+  test_splice();
   test_copy_file_range();
   test_interrupt();
   poweroff();
