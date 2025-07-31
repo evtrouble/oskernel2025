@@ -20,8 +20,8 @@ namespace loongarch
 		/// @brief Uart address
 		enum UartAddr : uint64
 		{
-			// uart0 = 0x1fe2'0000UL,
-			uart0 = 0x1fe001e0UL, 
+			uart0 = 0x1fe2'0000UL,
+			// uart0 = 0x1fe001e0UL, 
 			// uart0 = 0x1fe001e0UL | dmwin::win_0,
 		};
 

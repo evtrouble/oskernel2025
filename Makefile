@@ -236,8 +236,8 @@ fs:
 build-la:
 	@echo "######## 编译 LoongArch 架构 ########"
 # 	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
-	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
-	cp "build-loongarch-qemu/kernel.elf" ./kernel-la
+	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu_2k1000
+	cp "build-loongarch-qemu_2k1000/kernel.elf" ./kernel-la
 
 build-rv:
 	cat riscv64-lp64d-glibc.tar.bz2.* > riscv64-lp64d-glibc.tar.bz2

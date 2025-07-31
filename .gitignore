@@ -82,4 +82,4 @@ Thumbs.db
 sdcard-la-final.img
 sdcard-rv-final.img
 *.img
-
+loongarch64-linux-gnu-gdb/

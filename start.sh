@@ -17,8 +17,9 @@ cd $RUNENV_PREFIX
     -net nic \
     -net user,net=10.0.2.0/24,tftp=/srv/tftp \
     -vnc :0 \
-    -hda ${KERNEL_PREFIX}/sdcard.img
-    # -S -s \
+    -hda ${KERNEL_PREFIX}/sdcard-la-final.img \
+    # -D ./qemu.log
+    -S -s
     # -hdb your_sdcard_img 
 
     
