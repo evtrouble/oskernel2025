@@ -299,7 +299,7 @@ namespace fs
 			return data.length();
 		}
 
-		static char* digits = "0123456789abcdef";
+		static const char* digits = "0123456789abcdef";
 		static int printint( int xx, int base, int sign, char* des )
 		{
 			char		 buf[16 + 1];
@@ -333,7 +333,6 @@ namespace fs
 
 		size_t Interrupts::nodeRead( uint64 dst_, size_t off_, size_t len_ )
 		{
-			int off = off_;
 			size_t readbts = 0;
 			int cnt = 0;
 			char  *buf	   = (char *) dst_;

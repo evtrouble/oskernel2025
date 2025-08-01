@@ -739,7 +739,6 @@ namespace pm
 			proc->_cwd->dup();
 			proc->_cwd_name = "/mnt/";
 		}
-
 		hsai::user_trap_return();
 	}
 
@@ -886,8 +885,9 @@ namespace pm
 				}
 				uint64 sz1;
 				bool   executable = ( ph.flags & 0x1 ); // 段是否可执行？
+				bool   writeable = ( ph.flags & 0x2 ); // 段是否可写？
 				ulong  pva		  = hsai::page_round_down( ph.vaddr );
-				if ( ( sz1 = mm::k_vmm.vm_alloc( new_pt, pva, ph.vaddr + ph.memsz, executable ) ) ==
+				if ( ( sz1 = mm::k_vmm.vm_alloc( new_pt, pva, ph.vaddr + ph.memsz, executable, writeable ) ) ==
 					 0 )
 				{
 					log_error( "execve: uvmalloc" );
@@ -1022,7 +1022,6 @@ namespace pm
 
 		new_sz += ( stack_page_cnt + 1 ) * hsai::page_size;
 		// printf("用户栈范围：栈底（低地址） = %p，栈顶（高地址） = %p", stackbase, sp);
-
 
 		// >>>> 此后的代码用于支持 glibc，包括将 auxv, envp, argv, argc
 		// 压到用户栈中由glibc解析
@@ -1235,9 +1234,9 @@ namespace pm
 
 		proc->_rlim_vec[ResourceLimitId::RLIMIT_STACK].rlim_cur =
 			proc->_rlim_vec[ResourceLimitId::RLIMIT_STACK].rlim_max = ustack.sp() - stackbase;
-
 		// 处理 F_DUPFD_CLOEXEC 标志位
-		for(int i=0;i<max_open_files;i++){
+		for ( int i = 0; i < (int)max_open_files; i++ )
+		{
 			fs::file * temp = proc->_ofile[i];
 			if ( temp != nullptr && temp->_fl_cloexec && !temp->always_on)
 			{
@@ -1998,7 +1997,6 @@ namespace pm
 		fs::file *f = p->vm[i].vfile;
 		if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
 
-		fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
 		char *buf = new char[fsz + 1];
 		fs::dentry *dent = p->vm[i].vfile->getDentry();
 		dent->getNode()->nodeRead( (uint64) buf, 0, fsz );

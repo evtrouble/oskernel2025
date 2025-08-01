@@ -38,7 +38,8 @@ namespace mm
 		/// @return success if true 
 		bool map_pages( PageTable &pt, uint64 va, uint64 size, uint64 pa, flag_t flags );
 
-		uint64 vm_alloc( PageTable &pt, uint64 old_sz, uint64 new_sz, bool executable = false, bool for_user = true );
+		uint64 vm_alloc( PageTable &pt, uint64 old_sz, uint64 new_sz, bool executable = false, 
+			bool writeable = false, bool for_user = true );
 
 		uint64 vm_dealloc( PageTable &pt, uint64 old_sz, uint64 new_sz );
 
@@ -115,7 +116,7 @@ namespace mm
 				| ( for_user ? ( hsai::Pte::user_plv_flag() ) : ( hsai::Pte::super_plv_flag() ) )
 			);
 		};
-		bool map_code_pages_canwrite( PageTable &pt, ulong va, ulong size, ulong pa, bool for_user )
+		bool map_data_code_pages( PageTable &pt, ulong va, ulong size, ulong pa, bool for_user )
 		{
 			return map_pages( pt, va, size, pa,
 				hsai::Pte::map_data_page_flags()| hsai::Pte::map_code_page_flags() | hsai::Pte::valid_flag()

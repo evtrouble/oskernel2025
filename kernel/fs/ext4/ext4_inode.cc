@@ -566,7 +566,6 @@ namespace fs
 
 			ulong  bufrest = dst.rest_space();
 			ulong  blk_sz  = _belong_fs->rBlockSize();
-			size_t off_bk  = off;
 			size_t current_off = 0; // 全局偏移量计数器
 
 			// 读取htree根节点

@@ -228,6 +228,7 @@ int			test_busybox( void )
 	bb_sh[1] = exec_test_busybox_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
+  return 0;
 }
 
 int           test_lua(void)
@@ -237,7 +238,7 @@ int           test_lua(void)
 	bb_sh[1] = exec_test_lua_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
-
+  return 0;
 }
 
 int           test_lmbench(void)
@@ -247,7 +248,7 @@ int           test_lmbench(void)
 	bb_sh[1] = exec_test_lmbench_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
-
+  return 0;
 }
 
 int			basic_test( void ) 
@@ -285,6 +286,7 @@ int			basic_test( void )
 	RUN_TESTS( exec_test_munmap, 0 );
 	RUN_TESTS( exec_test_unlinkat, 0 );
 	RUN_TESTS( exec_test_pipe, 0 );
+	return 0;
 }
 
 // libctest 测试程序名称数组
@@ -414,6 +416,7 @@ int           test_libctest(void)
   }
 	//动态部分
   write( 1, libctest_end, sizeof( libctest_end ) );
+  return 0;
 }
 
 int           test_local(void)
@@ -424,6 +427,7 @@ int           test_local(void)
 	bb_sh[2] = libctest_parm1_dynamic;
 	bb_sh[3] = libctest_parm2;
 	RUN_TESTS( runtest_path, bb_sh );
+  return 0;
 }
 
 int test_copy_file_range(void)
@@ -433,6 +437,7 @@ int test_copy_file_range(void)
     bb_sh[1] = exec_test_copy_file_range_path;
     bb_sh[2] = 0;
     RUN_TESTS( busybox_path, bb_sh );
+    return 0;
 }
 
 int test_splice(void)
@@ -442,6 +447,7 @@ int test_splice(void)
     bb_sh[1] = exec_test_splice_path;
     bb_sh[2] = 0;
     RUN_TESTS( busybox_path, bb_sh );
+    return 0;
 }
 int test_interrupt(void)
 {
@@ -450,6 +456,7 @@ int test_interrupt(void)
     bb_sh[1] = exec_test_interrupt_path;
     bb_sh[2] = 0;
     RUN_TESTS( busybox_path, bb_sh );
+    return 0;
 }
 
 int init_main( void )

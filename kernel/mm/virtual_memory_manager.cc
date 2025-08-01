@@ -84,7 +84,7 @@ namespace mm
 	}
 
 	uint64 VirtualMemoryManager::vm_alloc( PageTable &pt, uint64 old_sz,
-										   uint64 new_sz, bool executable,
+										   uint64 new_sz, bool executable, bool writeable,
 										   bool for_user )
 	{
 
@@ -112,12 +112,17 @@ namespace mm
 
 				bool is_ok;
 				if ( executable )
-					is_ok = map_code_pages_canwrite( pt, oa + has_alloc, ls, (ulong) mem,
-											for_user );
+				{
+					if(writeable) {
+						is_ok = map_data_code_pages( pt, oa + has_alloc, ls, (ulong) mem,
+							for_user );
+					} else 
+						is_ok = map_code_pages( pt, oa + has_alloc, ls, (ulong) mem,
+							for_user );
+				}
 				else
 					is_ok = map_data_pages( pt, oa + has_alloc, ls, (ulong) mem,
 											for_user );
-
 				if ( !is_ok )
 				{
 					k_pmm.free_pages( mem );

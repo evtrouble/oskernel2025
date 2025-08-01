@@ -232,7 +232,7 @@ namespace loongarch
 		trapframe->kernel_hartid = cur_cpu->get_cpu_id();
 
 		uint32 x  = (uint32) cur_cpu->read_csr( csr::CsrAddr::prmd );
-		x		 |= ( 0x3U << csr::Prmd::prmd_pplv_s ); // set priv to 3, user mode
+		x		 |= csr::Prmd::prmd_pplv_m; // set priv to 3, user mode
 		x		 |= csr::Prmd::prmd_pie_m;				// enable interrupts in user mode
 		cur_cpu->write_csr( csr::CsrAddr::prmd, x );
 

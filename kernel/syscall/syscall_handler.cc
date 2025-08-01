@@ -155,11 +155,10 @@ namespace syscall
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
 	{
-		pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
 #ifdef OS_DEBUG
 		if ( sys_num != SYS_write )
 		{
-
+			pm::Pcb		  *proc = pm::k_pm.get_cur_pcb();
 			if ( _syscall_name[sys_num] != nullptr )
 				printf( YELLOW_COLOR_PRINT "进程:%d syscall %16s\n",
 						proc->_pid,_syscall_name[sys_num] );
@@ -288,13 +287,13 @@ namespace syscall
 			if(mm::k_vmm.copy_in(*pt, (void*)&iov, (uint64)(iov_ptr+ i * sizeof(fs::iovec)),sizeof(fs::iovec))<0)return -1;
 			int tempLength=iov.iov_len;
 			expected+=tempLength;
-			char*buf=new char[tempLength+10];
+			char* buf=new char[tempLength + 10];
 			if(mm::k_vmm.copy_in(*pt,(void*)buf,(uint64)iov.iov_base,tempLength)<0){
-				delete buf;
+				delete[] buf;
 				return -1;
 			}
 			writebytes+= f->write( (ulong) buf, tempLength, f->get_file_offset(), true );
-			delete buf;
+			delete[] buf;
 		}
 		return writebytes;
 	}
@@ -360,9 +359,9 @@ namespace syscall
 				return -1;
 		}
 		
-		fs::normal_file *f1 = (fs::normal_file *)fi;
-		fs::normal_file *f2 = (fs::normal_file *)fo;
-		log_info("readlen%d， 入文件大小是%d, 出文件大小是%d\n", readlen, f1->_stat.size, f2->_stat.size);
+		// fs::normal_file *f1 = (fs::normal_file *)fi;
+		// fs::normal_file *f2 = (fs::normal_file *)fo;
+		// log_info("readlen%d， 入文件大小是%d, 出文件大小是%d\n", readlen, f1->_stat.size, f2->_stat.size);
 		
 		return readlen;
 	}
@@ -518,7 +517,6 @@ namespace syscall
 		//printf("hello from _sys_fork\n");
 		int flags;
 		uint64 stack, parent_tid, child_tid, tls;
-		
 		// 读取所有参数
 		if (_arg_int(0, flags) < 0) {
 			printf("clone系统调用: 读取flags参数失败\n");
@@ -917,7 +915,7 @@ namespace syscall
 		uint64	  kst_addr;
 		int	   dir_fd;
 		uint64 path_addr;
-		int	   flags;
+		// int	   flags;
 
 		if ( _arg_int( 0, dir_fd ) < 0 ) return -1;
 		if ( _arg_addr( 1, path_addr ) < 0 ) return -1;
@@ -2207,7 +2205,7 @@ namespace syscall
 		
 		if( _arg_int( 2, whence ) < 0 )
 			return -1;
-		if( fd < 0 || fd >= pm::max_open_files )return -1;
+		if( fd < 0 || fd >= (int)pm::max_open_files )return -1;
 		
 		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
 		fs::file *f = cur_proc->_ofile[ fd ];
@@ -2552,7 +2550,7 @@ namespace syscall
 	{
 		int		  flags;
 		int		  old_fd, new_fd;
-		fs::file *old_file, *new_file;
+		// fs::file *old_file, *new_file;
 		uint64	  old_path_addr, new_path_addr;
 		if ( _arg_int( 0, old_fd ) < 0 || _arg_addr( 1, old_path_addr ) < 0 ||
 			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, new_path_addr ) < 0 ||
