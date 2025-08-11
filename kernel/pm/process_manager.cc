@@ -858,10 +858,6 @@ namespace pm
 		int			  i, off;
 		eastl::string ab_path,interpret_path;
 		uint64		load_base=0;  
-		vma  tempVma[64];
-		for (int i = 0; i < 64; ++i) {
-   	 		tempVma[i] = proc->vm[i];
-		}
 
 		if ( path[0] == '/' )
 			ab_path = path;
@@ -923,7 +919,9 @@ namespace pm
 					load_bad = true;
 					break;
 				}
-				new_sz += hsai::page_round_up( ph.vaddr + ph.memsz ) - pva;
+				uint64 cur_new_sz = hsai::page_round_up( ph.vaddr + ph.memsz ) - pva;
+				new_sz += cur_new_sz;
+				// printf("程序映射内存开始%p,页数量为%#x\n",pva,cur_new_sz/4096);
 
 
 				if ( load_seg( new_pt, ph.vaddr, de, ph.off, ph.filesz ) < 0 )
@@ -998,7 +996,9 @@ namespace pm
 					load_bad = true;
 					break;
 				}
-				new_sz += hsai::page_round_up( ph_interp.vaddr + ph_interp.memsz ) - pva;
+				uint64 cur_new_sz = hsai::page_round_up( ph_interp.vaddr + ph_interp.memsz ) - pva;
+				new_sz += cur_new_sz;
+				// printf("当前链接器段，起始地址是 %p (截断后: %p), 加载内存长度是%p, 实际分配总长度是 %p, 对应页数量为 %#x\n",ph_interp.vaddr, pva,ph_interp.memsz, cur_new_sz, cur_new_sz / 4096 );
 				// if ( ( ph.vaddr % hsai::page_size ) != 0 )
 				// {
 				// 	log_error( "execve: vaddr not aligned" );
@@ -1323,23 +1323,22 @@ namespace pm
 			mm::k_vmm.vm_unmap( proc->_pt, sec_start, ( sec_end - sec_start ) / hsai::page_size,
 								1 );
 		}
-		// umap 虚拟内存区域
 		{
 			for ( int i = 0; i < max_vma_num; i++ )
 			{
-				if ( tempVma[i].is_used )
+				if ( proc->vm[i].is_used )
 				{
-					ulong start = hsai::page_round_down( (ulong) tempVma[i].address );
-					ulong end = hsai::page_round_up( (ulong) tempVma[i].address + tempVma[i].length );
+					ulong start = hsai::page_round_down( (ulong) proc->vm[i].address );
+					ulong end = hsai::page_round_up( (ulong) proc->vm[i].address + proc->vm[i].length );
 					mm::k_vmm.vm_unmap( proc->_pt, start, ( end - start ) / hsai::page_size,
 								1 );
-					tempVma[i].is_used = false;
-					tempVma[i].address = 0;
-					tempVma[i].length  = 0;
-					if ( tempVma[i].vfile ) { 
-						tempVma[i].vfile->free_file(); 
+					proc->vm[i].is_used = false;
+					proc->vm[i].address = 0;
+					proc->vm[i].length  = 0;
+					if ( proc->vm[i].vfile ) { 
+						proc->vm[i].vfile->free_file(); 
 					}
-					tempVma[i].vfile = nullptr;
+					proc->vm[i].vfile = nullptr;
 				}
 			}
 		}
@@ -1361,7 +1360,14 @@ namespace pm
 			ulong sec_end			= hsai::page_round_up( (ulong) sec._sec_start + sec._sec_size );
 			if ( sec_end > proc->_heap_start ) proc->_heap_start = sec_end;
 		}
-		proc->_prog_section_cnt = new_sec_cnt;
+		for (int j=0;j <new_sec_cnt_interp ; ++j)
+		{
+			auto &sec				= new_sec_desc_interp[j];
+			proc->_prog_sections[new_sec_cnt+j] = sec;
+			ulong sec_end			= hsai::page_round_up( (ulong) sec._sec_start + sec._sec_size );
+			if ( sec_end > proc->_heap_start ) proc->_heap_start = sec_end;
+		}
+		proc->_prog_section_cnt = new_sec_cnt + new_sec_cnt_interp ;
 		mm::k_vmm.vm_unmap( proc->_pt, mm::vml::vm_trap_frame, 1, 0 );
 		hsai::proc_free( proc );
 		proc->_pt.freewalk();
@@ -2044,6 +2050,7 @@ namespace pm
 						p->vm[i].vfile->write(  hsai::k_mem->to_vir(pa), hsai::page_size, offset );
 					}
 				}
+				// printf("解映射vm区域，id是%d,正在使用%d\n",i,p->vm[i].is_used);
 				uint64 oa= hsai::page_round_up(va);
 				uint64 npages = len / hsai::page_size;
 				mm::k_vmm.vm_unmap( p->_pt, oa, npages, 1 );
@@ -2500,6 +2507,7 @@ namespace pm
 					p->vm[i].address = fst;
 					p->vm[i].length	 = fsz;
 					p->vm[i].vfile	 = nullptr; // 没有文件
+					// printf("mmap系统调用分配内存起始地址是%p,记录映射号%d,使用情况%d\n",fst,i,p->vm[i].is_used);
 					break;
 				}
 			}
