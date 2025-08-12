@@ -573,6 +573,8 @@ namespace pm
 		mm::PageTable *parent_pt  = parent->get_pagetable();
 
 		if(flags & CLONE_THREAD){
+			//不支持线程
+			return -1;
 			log_info("    CLONE_THREAD: 创建线程\n");
 			if((child = alloc_thread())==nullptr)return -1;
 			//共享虚拟内存
@@ -2427,9 +2429,11 @@ namespace pm
 
 	int ProcessManager::munmap(uint64 va, size_t len){
 		Pcb *p = get_cur_pcb();
+		uint64 endVa = hsai::page_round_up(va + len  );
 		va = hsai::page_round_down( va );  //起始地址对齐
-		len =hsai::page_round_up(len);     //长度向上取整
-		uint64 npages = len / hsai::page_size;
+		len = endVa - va;
+		uint64 npages = (len + hsai::page_size - 1) / hsai::page_size;  // 避免依赖对齐后的len
+
 
 		int i = 0;
 		for ( ; i < max_vma_num; i++ )
@@ -2460,28 +2464,6 @@ namespace pm
 
 		mm::k_vmm.vm_unmap( p->_pt, va, npages, 1 );
 		return 0;
-	}
-	uint64 ProcessManager::alloc_vma(mm::PageTable &pt, uint64 old_sz,uint64 new_sz, bool executable,bool for_user){
-		Pcb *p = get_cur_pcb();
-		uint64 newsz = mm::k_vmm.vm_alloc( pt, old_sz, new_sz,executable,for_user);
-		if ( newsz == 0 ) return -1;
-		int i=0;
-		for (; i < max_vma_num; i++ )
-		{
-			if ( !p->vm[i].is_used )
-			{
-				p->vm[i].is_used = true;
-				p->vm[i].address = old_sz;
-				p->vm[i].length	 = new_sz-old_sz;
-				p->vm[i].vfile	 = nullptr; // 没有文件
-				break;
-			}
-		}
-		if ( i == pm::max_vma_num ) {
-			log_error("vma区域不够用了\n");
-			return -1;
-		}
-		return newsz;
 	}
 
 	int ProcessManager::mmap( int fd, int prot, int flags, int map_size )

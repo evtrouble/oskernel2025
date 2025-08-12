@@ -559,6 +559,10 @@ int init_main( void )
     test_busybox();
     // libctest测试
     test_libctest();
+  #ifdef __riscv
+    //lmbench
+    test_lmbench();
+  #endif
 
 
     chdir( test_glibc_basic_path );
