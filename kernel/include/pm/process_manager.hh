@@ -70,6 +70,9 @@ namespace pm
 		void sche_proc( Pcb *p );
 
 		int execve( eastl::string path, eastl::vector<eastl::string> args, eastl::vector<eastl::string> envs );
+		int do_execve_dynamic( eastl::string path, eastl::vector<eastl::string> args, eastl::vector<eastl::string> envs );
+		int do_execve_static( eastl::string path, eastl::vector<eastl::string> args, eastl::vector<eastl::string> envs );
+		bool is_dynamic(eastl::string path);
 		int wait( int child_pid, uint64 addr );
 		int load_seg( mm::PageTable &pt, uint64 va, fs::dentry *de, uint offset, uint size );
 

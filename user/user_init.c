@@ -44,6 +44,7 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_end[]	 = "
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_static_path[]	 = "run-static.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest_dynamic_path[]	 = "run-dynamic.sh";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lmbench_path[]	 = "libcbench_testcode.sh";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_iozone_path[]	 = "iozone_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_static[]	 = "run-static.sh";
 __attribute__(( section( ".user.init.data" ) )) const char	 start_test_glibc_basic[] =
 	"#### OS COMP TEST GROUP START basic-glibc ####\n";
@@ -77,6 +78,7 @@ __attribute__(( section( ".user.init.data" ) )) const char	 end_test_musl_basic[
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_busybox[] = "busybox";
 
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo[]	 = "write";
+__attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_echo2[]	 = "/mnt/musl/basic/write";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_fork[]	 = "fork";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_exit[]	 = "exit";
 __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_wait[]	 = "wait";
@@ -122,6 +124,11 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm0[]	 =
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm1_static[]	 = "entry-static.exe";
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm1_dynamic[]	 = "entry-dynamic.exe";
 __attribute__( ( section( ".user.init.data" ) ) ) const char libctest_parm2[]	 = "argv";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm1[]	 = "-a";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm2[]	 = "-r";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm3[]	 = "1k";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm4[]	 = "-s";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm5[]	 = "4m";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char echo_name[] = "echo";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char cat_name[]	 = "cat";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char hello_busybox_str[] =
@@ -139,6 +146,8 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_path[] =
 __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 };
 __attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
 __attribute__(( section( ".user.init.data" ) )) const char	  runtest_path[] = "./runtest.exe";
+__attribute__(( section( ".user.init.data" ) )) const char	  iozone_path[] = "./iozone";
+__attribute__(( section( ".user.init.data" ) )) const char	  ld_path[] = "/mnt/musl/lib/libc.so";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -221,6 +230,7 @@ int			test_local( void ) __attribute__( ( section( ".user.init" ) ) );
 int     test_copy_file_range(void) __attribute__( ( section( ".user.init" ) ) );
 int     test_splice( void ) __attribute__( ( section( ".user.init" ) ) );
 int     test_interrupt(void) __attribute__( ( section( ".user.init" ) ) );
+int			test_iozone( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_busybox( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
@@ -245,6 +255,15 @@ int           test_lmbench(void)
 	__attribute__(( __unused__ )) int pid;
 	bb_sh[0] = sh_name;
 	bb_sh[1] = exec_test_lmbench_path;
+	bb_sh[2] = 0;
+	RUN_TESTS( busybox_path, bb_sh );
+
+}
+int           test_iozone(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+	bb_sh[0] = sh_name;
+	bb_sh[1] = exec_test_iozone_path;
 	bb_sh[2] = 0;
 	RUN_TESTS( busybox_path, bb_sh );
 
@@ -397,6 +416,115 @@ __attribute__((section(".user.init.data"))) const char libctest_static_programs[
     "wcsncpy_read_overflow",
     "wcsstr_false_negative"
 };
+__attribute__((section(".user.init.data"))) const char libctest_dynamic_programs[][32] = {
+    "argv",
+    "basename",
+    "clocale_mbfuncs",
+    "clock_gettime",
+    "dirname",
+    "env",
+    "fdopen",
+    "fnmatch",
+    "fscanf",
+    "fwscanf",
+    "iconv_open",
+    "inet_pton",
+    "mbc",
+    "memstream",
+    // "pthread_cancel_points",
+    // "pthread_cancel",
+    // "pthread_cond",
+    // "pthread_tsd",
+    "qsort",
+    "random",
+    "search_hsearch",
+    "search_insque",
+    "search_lsearch",
+    "search_tsearch",
+    "setjmp",
+    "snprintf",
+    "socket",
+    "sscanf",
+    "sscanf_long",
+    "stat",
+    "strftime",
+    "string",
+    "string_memcpy",
+    "string_memmem",
+    "string_memset",
+    "string_strchr",
+    "string_strcspn",
+    "string_strstr",
+    "strptime",
+    "strtod",
+    "strtod_simple",
+    "strtof",
+    "strtol",
+    "strtold",
+    "swprintf",
+    "tgmath",
+    "time",
+    "tls_align",
+    "udiv",
+    "ungetc",
+    "utime",
+    "wcsstr",
+    "wcstol",
+    // "daemon_failure",
+    "dn_expand_empty",
+    "dn_expand_ptr_0",
+    // "fflush_exit",
+    "fgets_eof",
+    "fgetwc_buffering",
+    "fpclassify_invalid_ld80",
+    "ftello_unflushed_append",
+    "getpwnam_r_crash",
+    "getpwnam_r_errno",
+    "iconv_roundtrips",
+    "inet_ntop_v4mapped",
+    "inet_pton_empty_last_field",
+    "iswspace_null",
+    "lrand48_signextend",
+    "lseek_large",
+    "malloc_0",
+    "mbsrtowcs_overflow",
+    "memmem_oob_read",
+    "memmem_oob",
+    "mkdtemp_failure",
+    "mkstemp_failure",
+    "printf_1e9_oob",
+    "printf_fmt_g_round",
+    "printf_fmt_g_zeros",
+    "printf_fmt_n",
+    // "pthread_robust_detach",
+    // "pthread_cancel_sem_wait",
+    // "pthread_cond_smasher",
+    // "pthread_condattr_setclock",
+    // "pthread_exit_cancel",
+    // "pthread_once_deadlock",
+    // "pthread_rwlock_ebusy",
+    "putenv_doublefree",
+    "regex_backref_0",
+    "regex_bracket_icase",
+    "regex_ere_backref",
+    "regex_escaped_high_byte",
+    "regex_negated_range",
+    "regexec_nosub",
+    "rewind_clear_error",
+    "rlimit_open_files",
+    "scanf_bytes_consumed",
+    "scanf_match_literal_eof",
+    "scanf_nullbyte_char",
+    "setvbuf_unget",
+    "sigprocmask_internal",
+    "sscanf_eof",
+    "statvfs",
+    "strverscmp",
+    "syscall_sign_extend",
+    "uselocale_0",
+    "wcsncpy_read_overflow",
+    "wcsstr_false_negative"
+};
 int           test_libctest(void)
 {	
 	__attribute__(( __unused__ )) int pid;
@@ -413,18 +541,28 @@ int           test_libctest(void)
         RUN_TESTS(runtest_path, bb_sh);
   }
 	//动态部分
+  array_size = sizeof(libctest_dynamic_programs) / sizeof(libctest_dynamic_programs[0]);
+  bb_sh[2] = libctest_parm1_dynamic;
+  for(int i = 0; i < array_size; i++) {
+		bb_sh[3]= libctest_dynamic_programs[i];
+        RUN_TESTS(runtest_path, bb_sh);
+  }
   write( 1, libctest_end, sizeof( libctest_end ) );
 }
-
 int           test_local(void)
 {	
 	__attribute__(( __unused__ )) int pid;
-	bb_sh[0] = runtest_path;
-	bb_sh[1] = libctest_parm0;
-	bb_sh[2] = libctest_parm1_dynamic;
-	bb_sh[3] = libctest_parm2;
-	RUN_TESTS( runtest_path, bb_sh );
+	bb_sh[0] =iozone_path;
+	bb_sh[1] = iozone_parm1;
+	bb_sh[2] = iozone_parm2;
+	bb_sh[3] = iozone_parm3;
+  bb_sh[4] = iozone_parm4;
+  bb_sh[5] = iozone_parm5;
+  bb_sh[6] = 0; 
+  RUN_TESTS(iozone_path, bb_sh);
 }
+
+  
 
 int test_copy_file_range(void)
 {
