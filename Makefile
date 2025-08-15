@@ -205,12 +205,17 @@ QEMUOPTS += -bios hal/riscv/SBI/sbi-qemu
 
 # import virtual disk image
 # QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -s -S
-QEMUOPTS += -drive file=sdcard-rv.img,if=none,format=raw,id=x0
+QEMUOPTS += -drive file=sdcard-rv-final.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 # endif
 
+# run: 
+# 	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv-final.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
 run: 
-	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
+	qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.bin -drive file=sdcard-rv-final.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
+
+
+#-bios /usr/lib/riscv64-linux-gnu/opensbi/generic/fw_jump.bin
 
 dst=/mnt
 # 测试点代码
@@ -230,6 +235,7 @@ fs:
 
 build-la:
 	@echo "######## 编译 LoongArch 架构 ########"
+# 	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
 	$(MAKE) all_sub CONF_ARCH=loongarch CONF_PLATFORM=qemu
 	cp "build-loongarch-qemu/kernel.elf" ./kernel-la
 
@@ -238,6 +244,7 @@ build-rv:
 	tar -xvf riscv64-lp64d-glibc.tar.bz2
 	@echo "######## 编译 RISC-V 架构 ########"
 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=qemu
+# 	$(MAKE) all_sub CONF_ARCH=riscv CONF_PLATFORM=k210
 	cp "build-riscv-qemu/kernel.elf" ./kernel-rv
 
 all: build-la build-rv

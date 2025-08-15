@@ -106,7 +106,10 @@ namespace loongarch
 				// hsai_warn( "uart intr not implement" );
 				_uart0->handle_intr();
 			}
-			if ( irq & (1UL << DISK_IRQ) ) { _disk->handle_intr(); }
+			if ( irq & (1UL << DISK_IRQ) ) { 
+				k_im.increase_intr_count(irq);
+				_disk->handle_intr(); 
+			}
 			write_itr_cfg_64b(LS7A_INT_CLEAR_REG, irq);
 			write_itr_cfg_64b( LOONGARCH_IOCSR_EXTIOI_ISR_BASE, irq );
 			// if ( irq )

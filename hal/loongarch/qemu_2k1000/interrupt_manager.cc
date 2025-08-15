@@ -107,7 +107,10 @@ namespace loongarch
 				// hsai_warn( "uart intr not implement" );
 				_uart0->handle_intr();
 			}
-			if ( irq & itr_bit_sata_m ) { _sata->handle_intr(); }
+			if ( irq & itr_bit_sata_m ) { 
+				k_im.increase_intr_count(irq);
+				_sata->handle_intr(); 
+			}
 			// if ( irq )
 			// {
 			// 	hsai_error( "unexpected interrupt irq=%d\n", irq );

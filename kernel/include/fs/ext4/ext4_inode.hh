@@ -44,6 +44,7 @@ namespace fs
 
 			virtual size_t readSubDir( ubuf &dst, size_t off ) override;
 			void		   setAttr( FileAttrs attrs ) { _attrs = attrs; }
+			FileAttrs      getAttr(){return _attrs;}
 
 		public:
 

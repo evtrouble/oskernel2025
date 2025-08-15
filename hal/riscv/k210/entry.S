@@ -1,6 +1,6 @@
     .section .text.osstartup
-    .globl _start
-_start:
+    .globl _entry
+_entry:
     # set up a stack for C.
     # entry_stack is declared in start.c,
     # with a 4096-byte stack per CPU.

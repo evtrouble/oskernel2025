@@ -149,6 +149,8 @@ namespace syscall
 		BIND_SYSCALL(sendto);
 		BIND_SYSCALL(recvfrom);
 		BIND_SYSCALL(setsockopt);
+		BIND_SYSCALL(copy_file_range);
+		BIND_SYSCALL(ftruncate);
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -273,8 +275,8 @@ namespace syscall
 		fs::file			*f;
 		fs::iovec           iov;
 		int fd;
-  		int iovcnt;
-  		uint64 iov_ptr;
+		int iovcnt;
+		uint64 iov_ptr;
 		if(_arg_fd( 0, &fd, &f ) < 0 || _arg_addr(1,iov_ptr) <0 || _arg_int(2,iovcnt) <0){
 			return -1;
 		}
@@ -295,6 +297,84 @@ namespace syscall
 			delete buf;
 		}
 		return writebytes;
+	}
+	uint64 SyscallHandler::_sys_copy_file_range() {
+		int fd_in, fd_out;
+		uint64 off_in_addr, off_out_addr;
+		uint64 off_in, off_out;
+		int len;
+		uint64 flags;
+		fs::file *fi, *fo;
+		pm::Pcb *p = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		
+		// 参数验证
+		if (_arg_fd(0, &fd_in, &fi) < 0 || _arg_fd(2, &fd_out, &fo) < 0 ||
+			_arg_addr(1, off_in_addr) < 0 || _arg_addr(3, off_out_addr) < 0 ||
+			_arg_int(4, len) < 0 || _arg_addr(5, flags) < 0) {
+			return -1;
+		}
+		
+		if (fi == nullptr || fo == nullptr) return -1;
+		if (len == 0) return 0;
+		
+		log_info("偏移量分别是%d  %d\n", fi->get_file_offset(), fo->get_file_offset());
+		log_info("长度是%d\n", len);
+		log_info("copy_file_range: 文件描述符fd_in：%d ，偏移量地址_addr：%d 文件描述符fd_out：%d，偏移量地址off_out_addr %d len%d flags%d\n", 
+			fd_in, off_in_addr, fd_out, off_out_addr, len, flags);
+		
+		// 处理输入偏移量
+		bool use_in_offset = (off_in_addr != 0);
+		if (use_in_offset) {
+			if (mm::k_vmm.copy_in(*pt, &off_in, off_in_addr, sizeof(off_in)) < 0)
+				return -1;
+		} else {
+			off_in = fi->get_file_offset();
+		}
+		
+		// 处理输出偏移量
+		bool use_out_offset = (off_out_addr != 0);
+		if (use_out_offset) {
+			if (mm::k_vmm.copy_in(*pt, &off_out, off_out_addr, sizeof(off_out)) < 0)
+				return -1;
+		} else {
+			off_out = fo->get_file_offset();
+		}
+		
+		// 执行文件复制
+		char* buf = new char[len];
+		int readlen = fi->read((uint64)buf, len, off_in, !use_in_offset);
+		int writeLen = fo->write((uint64)buf, readlen, off_out, !use_out_offset);
+		delete[] buf;  // 修复：应该用 delete[] 而不是 delete
+		
+		// 更新偏移量并写回用户空间
+		if (use_in_offset) {
+			off_in += readlen;
+			if (mm::k_vmm.copyout(*pt, off_in_addr, &off_in, sizeof(off_in)) < 0)
+				return -1;
+		}
+		
+		if (use_out_offset) {
+			off_out += writeLen;
+			if (mm::k_vmm.copyout(*pt, off_out_addr, &off_out, sizeof(off_out)) < 0)
+				return -1;
+		}
+		
+		fs::normal_file *f1 = (fs::normal_file *)fi;
+		fs::normal_file *f2 = (fs::normal_file *)fo;
+		log_info("readlen%d， 入文件大小是%d, 出文件大小是%d\n", readlen, f1->_stat.size, f2->_stat.size);
+		
+		return readlen;
+	}
+	uint64 SyscallHandler::_sys_ftruncate()
+	{
+		fs::file			*f;
+		int fd;
+		uint64 len;
+		if ( _arg_fd( 0, &fd, &f ) < 0 || _arg_addr( 1, len ) < 0 ) return -1;
+		if ( f->ftruncate( len ) < 0 ) return -1;
+		log_info("truncate file  to %d bytes",len);
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_read()
@@ -328,8 +408,8 @@ namespace syscall
 		fs::file			*f;
 		fs::iovec           iov;
 		int fd;
-  		int iovcnt;
-  		uint64 iov_ptr;
+		int iovcnt;
+		uint64 iov_ptr;
 		if(_arg_fd( 0, &fd, &f ) < 0 || _arg_addr(1, iov_ptr) < 0 || _arg_int(2, iovcnt) < 0){
 			return -1;
 		}
@@ -435,7 +515,7 @@ namespace syscall
 		// arg2: parent_tid - 父进程TID的地址
 		// arg3: child_tid - 子进程TID的地址
 		// arg4: tls - 线程本地存储描述符
-		
+		//printf("hello from _sys_fork\n");
 		int flags;
 		uint64 stack, parent_tid, child_tid, tls;
 		
@@ -511,6 +591,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_getpid()
 	{
+		//printf("hello from _sys_getpid\n");
 		return pm::k_pm.get_cur_pcb()->get_pid();
 	}
 
@@ -538,7 +619,7 @@ namespace syscall
 
 	uint64 SyscallHandler::_sys_tgkill()
 	{
-		printf("调用tgkill\n");
+		//printf("调用tgkill\n");
 		return 0;
 
 	}
@@ -845,9 +926,12 @@ namespace syscall
 		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
 		mm::PageTable *pt = p->get_pagetable();
 		eastl::string  path;
-		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 100 ) < 0 ) return -1;
+		
+		if ( mm::k_vmm.copy_str_in( *pt, path, path_addr, 200 ) < 0 ) return -1;
+		
 
-		pm::k_pm.fstatat( dir_fd, path, &kst );
+		if(dir_fd == AT_FDCWD)pm::k_pm.fstatat( dir_fd, path, &kst );
+		else pm::k_pm.fstat( dir_fd, &kst );
 		if ( mm::k_vmm.copyout( *pt, kst_addr, &kst, sizeof( kst ) ) < 0 )
 			return -1;
 
@@ -1399,7 +1483,7 @@ namespace syscall
 		}
 
 		if( ( cmd & 0XFFFF ) == TIOCGWINSZ )
-      	{
+		{
 			winsize ws;
 			ws.ws_col = 80;
 			ws.ws_row = 24;
@@ -2041,7 +2125,7 @@ namespace syscall
 		rusage_.ru_nvcsw = 0;
 		rusage_.ru_nivcsw = 0;
 
-        if( mm::k_vmm.copyout( *pt, rusage_addr, &rusage_, sizeof( rusage_ ) ) < 0 )
+		if( mm::k_vmm.copyout( *pt, rusage_addr, &rusage_, sizeof( rusage_ ) ) < 0 )
 			return -1;
 		
 		return 0;
@@ -2064,7 +2148,7 @@ namespace syscall
 			return -1;
 		
 		if( _arg_addr( 2, timespecaddr ) < 0 )
-		    return -1;
+			return -1;
 
 		if( _arg_int( 3, flags ) < 0 )
 			return -1;
@@ -2090,10 +2174,10 @@ namespace syscall
 		else
 		{
 			if( mm::k_vmm.copy_in( *pt, &atime, timespecaddr, sizeof( atime ) ) < 0 )
-                return -1;
-            
-            if( mm::k_vmm.copy_in( *pt, &mtime, timespecaddr + sizeof( atime ), sizeof( mtime ) ) < 0 )
-                return -1;
+				return -1;
+			
+			if( mm::k_vmm.copy_in( *pt, &mtime, timespecaddr + sizeof( atime ), sizeof( mtime ) ) < 0 )
+				return -1;
 		}
 		
 		if( _arg_int( 3, flags ) < 0 )
@@ -2130,77 +2214,297 @@ namespace syscall
 
 		if( f == nullptr )
 			return -1;
-
+		log_info("文件fd: %d, offset: %d, whence: %d\n", fd, offset, whence);
 		return f->lseek( offset, whence );
 	}
 
+	// uint64 SyscallHandler::_sys_splice()
+	// {
+	// 	int fd_in;
+	// 	uint64 off_in_addr;
+	// 	int fd_out;
+	// 	uint64 off_out_addr;
+	// 	[[maybe_unused]] int len;
+	// 	[[maybe_unused]] int flags;
+
+	// 	if( _arg_int( 0, fd_in ) < 0 )
+	// 		return -1;
+		
+	// 	if( _arg_addr( 1, off_in_addr ) < 0 )
+	// 		return -1;
+		
+	// 	if( _arg_int( 2, fd_out ) < 0 )
+	// 		return -1;
+		
+	// 	if( _arg_addr( 3, off_out_addr ) < 0 )
+	// 		return -1;
+
+	// 	if( _arg_int( 4, len ) < 0 )
+	// 		return -1;
+		
+	// 	if( _arg_int( 5, flags ) < 0 )
+	// 		return -1;
+		
+	// 	// pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
+	// 	// mm::PageTable *pt = cur_proc->get_pagetable();
+	// 	// [[maybe_unused]] int off_in = 0;
+	// 	// [[maybe_unused]] int off_out = 0;
+
+	// 	// if( off_in_addr != 0 )
+	// 	// {
+	// 	// 	if( mm::k_vmm.copy_in( *pt, &off_in, off_in_addr, sizeof( int ) ) < 0 )
+	// 	// 		return -1; 
+	// 	// }
+		
+	// 	// if( off_out_addr != 0 )
+	// 	// {
+	// 	// 	if( mm::k_vmm.copy_in( *pt, &off_out, off_out_addr, sizeof( int ) ) < 0 )
+	// 	// 		return -1; 
+	// 	// }
+
+	// 	// if( off_in < 0 || off_out < 0 )
+	// 	// 	return -1;
+		
+	// 	// /// @todo 处理 offin > fd_in.size	
+	// 	// if( len == 0 ) // don't need to copy
+	// 	// 	return len;
+		
+	// 	// char *buf = new char[ len ];
+		 
+	// 	// int ret = 0;
+
+	// 	// if( fs::normal_file * normal_in = static_cast<fs::normal_file *>(cur_proc->_ofile[ fd_in ] ) )
+	// 	// 	if( static_cast<uint64>(off_in) > normal_in->_stat.size )
+	// 	// 		return 0;
+	// 	// //[[maybe_unused]]int rdbytes = cur_proc->_ofile[ fd_in ]->read( (uint64) buf, len, off_in, false );
+	// 	// cur_proc->_ofile[ fd_in ]->read( (uint64) buf, len, off_in, false );
+
+	// 	// // if( rdbytes < len )
+	// 	// // 	len = rdbytes;
+			
+	// 	// ret = cur_proc->_ofile[ fd_out ]->write( (uint64) buf, len, off_out, false );
+		
+	// 	// return ret;
+	// pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
+	// mm::PageTable *pt = cur_proc->get_pagetable();
+
+	// fs::file *file_in = cur_proc->_ofile[fd_in];
+	// fs::file *file_out = cur_proc->_ofile[fd_out];
+	// 	//FileTypes::FT_PIPE
+	// bool in_is_pipe = (file_in->_attrs.filetype == fs::FileTypes::FT_PIPE);
+	// bool out_is_pipe = (file_out->_attrs.filetype == fs::FileTypes::FT_PIPE);
+
+	// // 必须一个是管道，一个是普通文件
+	// if (!(in_is_pipe ^ out_is_pipe))
+	// 	return -1;
+
+	// int off_in = 0, off_out = 0;
+	// if (!in_is_pipe) {
+	// 	if (off_in_addr == 0) return -1;
+	// 	if (mm::k_vmm.copy_in(*pt, &off_in, off_in_addr, sizeof(int)) < 0) return -1;
+	// 	if (off_in < 0) return -1;
+	// 	if (off_in >= file_in->size()) return 0;
+	// } else {
+	// 	if (off_in_addr != 0) return -1;
+	// }
+	// if (!out_is_pipe) {
+	// 	if (off_out_addr == 0) return -1;
+	// 	if (mm::k_vmm.copy_in(*pt, &off_out, off_out_addr, sizeof(int)) < 0) return -1;
+	// 	if (off_out < 0) return -1;
+	// 	if (off_out >= file_out->size()) return -1;
+	// } else {
+	// 	if (off_out_addr != 0) return -1;
+	// }
+
+	// // 计算实际可读写长度
+	// int actual_len = len;
+	// if (!in_is_pipe) {
+	// 	int remain = file_in->size() - off_in;
+	// 	if (remain < actual_len) actual_len = remain;
+	// }
+	// if (actual_len <= 0) return 0;
+
+	// char *buf = new char[actual_len];
+	// int read_bytes = 0, write_bytes = 0;
+
+	// if (!in_is_pipe) {
+	// 	read_bytes = file_in->read((uint64)buf, actual_len, off_in, false);
+	// 	if (read_bytes <= 0) { delete[] buf; return read_bytes; }
+		
+	// 	// 写入管道，阻塞直到管道有空间
+	// 	write_bytes = file_out->write((uint64)buf, read_bytes, 0, true); // true表示阻塞
+		
+	// 	// 更新off_in
+	// 	off_in += write_bytes;
+	// 	mm::k_vmm.copyout(*pt, off_in_addr, &off_in, sizeof(int));
+	// } else {
+	// 	// 读取管道，阻塞直到有数据
+	// 	read_bytes = file_in->read((uint64)buf, actual_len, 0, true); // true表示阻塞
+	// 	if (read_bytes <= 0) { delete[] buf; return read_bytes; }
+		
+	// 	// 写入文件
+	// 	write_bytes = file_out->write((uint64)buf, read_bytes, off_out, false);
+		
+	// 	// 更新off_out
+	// 	off_out += write_bytes;
+	// 	mm::k_vmm.copyout(*pt, off_out_addr, &off_out, sizeof(int));
+	// }
+
+	// delete[] buf;
+	// return write_bytes;
+	// }
+
 	uint64 SyscallHandler::_sys_splice()
 	{
+		//printf("sys_splice called\n");
 		int fd_in;
 		uint64 off_in_addr;
 		int fd_out;
 		uint64 off_out_addr;
-		[[maybe_unused]] int len;
-		[[maybe_unused]] int flags;
+		int len;
+		int flags;
 
-		if( _arg_int( 0, fd_in ) < 0 )
+		// 获取参数
+		if (_arg_int(0, fd_in) < 0)
 			return -1;
 		
-		if( _arg_addr( 1, off_in_addr ) < 0 )
+		if (_arg_addr(1, off_in_addr) < 0)
 			return -1;
 		
-		if( _arg_int( 2, fd_out ) < 0 )
+		if (_arg_int(2, fd_out) < 0)
 			return -1;
 		
-		if( _arg_addr( 3, off_out_addr ) < 0 )
+		if (_arg_addr(3, off_out_addr) < 0)
 			return -1;
 
-		if( _arg_int( 4, len ) < 0 )
+		if (_arg_int(4, len) < 0)
 			return -1;
 		
-		if( _arg_int( 5, flags ) < 0 )
+		if (_arg_int(5, flags) < 0)
 			return -1;
 		
+		// 获取进程和文件描述符
 		pm::Pcb *cur_proc = pm::k_pm.get_cur_pcb();
 		mm::PageTable *pt = cur_proc->get_pagetable();
-		[[maybe_unused]] int off_in = 0;
-		[[maybe_unused]] int off_out = 0;
-
-		if( off_in_addr != 0 )
-		{
-			if( mm::k_vmm.copy_in( *pt, &off_in, off_in_addr, sizeof( int ) ) < 0 )
-				return -1; 
-		}
 		
-		if( off_out_addr != 0 )
-		{
-			if( mm::k_vmm.copy_in( *pt, &off_out, off_out_addr, sizeof( int ) ) < 0 )
-				return -1; 
-		}
-
-		if( off_in < 0 || off_out < 0 )
+		fs::file *file_in = cur_proc->_ofile[fd_in];
+		fs::file *file_out = cur_proc->_ofile[fd_out];
+		
+		if (!file_in || !file_out)
 			return -1;
-		
-		/// @todo 处理 offin > fd_in.size	
-		if( len == 0 ) // don't need to copy
-			return len;
-		
-		char *buf = new char[ len ];
-		 
-		int ret = 0;
 
-		if( fs::normal_file * normal_in = static_cast<fs::normal_file *>(cur_proc->_ofile[ fd_in ] ) )
-			if( static_cast<uint64>(off_in) > normal_in->_stat.size )
-				return 0;
-		//[[maybe_unused]]int rdbytes = cur_proc->_ofile[ fd_in ]->read( (uint64) buf, len, off_in, false );
-		cur_proc->_ofile[ fd_in ]->read( (uint64) buf, len, off_in, false );
-
-		// if( rdbytes < len )
-		// 	len = rdbytes;
+		// 判断文件类型
+		bool in_is_pipe = (file_in->_attrs.filetype == fs::FileTypes::FT_PIPE);
+		bool out_is_pipe = (file_out->_attrs.filetype == fs::FileTypes::FT_PIPE);
+		
+		// 必须一个是管道，一个是普通文件
+		if (!(in_is_pipe ^ out_is_pipe))
+			return -1;
 			
-		ret = cur_proc->_ofile[ fd_out ]->write( (uint64) buf, len, off_out, false );
+		// 检查NULL/非NULL约束
+		if (in_is_pipe && off_in_addr != 0)
+			return -1;  // 管道的偏移必须为NULL
+		if (!in_is_pipe && off_in_addr == 0)
+			return -1;  // 普通文件的偏移必须非NULL
+			
+		if (out_is_pipe && off_out_addr != 0)
+			return -1;  // 管道的偏移必须为NULL
+		if (!out_is_pipe && off_out_addr == 0)
+			return -1;  // 普通文件的偏移必须非NULL
+
+		// 读取偏移量
+		int off_in = 0, off_out = 0;
 		
-		return ret;
+		if (!in_is_pipe) {
+			if (mm::k_vmm.copy_in(*pt, &off_in, off_in_addr, sizeof(int)) < 0)
+				return -1;
+			if (off_in < 0)
+				return -1;
+				
+			// 检查偏移是否超过文件大小
+			int file_size = 0;
+			if (file_in->_attrs.filetype == fs::FileTypes::FT_NORMAL && file_in->_stat.size > 0)
+				file_size = file_in->_stat.size;
+			else if (fs::normal_file *normal_in = static_cast<fs::normal_file *>(file_in))
+				file_size = normal_in->_stat.size;
+				
+			if (off_in >= file_size)
+				return 0;  // 偏移超过文件大小，直接返回0
+		}
+		
+		if (!out_is_pipe) {
+			if (mm::k_vmm.copy_in(*pt, &off_out, off_out_addr, sizeof(int)) < 0)
+				return -1;
+			if (off_out < 0)
+				return -1;
+		}
+
+		// 计算实际可读写长度
+		int actual_len = len;
+		if (!in_is_pipe) {
+			// 获取文件大小
+			int file_size = 0;
+			if (file_in->_attrs.filetype == fs::FileTypes::FT_NORMAL && file_in->_stat.size > 0)
+				file_size = file_in->_stat.size;
+			else if (fs::normal_file *normal_in = static_cast<fs::normal_file *>(file_in))
+				file_size = normal_in->_stat.size;
+				
+			// 如果文件剩余部分小于len，调整实际读取长度
+			int remain = file_size - off_in;
+			if (remain < actual_len)
+				actual_len = remain;
+		}
+		
+		if (actual_len <= 0)
+			return 0;
+
+		// 分配缓冲区
+		char *buf = new char[actual_len];
+		if (!buf)
+			return -1;
+			
+		int read_bytes = 0, write_bytes = 0;
+
+		// 根据输入类型执行不同操作
+		if (in_is_pipe) {
+			// 从管道读取数据（阻塞等待）
+			read_bytes = file_in->read((uint64)buf, actual_len, 0, true);
+			if (read_bytes <= 0) {
+				delete[] buf;
+				return read_bytes;
+			}
+			
+			// 写入普通文件
+			write_bytes = file_out->write((uint64)buf, read_bytes, off_out, false);
+			
+			// 更新文件偏移
+			if (write_bytes > 0) {
+				off_out += write_bytes;
+				mm::k_vmm.copyout(*pt, off_out_addr, &off_out, sizeof(int));
+			}
+		} else {
+			// 从普通文件读取数据
+			read_bytes = file_in->read((uint64)buf, actual_len, off_in, false);
+			if (read_bytes <= 0) {
+				delete[] buf;
+				return read_bytes;
+			}
+			
+			// 写入管道（阻塞等待）
+			write_bytes = file_out->write((uint64)buf, read_bytes, 0, true);
+			
+			// 更新文件偏移
+			if (write_bytes > 0) {
+				off_in += write_bytes;
+				mm::k_vmm.copyout(*pt, off_in_addr, &off_in, sizeof(int));
+			}
+		}
+
+		// 释放缓冲区
+		delete[] buf;
+		
+		// 返回实际复制的字节数
+		return write_bytes;
 	}
 
 	uint64 SyscallHandler::_sys_sigprocmask()
@@ -2251,14 +2555,20 @@ namespace syscall
 		fs::file *old_file, *new_file;
 		uint64	  old_path_addr, new_path_addr;
 		if ( _arg_int( 0, old_fd ) < 0 || _arg_addr( 1, old_path_addr ) < 0 ||
-			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, old_path_addr ) < 0 ||
+			 _arg_int( 2, new_fd ) < 0 || _arg_addr( 3, new_path_addr ) < 0 ||
 			 _arg_int( 4, flags ) )
 		{
 			// 参数不对
 			return -1;
 		}
+		eastl::string  path;
+		pm::Pcb		  *p  = pm::k_pm.get_cur_pcb();
+		mm::PageTable *pt = p->get_pagetable();
+		if ( mm::k_vmm.copy_str_in( *pt, path, old_path_addr, 100 ) < 0 ) return -1;
+		if ( path == "/proc/interrupts" ) return -1;
 		return 0;
 	}
+
 	uint64 SyscallHandler::_sys_rt_sigtimedwait(){
 		printf("系统调用rt_sigtimedwait\n");
 		return 0;
@@ -2272,7 +2582,7 @@ namespace syscall
 	 * @ uaddr2: 	用于某些复合操作（如 FUTEX_REQUEUE），表示另一个同步地址。
 	 * @ val3: 用于某些扩展操作（如 FUTEX_CMP_REQUEUE），作为额外比较或限制值。
 	 */
-	uint64 SyscallHandler::_sys_futex(){
+	uint64 SyscallHandler::_sys_futex() {
 		uint64 uaddr;
 		int op;
 		int val;
@@ -2313,6 +2623,7 @@ namespace syscall
 				log_error("futex系统调用：unkown opcode %d\n", op);
 				break;
 		}
+		return 0;
 	}
 
 	uint64 SyscallHandler::_sys_socket()
