@@ -151,6 +151,8 @@ namespace syscall
 		BIND_SYSCALL(setsockopt);
 		BIND_SYSCALL(copy_file_range);
 		BIND_SYSCALL(ftruncate);
+		BIND_SYSCALL(sync);
+		BIND_SYSCALL(fsync);
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -290,11 +292,11 @@ namespace syscall
 			expected+=tempLength;
 			char*buf=new char[tempLength+10];
 			if(mm::k_vmm.copy_in(*pt,(void*)buf,(uint64)iov.iov_base,tempLength)<0){
-				delete buf;
+				delete []buf;
 				return -1;
 			}
 			writebytes+= f->write( (ulong) buf, tempLength, f->get_file_offset(), true );
-			delete buf;
+			delete []buf;
 		}
 		return writebytes;
 	}
@@ -2833,6 +2835,22 @@ namespace syscall
 		// 返回错误码 -EBADF (无效的文件描述符)
 		// 因为socket()已经返回错误，所以sockfd无效
 		return -9; // -EBADF
+	}
+	uint64 SyscallHandler::_sys_sync()
+	{
+		return 0;
+	}
+	uint64 SyscallHandler::_sys_fsync()
+	{
+		int fd;
+		fs::file			*f;
+		if ( _arg_fd( 0, &fd, &f ) < 0 ) return -1;
+		// fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
+		//  eastl::string filename = normal_f->getDentry()->rName();
+		//  printf("同步名字是%s",filename.c_str());
+		 return 0;
+
+		
 	}
 
 	uint64 SyscallHandler::_sys_setsockopt()

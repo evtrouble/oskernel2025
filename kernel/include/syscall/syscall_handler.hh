@@ -151,8 +151,10 @@ namespace syscall
 		uint64 _sys_sendto();
 		uint64 _sys_recvfrom();
 		uint64 _sys_setsockopt();
+		uint64 _sys_sync();
 		uint64 _sys_copy_file_range();
 		uint64 _sys_ftruncate();
+		uint64 _sys_fsync();
 	};
 
 	extern SyscallHandler k_syscall_handler;

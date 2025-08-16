@@ -149,6 +149,7 @@ namespace pm
 
 		uint64 _heap_start = 0; // 堆起始地址，为程序数据段结束后向上对齐页地址
 		uint64 _heap_ptr   = 0; // 堆结束指针
+		uint64  vma_start  = 0x60000000;
 
 		// vm
 		vma vm[max_vma_num]; // virtual memory area <<<<<<<<<<<<<<<<<< what??? Could ONE process has several vm space?

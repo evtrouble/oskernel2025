@@ -1,0 +1,40 @@
+# 初赛
+qemu-system-loongarch64 -kernel kernel-la -m 1G -nographic -smp 1 -drive file=sdcard-la.img,if=none,format=raw,id=x0 -device virtio-blk-pci,drive=x0 -no-reboot -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -rtc base=utc 
+
+
+qemu-system-riscv64 -machine virt -kernel kernel-rv -m 1G -nographic -smp 1 -bios default -drive file=sdcard-rv.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 -no-reboot -device virtio-net-device,netdev=net -netdev user,id=net -rtc base=utc
+
+
+binzc@lojsnve:~/code/OsCode/oskernel2025$ qemu-riscv64-static -L /home/binzc/code/OsCode/oskernel2025/tempRv/musl /home/binzc/code/OsCode/oskernel2025/tempRv/musl/iozone  -a -r 1k -s 4m
+        Iozone: Performance Test of File I/O
+                Version $Revision: 3.506 $
+                Compiled for 64 bit mode.
+                Build: linux 
+
+        Contributors:William Norcott, Don Capps, Isom Crawford, Kirby Collins
+                     Al Slater, Scott Rhine, Mike Wisner, Ken Goss
+                     Steve Landherr, Brad Smith, Mark Kelly, Dr. Alain CYR,
+                     Randy Dunlap, Mark Montague, Dan Million, Gavin Brebner,
+                     Jean-Marc Zucconi, Jeff Blomberg, Benny Halevy, Dave Boone,
+                     Erik Habbinga, Kris Strecker, Walter Wong, Joshua Root,
+                     Fabrice Bacchella, Zhenghua Xue, Qin Li, Darren Sawyer,
+                     Vangel Bojaxhi, Ben England, Vikentsi Lapa,
+                     Alexey Skidanov, Sudhir Kumar.
+
+        Run began: Sat Aug 16 01:19:20 2025
+
+        Auto Mode
+        Record Size 1 kB
+        File size set to 4096 kB
+        Command line used: /home/binzc/code/OsCode/oskernel2025/tempRv/musl/iozone -a -r 1k -s 4m
+        Output is in kBytes/sec
+        Time Resolution = 0.000001 seconds.
+        Processor cache size set to 1024 kBytes.
+        Processor cache line size set to 32 bytes.
+        File stride size set to 17 * record size.
+                                                                    random    random      bkwd     record     stride                                        
+              kB  reclen    write    rewrite      read    reread      read     write      read    rewrite       read    fwrite  frewrite     fread   freread
+            4096       1    224058    375091    736423    574715    512253    286112    481312     330084     472106    337702    340513    486753    506993
+
+iozone test complete.
+binzc@lojsnve:~/code/OsCode/oskernel2025$ 

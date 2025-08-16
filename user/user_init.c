@@ -54,6 +54,12 @@ __attribute__(( section( ".user.init.data" ) )) const char	 start_test_musl_basi
 	"#### OS COMP TEST GROUP START basic-musl ####\n";
 __attribute__(( section( ".user.init.data" ) )) const char	 end_test_musl_basic[] =
 	"#### OS COMP TEST GROUP END basic-musl ####\n";
+  __attribute__(( section( ".user.init.data" ) )) const char	 start_test_iozone[] =
+	"#### OS COMP TEST GROUP START iozone-musl ####\n";
+  __attribute__(( section( ".user.init.data" ) )) const char	 test_iozone_1[] =
+	"iozone automatic measurements\n";
+__attribute__(( section( ".user.init.data" ) )) const char	 end_test_iozone[] =
+	"#### OS COMP TEST GROUP END iozone-musl ####\n";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_lua[]	 =
 // "lua_testcode.sh";
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_test_libctest[]	 =
@@ -129,15 +135,18 @@ __attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm2[]	 = "
 __attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm3[]	 = "1k";
 __attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm4[]	 = "-s";
 __attribute__( ( section( ".user.init.data" ) ) ) const char iozone_parm5[]	 = "4m";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char echo_name[] = "echo";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char cat_name[]	 = "cat";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char hello_busybox_str[] =
-// 	"hello, busybox!\n";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char busybox_testcode_str[] =
-// 	"/mnt/sdcard/busybox_testcode.sh";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char test_sh_str[] = "/mnt/sdcard/test.sh";
-// __attribute__( ( section( ".user.init.data" ) ) ) const char lua_test_sh[] =
-// 	"/mnt/sdcard/lua/test.sh";
+
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm1[]	 = "-t";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm2[]	 = "4";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm3[]	 = "-i";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm4[]	 = "0";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm5[]	 = "-i";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm6[]	 = "1";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm7[]	 = "-r";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm8[]	 = "1k";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm9[]	 = "-s";
+__attribute__( ( section( ".user.init.data" ) ) ) const char iozone_thread_parm10[]	 = "1m";
+
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_basic_path[] = "/mnt/musl/basic/";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_musl_path[] = "/mnt/musl/";
 __attribute__( ( section( ".user.init.data" ) ) ) const char test_glibc_basic_path[] = "/mnt/glibc/basic/";
@@ -559,7 +568,24 @@ int           test_local(void)
   bb_sh[4] = iozone_parm4;
   bb_sh[5] = iozone_parm5;
   bb_sh[6] = 0; 
+  // bb_sh[0] = iozone_path;
+  // bb_sh[1] = iozone_thread_parm1;
+  // bb_sh[2] = iozone_thread_parm2;
+  // bb_sh[3] = iozone_thread_parm3;
+  // bb_sh[4] = iozone_thread_parm4;
+  // bb_sh[5] = iozone_thread_parm5;
+  // bb_sh[6] = iozone_thread_parm6;
+  // bb_sh[7] = iozone_thread_parm7;
+  // bb_sh[8] = iozone_thread_parm8;
+  // bb_sh[9] = iozone_thread_parm9;
+  // bb_sh[10] = iozone_thread_parm10;
+  // bb_sh[11] = 0;
+
   RUN_TESTS(iozone_path, bb_sh);
+}
+int test_iozone_part(void)
+{
+
 }
 
   
@@ -592,15 +618,68 @@ int test_interrupt(void)
 
 int init_main( void )
 {
-	chdir(test_musl_path);
-  test_splice();
-  test_copy_file_range();
-  test_interrupt();
-  chdir( test_glibc_path );
-  test_splice();
-  test_copy_file_range();
-  test_interrupt();
-  poweroff();
+
+    // chdir(test_musl_path);
+    // test_local();
+    // chdir(test_glibc_path);
+    // test_local();
+  //   // ==========  吃内存的最后侧 ======
+
+  //   chdir(test_musl_path);
+  // #ifdef __riscv
+  //   //lmbench
+  //   test_lmbench();
+  // #endif
+  //   chdir(test_glibc_path);
+  // #ifdef __riscv
+  //   //lmbench
+  //   test_lmbench();
+  // #endif
+
+
+    chdir( test_musl_basic_path );
+    //basic测试
+    write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
+    basic_test();
+    write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
+    // 回到musl目录
+    chdir( back_path );
+    //lua测试
+    test_lua();
+    //busybox测试
+    test_busybox();
+    // libctest测试
+    test_libctest();
+  #ifdef __riscv
+    //lmbench
+    test_lmbench();
+  #endif
+    //测试 iozone
+    //  write( 1, start_test_iozone, sizeof( start_test_iozone ) );
+    //  write( 1, test_iozone_1, sizeof( test_iozone_1 ) );
+    // test_local();
+    // write( 1, end_test_iozone, sizeof( end_test_iozone ) );
+ 
+
+
+    chdir( test_glibc_basic_path );
+    //basic测试
+    write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
+    basic_test();
+    write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
+    //回到 glibc目录
+    chdir( back_path );
+    //lua测试
+    test_lua();
+    // busybox测试
+    test_busybox();
+ #ifdef __riscv
+    //lmbench
+    test_lmbench();
+  #endif
+
+
+    poweroff();
 
 
   while ( 1 );

@@ -259,6 +259,7 @@ namespace fs
 			}
 			
 			memcpy( (void *)src_, readcontent, read_len );
+			delete []readcontent;
 			return read_len;
 		}
 

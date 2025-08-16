@@ -198,9 +198,13 @@ namespace pm
 			ulong stackbase		 = mm::vm_ustack_end - stack_page_cnt * hsai::page_size;
 			mm::k_vmm.vm_unmap( p->_pt, stackbase - hsai::page_size, stack_page_cnt + 1, 1 );
 
-			ulong heapbase = p->_heap_start;
-			ulong heapsize = hsai::page_round_up( p->_heap_ptr - p->_heap_start );
-			mm::k_vmm.vm_unmap( p->_pt, heapbase, heapsize / hsai::page_size, 1 );
+
+			// printf("清理进程%d,当前进程heap_ptr为%p,堆开始区域%p\n",p->_pid,p->_heap_ptr,p->_heap_start);
+			{ // unmap heap
+				ulong start = hsai::page_round_down( p->_heap_start );
+				ulong end	= hsai::page_round_up( p->_heap_ptr );
+				mm::k_vmm.vm_unmap( p->_pt, start, ( end - start ) / hsai::page_size, 1 );
+			}
 			hsai::proc_free( p );
 			p->_pt.freewalk();
 		}
@@ -958,7 +962,7 @@ namespace pm
 		fs::Path path_resolver2( interpret_path );
 		elf::elfhdr	  elf_interp;
 		// 这个地方写死是有不足的，作者是彩笔，诸君可优化
-		uint64        interp_base=0x400000;
+		uint64        interp_base=0x500000;
 		elf::proghdr  ph_interp = {};
 		if ( ( de_interp = path_resolver2.pathSearch() ) == nullptr )
 		{
@@ -1048,6 +1052,7 @@ namespace pm
 		int stack_page_cnt = default_proc_ustack_pages;
 		stackbase		   = mm::vml::vm_ustack_end - stack_page_cnt * hsai::page_size;
 		sp				   = mm::vml::vm_ustack_end;
+		// printf("栈基地址为%p,sp指针为%p\n",stackbase,sp);
 
 		if ( mm::k_vmm.vm_alloc( new_pt, stackbase - hsai::page_size, sp ) == 0 )
 		{
@@ -2053,7 +2058,7 @@ namespace pm
 					}
 				}
 				// printf("解映射vm区域，id是%d,正在使用%d\n",i,p->vm[i].is_used);
-				uint64 oa= hsai::page_round_up(va);
+				uint64 oa= hsai::page_round_down(va);
 				uint64 npages = len / hsai::page_size;
 				mm::k_vmm.vm_unmap( p->_pt, oa, npages, 1 );
 				p->vm[i].address = 0;
@@ -2195,7 +2200,7 @@ namespace pm
 	long ProcessManager::brk( long n )
 	{
 		Pcb *p = get_cur_pcb(); // 输入参数	：期望的堆大小
-
+		// printf("当前进程是%d ,brk base is %p,  当前heptr is %p，预期 is %p\n",p->_pid,p->_heap_start, p->_heap_ptr,n);
 		if ( n <= 0 ) // get current heap size
 			return p->_heap_ptr;
 
@@ -2217,6 +2222,7 @@ namespace pm
 
 		// log_info( "brk: newsize%d, oldsize%d", newhp, oldhp );
 		p->_heap_ptr = newhp;
+		// printf("堆内存截止区域%#x\n",p->_heap_ptr);
 		return newhp; // 返回堆的大小
 	}
 
@@ -2462,6 +2468,100 @@ namespace pm
 		return 0;
 	}
 
+	// int ProcessManager::mmap( int fd, int prot, int flags, int map_size )
+	// {
+	// 	/// TODO: actually, it shall map buffer and pin buffer at memory
+
+	// 	Pcb *p = get_cur_pcb();
+	// 	fs::file *f;
+	// 	if ( fd == -1 )
+	// 	{
+	// 		f			 = nullptr;
+	// 		// 匿名映射
+	// 		uint64 fst	 = p->_sz;
+	// 		printf("mmap开始地址%#x,大小%#x\n",fst,map_size);
+	// 		uint64 fsz	 = (uint64) map_size;
+	// 		uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
+	// 		if ( newsz == 0 ) return -1;
+	// 		int i=0;
+	// 		for (; i < max_vma_num; i++ )
+	// 		{
+	// 			if ( !p->vm[i].is_used )
+	// 			{
+	// 				p->vm[i].is_used = true;
+	// 				p->vm[i].address = fst;
+	// 				p->vm[i].length	 = fsz;
+	// 				p->vm[i].vfile	 = nullptr; // 没有文件
+	// 				// printf("mmap系统调用分配内存起始地址是%p,记录映射号%d,使用情况%d\n",fst,i,p->vm[i].is_used);
+	// 				break;
+	// 			}
+	// 		}
+	// 		if ( i == max_vma_num ) {
+	// 			log_error("vma区域不够用了\n");
+	// 			return -1;
+	// 		}
+	// 		p->_sz = newsz;
+	// 		return fst;
+	// 	}
+	// 	else if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) { return -1; }
+	// 	else
+	// 	{
+	// 		f = p->_ofile[fd];
+	// 		if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
+
+	// 		fs::normal_file *normal_f = static_cast<fs::normal_file *>( f );
+	// 		fs::dentry		*dent	  = normal_f->getDentry();
+	// 		if ( dent == nullptr ) return -1;
+
+	// 		int	   i	 = 0;
+	// 		uint64 fst	 = p->_sz;
+	// 		uint64 fsz	 = (uint64) map_size;
+	// 		uint64 newsz = 0;
+	// 		for ( ; i < max_vma_num; i++ )
+	// 		{
+	// 			if ( !p->vm[i].is_used )
+	// 			{
+
+	// 				newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz,true );
+	// 				if ( newsz == 0 ) return -1;
+	// 				p->vm[i].is_used = true;
+
+	// 				p->vm[i].address = p->_sz;
+	// 				p->vm[i].length	 = map_size;
+	// 				p->vm[i].flags = flags;
+	// 				p->vm[i].prot = prot;
+	// 				p->vm[i].vfile	 = normal_f;
+	// 				normal_f->dup(); // 增加引用计数
+	// 				break;
+	// 				// p->vma[i].vfd = fd;
+	// 				// p->vma[i].offset = offset;
+
+	// 				// p->sz += length;
+
+	// 				// return p->vma[i].addr;
+	// 			}
+	// 		}
+	// 		if ( i == max_vma_num ) {
+	// 			log_error("vma区域不够用了\n");
+	// 			return -1;
+	// 		}
+
+	// 		p->_sz = newsz;
+
+	// 		char *buf = new char[fsz + 1];
+	// 		dent->getNode()->nodeRead( (uint64) buf, 0, fsz );
+
+	// 		if ( mm::k_vmm.copyout( p->_pt, fst, (const void *) buf, fsz ) < 0 )
+	// 		{
+	// 			delete[] buf;
+	// 			return -1;
+	// 		}
+
+	// 		delete[] buf;
+	// 		return fst;
+	// 	}
+	// }
+
 	int ProcessManager::mmap( int fd, int prot, int flags, int map_size )
 	{
 		/// TODO: actually, it shall map buffer and pin buffer at memory
@@ -2472,7 +2572,8 @@ namespace pm
 		{
 			f			 = nullptr;
 			// 匿名映射
-			uint64 fst	 = p->_sz;
+			uint64 fst	 = p->vma_start;
+			// printf("mmap开始地址%#x,大小%#x\n",fst,map_size);
 			uint64 fsz	 = (uint64) map_size;
 			uint64 newsz = mm::k_vmm.vm_alloc( p->_pt, fst, fst + fsz );
 			if ( newsz == 0 ) return -1;
@@ -2493,12 +2594,17 @@ namespace pm
 				log_error("vma区域不够用了\n");
 				return -1;
 			}
-			p->_sz = newsz;
+			p->vma_start =hsai::page_round_up (newsz);
+			// printf("下次mmp地址为%#x\n",p->vma_start);
 			return fst;
 		}
-		else if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) { return -1; }
+		else if ( fd <= 2 || fd >= (int) max_open_files || map_size < 0 ) { 
+			printf("fd的值是%d\n",fd);
+			return -1; 
+		}
 		else
 		{
+			
 			f = p->_ofile[fd];
 			if ( f->_attrs.filetype != fs::FileTypes::FT_NORMAL ) return -1;
 
@@ -2507,7 +2613,8 @@ namespace pm
 			if ( dent == nullptr ) return -1;
 
 			int	   i	 = 0;
-			uint64 fst	 = p->_sz;
+			uint64 fst	 = p->vma_start;
+			// printf("文件映射mmap开始地址%#x,大小%#x\n",fst,map_size);
 			uint64 fsz	 = (uint64) map_size;
 			uint64 newsz = 0;
 			for ( ; i < max_vma_num; i++ )
@@ -2519,7 +2626,7 @@ namespace pm
 					if ( newsz == 0 ) return -1;
 					p->vm[i].is_used = true;
 
-					p->vm[i].address = p->_sz;
+					p->vm[i].address = fst;
 					p->vm[i].length	 = map_size;
 					p->vm[i].flags = flags;
 					p->vm[i].prot = prot;
@@ -2539,7 +2646,8 @@ namespace pm
 				return -1;
 			}
 
-			p->_sz = newsz;
+			p->vma_start =hsai::page_round_up (newsz);
+			// printf("下次mmp地址为%#x\n",p->vma_start);
 
 			char *buf = new char[fsz + 1];
 			dent->getNode()->nodeRead( (uint64) buf, 0, fsz );
@@ -2557,6 +2665,7 @@ namespace pm
 
 	int ProcessManager::mremap( uint64 oldaddr, uint64 oldsize, uint64 newsize)
 	{
+		log_panic("调用remap");
 		Pcb *p = get_cur_pcb();
 		int i=0;
 		uint64 fst = p->_sz;

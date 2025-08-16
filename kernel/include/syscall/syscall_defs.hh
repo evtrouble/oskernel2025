@@ -104,7 +104,8 @@ namespace syscall
 		_build_sysnum_enum_(clone3, 435),
 		_build_sysnum_enum_(copy_file_range, 285),
 		_build_sysnum_enum_(ftruncate, 46),
-		
+		_build_sysnum_enum_(sync, 81),
+		_build_sysnum_enum_(fsync, 82),
 	};
 
 #undef _build_sysnum_enum_
