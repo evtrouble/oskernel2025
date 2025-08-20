@@ -155,6 +155,11 @@ namespace syscall
 		uint64 _sys_copy_file_range();
 		uint64 _sys_ftruncate();
 		uint64 _sys_fsync();
+		uint64 _sys_shmget();
+		uint64 _sys_shmctl();
+		uint64 _sys_shmat();
+
+		
 	};
 
 	extern SyscallHandler k_syscall_handler;

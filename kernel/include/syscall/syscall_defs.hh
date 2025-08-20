@@ -106,6 +106,13 @@ namespace syscall
 		_build_sysnum_enum_(ftruncate, 46),
 		_build_sysnum_enum_(sync, 81),
 		_build_sysnum_enum_(fsync, 82),
+		_build_sysnum_enum_(shmget, 194),
+		_build_sysnum_enum_(shmctl, 195),
+		_build_sysnum_enum_(shmat, 196),
+
+		
+
+	
 	};
 
 #undef _build_sysnum_enum_

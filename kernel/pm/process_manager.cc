@@ -900,7 +900,9 @@ namespace pm
 					char interp_path[256] = {0}; 
 					de->getNode()->nodeRead((uint64)interp_path, ph.off, ph.filesz);
 					interp_path[ph.filesz] = '\0';
-					interpret_path = "/mnt/musl/lib/libc.so";
+					interpret_path = "/mnt/lib/libc.so";
+					printf("链接器路径%s",interp_path);
+					interpret_path = "/mnt"+eastl::string (interp_path);
 				}
 				if ( ph.type != elf::elfEnum::ELF_PROG_LOAD ) continue;
 				if ( ph.memsz < ph.filesz )
@@ -1038,10 +1040,11 @@ namespace pm
 				return -1;
 			}
 		}
-		//这地方是给程序打补丁，为什么DYN类型的argv[0]要求是程序名，而EXEC的不一样
+		// 这地方是给程序打补丁，为什么DYN类型的argv[0]要求是程序名，而EXEC的不一样
 		if(elf.type == elf::ET_DYN){
-			argv.insert(argv.begin(), "/lib/ld-musl-riscv64-sf.so.1");
+			argv.insert(argv.begin(), "what can i say");
 		}
+		envs.insert(envs.begin(),"LD_LIBRARY_PATH=/mnt/usr/lib:/mnt/lib");
 		
 		// allocate two pages , the second is used for the user stack
 

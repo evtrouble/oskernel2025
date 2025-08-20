@@ -156,7 +156,14 @@ __attribute__(( section( ".user.init.data.p" ) )) const char *bb_sh[8]		 = { 0 }
 __attribute__(( section( ".user.init.data" ) )) const char	  busybox_path[] = "busybox";
 __attribute__(( section( ".user.init.data" ) )) const char	  runtest_path[] = "./runtest.exe";
 __attribute__(( section( ".user.init.data" ) )) const char	  iozone_path[] = "./iozone";
-__attribute__(( section( ".user.init.data" ) )) const char	  ld_path[] = "/mnt/musl/lib/libc.so";
+__attribute__(( section( ".user.init.data" ) )) const char	  ld_path[] = "/musl/lib/libc.so";
+__attribute__(( section( ".user.init.data" ) )) const char	  gcc_path_la[] = "/mnt/usr/bin/loongarch64-alpine-linux-musl-gcc";
+__attribute__(( section( ".user.init.data" ) )) const char	  gcc_path_rv[] = "/mnt/usr/bin/riscv64-alpine-linux-musl-gcc";
+__attribute__(( section( ".user.init.data" ) )) const char	  site_echo_path[] = "/mnt/bin/write";
+__attribute__(( section( ".user.init.data" ) )) const char	  HelloWorld[] = "/mnt/hello.c";
+__attribute__(( section( ".user.init.data" ) )) const char	  help[] = "--h";
+__attribute__(( section( ".user.init.data" ) )) const char	  help1[] = "-h";
+__attribute__(( section( ".user.init.data" ) )) const char	  rust_path[] = "/mnt/usr/bin/rustc";
 // __attribute__(( section( ".user.init.data.p" ) )) const char	busybox_path[]		 = "busybox";
 
 // __attribute__( ( section( ".user.init.data" ) ) ) const char exec_libcbench[] = "libc-bench";
@@ -240,6 +247,8 @@ int     test_copy_file_range(void) __attribute__( ( section( ".user.init" ) ) );
 int     test_splice( void ) __attribute__( ( section( ".user.init" ) ) );
 int     test_interrupt(void) __attribute__( ( section( ".user.init" ) ) );
 int			test_iozone( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_gcc( void ) __attribute__( ( section( ".user.init" ) ) );
+int			test_rust( void ) __attribute__( ( section( ".user.init" ) ) );
 int			test_busybox( void ) 
 {
 	__attribute__(( __unused__ )) int pid;
@@ -558,31 +567,7 @@ int           test_libctest(void)
   }
   write( 1, libctest_end, sizeof( libctest_end ) );
 }
-int           test_local(void)
-{	
-	__attribute__(( __unused__ )) int pid;
-	bb_sh[0] =iozone_path;
-	bb_sh[1] = iozone_parm1;
-	bb_sh[2] = iozone_parm2;
-	bb_sh[3] = iozone_parm3;
-  bb_sh[4] = iozone_parm4;
-  bb_sh[5] = iozone_parm5;
-  bb_sh[6] = 0; 
-  // bb_sh[0] = iozone_path;
-  // bb_sh[1] = iozone_thread_parm1;
-  // bb_sh[2] = iozone_thread_parm2;
-  // bb_sh[3] = iozone_thread_parm3;
-  // bb_sh[4] = iozone_thread_parm4;
-  // bb_sh[5] = iozone_thread_parm5;
-  // bb_sh[6] = iozone_thread_parm6;
-  // bb_sh[7] = iozone_thread_parm7;
-  // bb_sh[8] = iozone_thread_parm8;
-  // bb_sh[9] = iozone_thread_parm9;
-  // bb_sh[10] = iozone_thread_parm10;
-  // bb_sh[11] = 0;
 
-  RUN_TESTS(iozone_path, bb_sh);
-}
 int test_iozone_part(void)
 {
 
@@ -616,69 +601,46 @@ int test_interrupt(void)
     RUN_TESTS( busybox_path, bb_sh );
 }
 
+int           test_gcc(void)
+{
+    __attribute__(( __unused__ )) int pid;
+    #ifdef LOONGARCH
+    bb_sh[0] = gcc_path_la;
+    bb_sh[1] = help;
+    bb_sh[2] = 0   ;
+    RUN_TESTS(gcc_path_la,bb_sh);
+    #else
+    bb_sh[0] = gcc_path_rv;
+    bb_sh[1] = help;
+    bb_sh[2] = 0   ;
+    RUN_TESTS(gcc_path_rv,bb_sh);
+    #endif
+
+
+  
+}
+int           test_rust(void)
+{
+    __attribute__(( __unused__ )) int pid;
+    bb_sh[0] = rust_path;
+    bb_sh[1] = help1;
+    bb_sh[2] = 0   ;
+    RUN_TESTS(rust_path,bb_sh);
+  
+}
+
+int           test_local(void)
+{	
+	__attribute__(( __unused__ )) int pid;
+  
+
+}
+
 int init_main( void )
 {
 
-    // chdir(test_musl_path);
-    // test_local();
-    // chdir(test_glibc_path);
-    // test_local();
-  //   // ==========  吃内存的最后侧 ======
-
-  //   chdir(test_musl_path);
-  // #ifdef __riscv
-  //   //lmbench
-  //   test_lmbench();
-  // #endif
-  //   chdir(test_glibc_path);
-  // #ifdef __riscv
-  //   //lmbench
-  //   test_lmbench();
-  // #endif
-
-
-    chdir( test_musl_basic_path );
-    //basic测试
-    write( 1, start_test_musl_basic, sizeof( start_test_musl_basic ) );
-    basic_test();
-    write( 1, end_test_musl_basic, sizeof( end_test_musl_basic ) );
-    // 回到musl目录
-    chdir( back_path );
-    //lua测试
-    test_lua();
-    //busybox测试
-    test_busybox();
-    // libctest测试
-    test_libctest();
-  #ifdef __riscv
-    //lmbench
-    test_lmbench();
-  #endif
-    //测试 iozone
-    //  write( 1, start_test_iozone, sizeof( start_test_iozone ) );
-    //  write( 1, test_iozone_1, sizeof( test_iozone_1 ) );
-    // test_local();
-    // write( 1, end_test_iozone, sizeof( end_test_iozone ) );
- 
-
-
-    chdir( test_glibc_basic_path );
-    //basic测试
-    write( 1, start_test_glibc_basic, sizeof( start_test_glibc_basic ) );
-    basic_test();
-    write( 1, end_test_glibc_basic, sizeof( end_test_glibc_basic ) );
-    //回到 glibc目录
-    chdir( back_path );
-    //lua测试
-    test_lua();
-    // busybox测试
-    test_busybox();
- #ifdef __riscv
-    //lmbench
-    test_lmbench();
-  #endif
-
-
+    test_gcc();
+    // test_rust();
     poweroff();
 
 

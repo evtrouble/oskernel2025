@@ -153,6 +153,9 @@ namespace syscall
 		BIND_SYSCALL(ftruncate);
 		BIND_SYSCALL(sync);
 		BIND_SYSCALL(fsync);
+		BIND_SYSCALL(shmget);
+		BIND_SYSCALL(shmctl);
+		BIND_SYSCALL(shmat);
 	}
 
 	uint64 SyscallHandler::invoke_syscaller( uint64 sys_num )
@@ -2883,4 +2886,17 @@ namespace syscall
 		// 因为socket()已经返回错误，所以sockfd无效
 		return -9; // -EBADF
 	}
+	uint64 SyscallHandler::_sys_shmget()
+	{
+
+	}
+	uint64 SyscallHandler::_sys_shmat()
+	{
+		
+	}
+	uint64 SyscallHandler::_sys_shmctl()
+	{
+		
+	}
+
 } // namespace syscall
